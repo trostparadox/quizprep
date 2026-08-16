@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizPrep · Entrepreneurship</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFAF6; --card:#FFFFFF; --ink:#1C2A3A; --ink-soft:#4A5A6E; --line:#E3E1D8;
+  --brand:#0E5A4A; --brand-soft:#E4EFEA; --hilite:#F5D34C; --hilite-soft:#FBF0C4;
+  --ok:#2E7D4F; --ok-soft:#E5F2E9; --no:#B3402A; --no-soft:#F8E8E3;
+  --tier1:#8FB6A9; --tier2:#4E8F7C; --tier3:#0E5A4A;
+  --radius:10px; --shadow:0 1px 3px rgba(28,42,58,.08),0 4px 14px rgba(28,42,58,.06);
+  --disp:'Zilla Slab',Georgia,serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.55;min-height:100vh}
+button{font-family:var(--body);cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--hilite);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+.topbar{background:var(--ink);color:#F4F2EA;padding:.65rem 1.1rem;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+.topbar .wordmark{font-family:var(--disp);font-weight:700;font-size:1.15rem;letter-spacing:.02em}
+.topbar .wordmark .accent{color:var(--hilite)}
+.topbar .sub{font-size:.78rem;color:#B9C2CE}
+.topbar .spacer{flex:1}
+.topbar .cfg{font-family:var(--mono);font-size:.72rem;color:#8FA0B4}
+.devnote{background:var(--hilite-soft);border-bottom:1px solid var(--line);font-size:.75rem;color:#6A5B18;padding:.35rem 1.1rem}
+
+.shell{max-width:1020px;margin:0 auto;padding:1.2rem 1rem 4rem}
+.grid{display:grid;grid-template-columns:1fr 250px;gap:1.2rem;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.4rem}
+h1,h2,h3{font-family:var(--disp);line-height:1.25}
+h1{font-size:1.7rem;font-weight:700}
+h2{font-size:1.25rem;font-weight:600}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);margin-bottom:.35rem}
+.muted{color:var(--ink-soft);font-size:.92rem}
+
+.btn{border:1.5px solid var(--ink);background:var(--ink);color:#fff;border-radius:8px;padding:.6rem 1.1rem;font-size:.95rem;font-weight:600;transition:transform .06s ease}
+.btn:active{transform:translateY(1px)}
+.btn.secondary{background:transparent;color:var(--ink)}
+.btn.brand{background:var(--brand);border-color:var(--brand)}
+.btn.quiet{border-color:var(--line);background:#fff;color:var(--ink-soft);font-weight:500}
+.btn.sm{padding:.35rem .7rem;font-size:.82rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
+
+/* Home */
+.home-hero{padding:1.8rem 1.6rem;background:linear-gradient(0deg,var(--card),var(--card)) padding-box}
+.home-hero h1 .hl{background:linear-gradient(transparent 58%,var(--hilite) 58%);padding:0 .1em}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.8rem;margin-top:1rem}
+.chap{border:1.5px solid var(--line);border-radius:var(--radius);padding:.9rem;text-align:left;background:#fff;transition:border-color .12s}
+.chap:hover:not(:disabled){border-color:var(--brand)}
+.chap .cnum{font-family:var(--mono);font-size:.7rem;color:var(--brand)}
+.chap .ctitle{font-family:var(--disp);font-weight:600;font-size:1.02rem;margin:.15rem 0 .3rem}
+.chap .cmeta{font-size:.78rem;color:var(--ink-soft)}
+.chap:disabled{opacity:.5}
+.setuprow{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1rem;font-size:.92rem}
+.setuprow select,.setuprow input{font-family:var(--body);font-size:.92rem;padding:.4rem .5rem;border:1.5px solid var(--line);border-radius:6px;background:#fff}
+
+/* LO rail — the mastery ladder */
+.rail{position:sticky;top:1rem}
+.rail h3{font-size:.95rem;margin-bottom:.6rem}
+.lo-row{display:flex;align-items:center;gap:.55rem;padding:.42rem .5rem;border-radius:7px;margin-bottom:2px}
+.lo-row.active{background:var(--hilite-soft)}
+.lo-row .lo-id{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);width:2.1rem}
+.ladder{display:flex;gap:3px}
+.rung{width:11px;height:11px;border-radius:3px;border:1.5px solid var(--line);background:#fff}
+.rung.t1.on{background:var(--tier1);border-color:var(--tier1)}
+.rung.t2.on{background:var(--tier2);border-color:var(--tier2)}
+.rung.t3.on{background:var(--tier3);border-color:var(--tier3)}
+.rung.na{border-style:dashed;opacity:.35}
+.streak{font-family:var(--mono);font-size:.66rem;color:var(--brand);border:1px solid var(--brand);border-radius:99px;padding:0 .35rem;margin-left:.3rem}
+.lo-row .flag{margin-left:auto;font-size:.78rem}
+.lo-row .flag.mastered{color:var(--ok)}
+.lo-row .flag.review{color:var(--no)}
+.legend{font-size:.72rem;color:var(--ink-soft);margin-top:.7rem;line-height:1.7}
+
+/* Session */
+.sess-head{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem;flex-wrap:wrap}
+.progress{flex:1;height:8px;background:#EDEBE1;border-radius:99px;overflow:hidden;min-width:120px}
+.progress i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .25s ease}
+.q-meta{display:flex;gap:.5rem;align-items:center;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);flex-wrap:wrap}
+.tierpill{border:1px solid var(--line);border-radius:99px;padding:.1rem .55rem}
+.tierpill.t1{background:#F1F6F4}.tierpill.t2{background:#E4EFEA}.tierpill.t3{background:var(--brand);color:#fff;border-color:var(--brand)}
+.stem{font-family:var(--disp);font-size:1.22rem;font-weight:500;margin:.7rem 0 1.1rem;line-height:1.45}
+.opts{display:flex;flex-direction:column;gap:.55rem}
+.opt{display:flex;gap:.7rem;align-items:flex-start;border:1.5px solid var(--line);border-radius:9px;padding:.75rem .85rem;background:#fff;text-align:left;font-size:.97rem;line-height:1.45;transition:border-color .1s}
+.opt:hover:not(:disabled){border-color:var(--ink-soft)}
+.opt.sel{border-color:var(--ink);background:#F6F5F0;box-shadow:inset 0 0 0 1px var(--ink)}
+.opt.correct{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--no);background:var(--no-soft)}
+.opt .key{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft);border:1px solid var(--line);border-radius:5px;padding:.05rem .4rem;flex-shrink:0;margin-top:.1rem}
+.opt:disabled{cursor:default}
+.subq{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--line)}
+.subq .lbl{font-size:.85rem;font-weight:600;margin-bottom:.5rem}
+
+.rank-list{display:flex;flex-direction:column;gap:.5rem}
+.rank-pick{border:1.5px solid var(--line);border-radius:9px;padding:.7rem .85rem;background:#fff;text-align:left;display:flex;gap:.7rem;font-size:.95rem}
+.rank-pick.picked{opacity:.45;cursor:default}
+.rank-pick .ordkey{font-family:var(--mono);font-size:.8rem;color:var(--brand);min-width:1.4rem;font-weight:600}
+
+.panel{border-radius:9px;padding:1rem 1.1rem;margin-top:1.1rem;font-size:.95rem}
+.panel .plabel{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;display:block}
+.panel.probe{background:var(--hilite-soft);border:1px solid #E8D48A}
+.panel.probe .plabel{color:#8A6D0B}
+.panel.good{background:var(--ok-soft);border:1px solid #BBDCC5}
+.panel.good .plabel{color:var(--ok)}
+.panel.bad{background:var(--no-soft);border:1px solid #E4BBAE}
+.panel.bad .plabel{color:var(--no)}
+.panel.remed{background:#F2F4F7;border:1px solid #D7DDE6}
+.panel.remed .plabel{color:#3D5878}
+.panel.remed .pointer{font-weight:600}
+.panel.remed .excerpt{border-left:3px solid var(--brand);padding:.4rem 0 .4rem .8rem;margin:.6rem 0;color:var(--ink-soft);font-style:italic}
+.rats{margin-top:.7rem;display:none}
+.rats.show{display:block}
+.rats li{margin:.35rem 0 .35rem 1.2rem;font-size:.9rem;color:var(--ink-soft)}
+
+/* Digest & report */
+.stat-row{display:flex;gap:1.4rem;flex-wrap:wrap;margin:.9rem 0}
+.stat{min-width:90px}
+.stat b{font-family:var(--disp);font-size:1.7rem;display:block;line-height:1.1}
+.stat span{font-size:.78rem;color:var(--ink-soft)}
+.readlist{margin-top:.8rem}
+.readlist .ritem{border:1px solid var(--line);border-left:4px solid var(--no);border-radius:8px;padding:.7rem .9rem;margin-bottom:.55rem;background:#fff}
+.readlist .ritem b{font-family:var(--disp)}
+.readlist .ritem .anchor{font-size:.85rem;color:var(--ink-soft)}
+table.hist{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:.8rem}
+table.hist th,table.hist td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line)}
+table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft)}
+.footer-note{margin-top:2rem;font-size:.75rem;color:var(--ink-soft);text-align:center}
+.hidden{display:none!important}
+.toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.6rem 1.1rem;border-radius:8px;font-size:.88rem;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="wordmark">Quiz<span class="accent">Prep</span></span>
+  <span class="sub">Entrepreneurship · Barringer &amp; Ireland</span>
+  <span class="spacer"></span>
+  <span class="cfg" id="cfgLabel">cfg: dev-preview</span>
+</header>
+<div class="devnote">Development preview — bank v0.3-draft (unvetted) · export encryption stubbed · spec v3.0 · <b>preview storage is per app version: use Export / Import (backups or session exports) to carry progress into a new build</b></div>
+
+<main class="shell">
+
+<!-- ============ HOME ============ -->
+<section id="viewHome">
+  <div class="card home-hero">
+    <div class="eyebrow">Weekly quiz preparation</div>
+    <h1>Practice until the <span class="hl">concepts stick</span>.</h1>
+    <p class="muted" style="margin-top:.5rem;max-width:56ch">Questions adapt from recall to application as you answer. Miss one and you'll get a nudge to reason it out before the answer is revealed — plus exactly which section of the chapter to re-read.</p>
+    <div class="setuprow" style="display:block">
+      <p id="recLine" class="muted" style="margin-bottom:.5rem"></p>
+      <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center">
+        <label><input type="radio" name="goal" value="rec" checked> <span id="recLabel">Recommended</span></label>
+        <label><input type="radio" name="goal" value="count"> Custom count
+          <select id="selLen">
+            <option>5</option><option>10</option><option selected>15</option><option>20</option><option>25</option><option>30</option>
+          </select>
+        </label>
+        <label><input type="radio" name="goal" value="mastery"> Until I master
+          <select id="selMx"></select> more objective(s)
+        </label>
+        <label style="margin-left:auto">Name / ID
+          <input id="inpName" type="text" placeholder="optional" size="12">
+        </label>
+      </div>
+      <div id="masteryOpts" class="hidden" style="margin-top:.6rem;padding:.7rem .9rem;background:var(--brand-soft);border-radius:8px;font-size:.88rem">
+        <div id="mxEst" style="margin-bottom:.45rem"></div>
+        <label style="display:block;margin-bottom:.2rem"><input type="radio" name="mxmode" value="nearest" checked>
+          <b>Fastest path</b> — target the objectives closest to mastery first</label>
+        <label style="display:block"><input type="radio" name="mxmode" value="spread">
+          <b>Broad practice</b> — mix questions across all unmastered objectives (usually takes longer)</label>
+      </div>
+    </div>
+    <div class="chapters" id="chapterList"></div>
+    <div class="btnrow" style="margin-top:1.1rem">
+      <button class="btn brand" id="btnStart" style="font-size:1.05rem;padding:.7rem 1.5rem">Start Chapter 1 practice →</button>
+    </div>
+    <div class="btnrow">
+      <button class="btn quiet sm" id="btnReport">My progress report</button>
+      <button class="btn quiet sm" id="btnExportAll">Export my data (JSON)</button>
+      <button class="btn quiet sm" id="btnImport">Import data</button>
+      <input type="file" id="fileImport" accept="application/json" multiple class="hidden">
+      <button class="btn quiet sm" id="btnFresh">Restart Ch 1 ladder</button>
+      <button class="btn quiet sm" id="btnReset">Reset all data</button>
+    </div>
+  </div>
+  <div id="reportWrap" class="card hidden" style="margin-top:1rem"></div>
+</section>
+
+<!-- ============ SESSION ============ -->
+<section id="viewSession" class="hidden">
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="sess-head">
+          <div class="q-meta">
+            <span id="qCount"></span>
+            <span class="tierpill" id="qTier"></span>
+            <span id="qLO"></span>
+          </div>
+          <div class="progress"><i id="progBar" style="width:0%"></i></div>
+          <button class="btn quiet sm" id="btnEnd">End session</button>
+        </div>
+        <div id="qArea"></div>
+        <div id="fbArea"></div>
+        <div class="btnrow" id="actionRow"></div>
+      </div>
+    </div>
+    <aside class="rail card" style="padding:1rem">
+      <h3>Mastery ladder</h3>
+      <div id="loRail"></div>
+      <div class="legend" id="railLegend"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ DIGEST ============ -->
+<section id="viewDigest" class="hidden">
+  <div class="card">
+    <div class="eyebrow">Session complete</div>
+    <h1 id="digestHead">Nice work.</h1>
+    <div class="stat-row" id="digestStats"></div>
+    <div id="digestRead"></div>
+    <h2 style="margin-top:1.2rem">Where you stand</h2>
+    <div id="digestRail" style="max-width:340px;margin-top:.5rem"></div>
+    <div class="legend" id="digestLegend"></div>
+    <div class="btnrow">
+      <button class="btn brand" id="btnExportSession">Export session for Canvas (JSON)</button>
+      <button class="btn secondary" id="btnProg">View full progress report</button>
+      <button class="btn secondary" id="btnAgain">New session</button>
+      <button class="btn quiet" id="btnHome">Home</button>
+    </div>
+    <p class="muted" style="margin-top:1rem;font-size:.8rem">Your export contains a summary you can read plus your detailed responses packaged for your instructor. In this development preview the instructor package is <b>stubbed, not encrypted</b>.</p>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= BANK (injected at build) ================= */
+const BANK = {"bank_meta": {"chapter": 1, "chapter_title": "Introduction to Entrepreneurship", "bank_version": "0.3-draft", "spec_version": "3.0", "generated": "2026-08-15", "status": "UNVETTED — instructor review required before release", "config": {"min_items_t12": 60, "min_items_t3": 15}, "counts": {"tier1": 39, "tier2": 21, "tier3_pool": 23}, "learning_objectives": {"1.1": "Describe entrepreneurship, corporate entrepreneurship, and the characteristics of entrepreneurial firms.", "1.2": "Discuss three main reasons people decide to become entrepreneurs.", "1.3": "Identify four main characteristics of successful entrepreneurs.", "1.4": "Explain five common myths regarding entrepreneurship.", "1.5": "Describe the three types of start-up firms.", "1.6": "Discuss the changing demographics of entrepreneurs in the United States.", "1.7": "Discuss the positive effects of entrepreneurship and entrepreneurial firms on economies and societies.", "1.8": "Explain the entrepreneurial process.", "1.9": "Learn how understanding entrepreneurship and the entrepreneurial process can facilitate your career success."}}, "items": [{"q_id": "c1-t1-001", "lo": "1.1", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which of the following best matches the textbook's definition of entrepreneurship?", "options": ["The process by which individuals pursue opportunities without regard to resources they currently control", "The process of inventing something entirely new", "The process of managing an established firm for maximum profit", "The process of taking large financial risks in pursuit of wealth"], "correct_index": 0, "rationales": ["Correct — this is the chapter's formal definition; opportunity pursuit, not current resource control, is the core.", "Invention is what inventors do; entrepreneurs assemble and integrate resources to turn inventions into viable businesses.", "Managing an established firm is general management, not entrepreneurship as defined in the chapter.", "The chapter explicitly rejects the gambler image — entrepreneurs are moderate risk takers."], "probes": [null, "The chapter distinguishes inventors from entrepreneurs — what does the entrepreneur add that the inventor doesn't?", "Does the definition emphasize running what exists, or pursuing something new?", "Which myth in this chapter deals with risk-taking, and what does it conclude?"], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t1-002", "lo": "1.1", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "According to the chapter, how do inventors and entrepreneurs differ?", "options": ["Inventors create something new; entrepreneurs assemble and integrate the resources to turn it into a viable business", "Inventors work in laboratories; entrepreneurs work in offices", "Inventors take risks; entrepreneurs avoid them", "There is no meaningful difference — the terms are interchangeable"], "correct_index": 0, "rationales": ["Correct — the entrepreneur integrates money, people, business model, strategy, and risk-bearing to commercialize the invention.", "The chapter draws the distinction by function (creation vs. resource integration), not workplace.", "Backwards — the entrepreneur takes on the risk-bearing role in commercializing the invention.", "The chapter explicitly states inventors and entrepreneurs differ from each other."], "probes": [null, "What five resources does the chapter say the entrepreneur assembles?", "Who does the chapter say bears the risk of transforming an invention into a business?", "The chapter opens this section by contrasting two roles — which two?"], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t1-003", "lo": "1.1", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "A large, established firm that maintains a strong orientation toward proactive, innovative, risk-taking behavior is practicing:", "options": ["Corporate entrepreneurship", "Creative destruction", "Execution intelligence", "Entrepreneurial intensity"], "correct_index": 0, "rationales": ["Correct — corporate entrepreneurship is entrepreneurial behavior within established firms.", "Creative destruction is Schumpeter's process of new products making old ones obsolete — an economy-level concept.", "Execution intelligence is an individual entrepreneur's ability to fashion an idea into a viable business.", "Entrepreneurial intensity names a firm's position on the conservative-to-entrepreneurial continuum, not the practice itself."], "probes": [null, "Is Schumpeter's concept about one firm's behavior, or about what new products do to old ones across an economy?", "Is that term about a firm's orientation or an individual's skill?", "One term names the behavior; the other measures its degree. Which is which?"], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t1-004", "lo": "1.1", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: A firm's position on the continuum from highly conservative to highly entrepreneurial is referred to as its entrepreneurial intensity.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — entrepreneurial intensity is exactly this positional concept.", "The chapter defines entrepreneurial intensity as the firm's position on that continuum."], "probes": [null, "The chapter describes all firms falling along a conceptual continuum — what does it call a firm's position on it?"], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t1-005", "lo": "1.2", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which of the following is one of the three main reasons the chapter gives for why people become entrepreneurs?", "options": ["To pursue their own ideas", "To gain celebrity and media attention", "To avoid paying corporate taxes", "To escape all forms of workplace risk"], "correct_index": 0, "rationales": ["Correct — the three reasons are: be their own boss, pursue their own ideas, and pursue financial rewards.", "Loving the spotlight is one of the five myths the chapter debunks, not a stated reason.", "Tax avoidance is not among the chapter's reasons.", "Entrepreneurship involves more uncertainty than conventional employment, not less."], "probes": [null, "Is seeking the spotlight presented in this chapter as a motivation or as a myth?", "Can you name any of the three motivations the chapter actually lists?", "Does the chapter present entrepreneurship as reducing or embracing uncertainty?"], "source_anchor": "Chapter 1 → Why Do People Become Entrepreneurs?"}, {"q_id": "c1-t1-006", "lo": "1.2", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The chapter lists three primary reasons people become entrepreneurs. Which set is correct?", "options": ["Be their own boss; pursue their own ideas; pursue financial rewards", "Be their own boss; gain prestige; minimize risk", "Pursue financial rewards; work fewer hours; gain fame", "Pursue their own ideas; avoid teamwork; retire early"], "correct_index": 0, "rationales": ["Correct — these are the chapter's three reasons, in its own framing.", "Prestige and risk-minimization are not among the chapter's three reasons.", "Fewer hours and fame contradict the chapter's portrait of entrepreneurial work.", "Avoiding teamwork and early retirement appear nowhere in the chapter's reasons."], "probes": [null, "Two of the three reasons concern autonomy and ideas — what's the third?", "Which myth does 'gain fame' resemble?", "Does the chapter frame entrepreneurship as an escape from work or a form of it?"], "source_anchor": "Chapter 1 → Why Do People Become Entrepreneurs?"}, {"q_id": "c1-t1-007", "lo": "1.2", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: According to the chapter, money is usually the primary reason entrepreneurs start new firms.", "options": ["True", "False"], "correct_index": 1, "rationales": ["The chapter states money is rarely the primary motivation — that belief is Myth 3.", "Correct — while financial rewards are one of three reasons, the chapter stresses money is rarely primary, and some entrepreneurs warn its pursuit can be distracting."], "probes": ["What does Myth 3 in this chapter claim, and what does the chapter conclude about it?", null], "source_anchor": "Chapter 1 → Common Myths About Entrepreneurs"}, {"q_id": "c1-t1-008", "lo": "1.3", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which of the following is one of the four primary characteristics of successful entrepreneurs identified in the chapter?", "options": ["Passion for the business", "Willingness to take extreme risks", "Preference for working alone", "Formal business education"], "correct_index": 0, "rationales": ["Correct — the four are passion for the business, product/customer focus, tenacity despite failure, and execution intelligence.", "The chapter portrays entrepreneurs as moderate, calculated risk takers, not extreme ones.", "Working alone is not among the four; entrepreneurs are described as networkers and resource assemblers.", "Formal education is not listed; Myth 1 stresses entrepreneurs are made through experience and choices, not credentials."], "probes": [null, "What does Myth 2 conclude about entrepreneurs' risk appetite?", "Look at Table 1.3's traits — do they describe a loner or a networker?", "Does Myth 1 say entrepreneurship comes from innate or credentialed traits, or from environment and choices?"], "source_anchor": "Chapter 1 → Characteristics of Successful Entrepreneurs"}, {"q_id": "c1-t1-009", "lo": "1.3", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The ability to fashion a solid idea into a viable business is what the chapter calls:", "options": ["Execution intelligence", "Entrepreneurial intensity", "Product/customer focus", "Creative destruction"], "correct_index": 0, "rationales": ["Correct — execution intelligence is the fourth characteristic of successful entrepreneurs.", "Entrepreneurial intensity measures a firm's position on the conservative-entrepreneurial continuum.", "Product/customer focus is a distinct characteristic about prioritizing products and customers.", "Creative destruction is Schumpeter's economy-level process, not an individual capability."], "probes": [null, "Is that a firm-level measure or an individual capability?", "That characteristic is about what a firm prioritizes — is prioritizing the same as executing?", "Whose concept is that, and does it describe a person's skill?"], "source_anchor": "Chapter 1 → Characteristics of Successful Entrepreneurs"}, {"q_id": "c1-t1-010", "lo": "1.3", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Steve Jobs's remark that the most important thing is to get computers 'in the hands of as many people as possible' is used in the chapter to illustrate which characteristic?", "options": ["Product/customer focus", "Passion for the business", "Tenacity despite failure", "Execution intelligence"], "correct_index": 0, "rationales": ["Correct — the quote exemplifies keeping products and customers as the two most important elements of a business.", "Passion is about the founder's drive; the quote is about products reaching customers.", "Tenacity concerns persevering through setbacks — not the subject of the quote.", "Execution intelligence is the broader capability of turning ideas into viable businesses."], "probes": [null, "What two business elements does the chapter say this quote underscores?", "Is the quote about persistence, or about what a business should prioritize?", "The quote names a specific priority — which of the four characteristics is defined by that priority?"], "source_anchor": "Chapter 1 → Product/Customer Focus"}, {"q_id": "c1-t1-011", "lo": "1.3", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: The chapter compares developing a new business to a chemist's laboratory work, because both may require experimentation and failed attempts before success.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — the analogy appears in the Tenacity Despite Failure section; setbacks are inherent to trying something new.", "The chemist analogy is explicitly used to explain why tenacity matters."], "probes": [null, "In the Tenacity section, what profession does the chapter compare entrepreneurs to, and why?"], "source_anchor": "Chapter 1 → Tenacity Despite Failure"}, {"q_id": "c1-t1-012", "lo": "1.4", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which statement reflects the chapter's conclusion about Myth 1, 'Entrepreneurs are born, not made'?", "options": ["Entrepreneurs are not genetically different from other people; anyone has the potential to become one", "Studies confirm a genetic predisposition toward entrepreneurship", "Only people with self-employed parents can become entrepreneurs", "Personality traits play no role whatsoever in entrepreneurship"], "correct_index": 0, "rationales": ["Correct — hundreds of studies find no genetic difference; becoming an entrepreneur reflects environment, life experiences, and personal choices.", "The chapter says the opposite: the research consensus rejects genetic predisposition.", "Self-employed parents raise the likelihood, but the chapter never makes them a requirement.", "The chapter does list common traits (Table 1.3) — it just says they develop over time from social context."], "probes": [null, "What does the chapter say the consensus of hundreds of studies shows?", "Does the chapter present parental self-employment as a requirement or an influence?", "Does the chapter deny traits exist, or explain where they come from?"], "source_anchor": "Chapter 1 → Myth 1: Entrepreneurs Are Born, Not Made"}, {"q_id": "c1-t1-013", "lo": "1.4", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "According to the chapter, entrepreneurs are best described as:", "options": ["Moderate risk takers", "High-stakes gamblers", "Risk avoiders", "Reckless optimists"], "correct_index": 0, "rationales": ["Correct — Myth 2's resolution: entrepreneurs are usually moderate risk takers, as are most people.", "The gambler image is the myth itself, arising from unstructured jobs and challenging goals.", "Complete risk avoidance describes conservative firms, not entrepreneurs.", "Optimism appears in Table 1.3, but recklessness contradicts the moderate-risk finding."], "probes": [null, "The chapter gives two sources of the gambler myth — what are they, and what is the actual finding?", "Where on the risk spectrum does the chapter place entrepreneurs relative to most people?", "Does the chapter pair optimism with recklessness or with calculated risk?"], "source_anchor": "Chapter 1 → Myth 2: Entrepreneurs Are Gamblers"}, {"q_id": "c1-t1-014", "lo": "1.4", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which of the following is one of the five myths about entrepreneurs the chapter debunks?", "options": ["Entrepreneurs should be young and energetic", "Entrepreneurs are made, not born", "Entrepreneurs are moderate risk takers", "Entrepreneurs value substance over media attention"], "correct_index": 0, "rationales": ["Correct — Myth 4 is that entrepreneurs should be young and energetic; the chapter rejects it.", "This is the chapter's *correction* of Myth 1, not the myth itself.", "This is the *truth* behind Myth 2, not the myth.", "This reverses Myth 5 ('entrepreneurs love the spotlight') — it states the reality, not the myth."], "probes": [null, "Careful — is that statement the myth or the chapter's rebuttal of it?", "Is 'moderate risk taker' what people mistakenly believe, or what the research shows?", "Myth 5 claims entrepreneurs love something — what?"], "source_anchor": "Chapter 1 → Common Myths About Entrepreneurs"}, {"q_id": "c1-t1-015", "lo": "1.4", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: The chapter reports that people who personally know an entrepreneur are more than twice as likely to be involved in starting a new firm as those without entrepreneur acquaintances.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — direct observation of entrepreneurs reduces the ambiguity and uncertainty of the entrepreneurial process.", "The chapter cites exactly this finding in its discussion of Myth 1."], "probes": [null, "In Myth 1, what effect does the chapter say knowing an entrepreneur has, and why?"], "source_anchor": "Chapter 1 → Myth 1: Entrepreneurs Are Born, Not Made"}, {"q_id": "c1-t1-016", "lo": "1.5", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which of the following correctly lists the three types of start-up firms described in the chapter?", "options": ["Salary-substitute firms, lifestyle firms, entrepreneurial firms", "Small firms, medium firms, large firms", "Sole proprietorships, partnerships, corporations", "Franchise firms, family firms, tech firms"], "correct_index": 0, "rationales": ["Correct — these are the chapter's three types (Figure 1.2).", "Size categories are not the chapter's typology, which is based on purpose and innovativeness.", "Those are legal forms of organization, covered elsewhere in the book, not start-up types.", "These categories do not appear in the chapter's typology."], "probes": [null, "Is the chapter's typology based on firm size, or on what the firm does for its owner and market?", "Legal structure and start-up type are different classifications — which does Figure 1.2 present?", "Can you recall any one of the three types from Figure 1.2?"], "source_anchor": "Chapter 1 → Types of Start-Up Firms"}, {"q_id": "c1-t1-017", "lo": "1.5", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Small firms that provide their owners a level of income similar to what they would earn working for an employer are called:", "options": ["Salary-substitute firms", "Lifestyle firms", "Entrepreneurial firms", "Corporate ventures"], "correct_index": 0, "rationales": ["Correct — dry cleaners, convenience stores, and hairstyling salons are the chapter's examples; the vast majority of small businesses fit here.", "Lifestyle firms exist to let owners pursue a particular lifestyle, not merely replace a salary.", "Entrepreneurial firms bring new products and services to market — innovation is their essence.", "Corporate ventures relate to entrepreneurship inside established firms, not a start-up type."], "probes": [null, "What does the chapter say lifestyle firm owners are pursuing besides income?", "What distinguishes entrepreneurial firms' products from those of the other two types?", "Is this one of the three types in Figure 1.2 at all?"], "source_anchor": "Chapter 1 → Types of Start-Up Firms"}, {"q_id": "c1-t1-018", "lo": "1.5", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "In the chapter's definition of entrepreneurial firms, 'value' refers to:", "options": ["Worth, importance, or utility", "Stock market capitalization", "Annual revenue growth", "Brand recognition"], "correct_index": 0, "rationales": ["Correct — the chapter defines value as worth, importance, or utility delivered to customers.", "Market capitalization is a financial metric, not the chapter's definition.", "Revenue growth may follow from creating value but is not the definition.", "Brand recognition is not how the chapter defines value."], "probes": [null, "The chapter's definition is customer-facing, not investor-facing — what three words does it use?", "Is the chapter defining a financial outcome or something delivered to customers?", "What do entrepreneurial firms create and disseminate to customers, per the chapter?"], "source_anchor": "Chapter 1 → Types of Start-Up Firms"}, {"q_id": "c1-t1-019", "lo": "1.6", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which of the following demographic trends does the chapter report?", "options": ["The number of women-owned businesses grew about five times faster than the national average over the preceding nine years", "The number of women-owned businesses declined between 2007 and 2016", "Minority-owned firms decreased by 38 percent since 2007", "Senior entrepreneurs are prohibited from receiving SBA support"], "correct_index": 0, "rationales": ["Correct — women-owned firms grew 45 percent between 2007 and 2016 versus 9 percent for all businesses.", "The chapter reports growth, not decline, in women-owned businesses.", "Minority-owned firms *increased* 38 percent since 2007 — the direction is reversed.", "No such prohibition is mentioned; the chapter discusses seniors as a growing entrepreneur demographic."], "probes": [null, "What growth figures does the chapter give for women-owned firms versus all firms, 2007–2016?", "Did minority-owned firms grow or shrink since 2007, per the chapter?", "Does the chapter frame senior entrepreneurship as restricted or expanding?"], "source_anchor": "Chapter 1 → Changing Demographics of Entrepreneurs"}, {"q_id": "c1-t1-020", "lo": "1.6", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: According to the chapter, the demographics of U.S. entrepreneurs are becoming more diverse, with growth among women, minority, senior, and millennial entrepreneurs.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — the chapter devotes a subsection to each of these four growing groups.", "The chapter's demographics section documents growth across all four groups."], "probes": [null, "The chapter's demographics section has four subsections — which groups do they cover?"], "source_anchor": "Chapter 1 → Changing Demographics of Entrepreneurs"}, {"q_id": "c1-t1-021", "lo": "1.7", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Schumpeter's term for the process by which entrepreneurs develop new products and technologies that make current ones obsolete is:", "options": ["Creative destruction", "Corporate entrepreneurship", "Entrepreneurial intensity", "Execution intelligence"], "correct_index": 0, "rationales": ["Correct — introduced in Schumpeter's The Theory of Economic Development (1934); the process stimulates economic activity.", "Corporate entrepreneurship is entrepreneurial behavior within established firms.", "Entrepreneurial intensity measures a firm's position on the conservative-entrepreneurial continuum.", "Execution intelligence is an individual's ability to turn ideas into viable businesses."], "probes": [null, "Whose 1934 concept is being described — and is it firm-level or economy-level?", "Is a measurement of one firm's orientation the same as an economy-wide replacement process?", "Is an individual skill what makes old technologies obsolete across an economy?"], "source_anchor": "Chapter 1 → The Positive Effects of Entrepreneurship and Entrepreneurial Firms"}, {"q_id": "c1-t1-022", "lo": "1.7", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The chapter defines innovation as:", "options": ["The process of creating something new, which is central to the entrepreneurial process", "The process of copying competitors more efficiently", "Any increase in a firm's advertising spending", "The legal protection of intellectual property"], "correct_index": 0, "rationales": ["Correct — this is the chapter's definition, tied to the economic impact of entrepreneurial firms.", "Copying is the opposite of creating something new.", "Advertising spending is unrelated to the chapter's definition.", "IP protection (patents, trademarks) is covered in Chapter 12, and protection is not creation."], "probes": [null, "Does the chapter's definition involve imitation or creation?", "What does the chapter say innovation creates?", "Is protecting an idea the same as creating something new?"], "source_anchor": "Chapter 1 → Economic Impact of Entrepreneurial Firms"}, {"q_id": "c1-t1-023", "lo": "1.7", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: According to a Kauffman Foundation study cited in the chapter, a company's age matters more than its size for job creation, with companies less than one year old creating an average of 1.5 million jobs per year over the past 30 years.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — the study found young firms drive job creation and inject competition and innovation into markets.", "The chapter cites exactly this finding: age matters more than size."], "probes": [null, "Per the Kauffman study, which firm attribute — size or age — better predicts job creation?"], "source_anchor": "Chapter 1 → Economic Impact of Entrepreneurial Firms"}, {"q_id": "c1-t1-024", "lo": "1.8", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "An event that prompts an individual to become an entrepreneur — such as losing a job or receiving an inheritance — is called:", "options": ["A triggering event", "A feasibility analysis", "A business model", "An entrepreneurial intensity shift"], "correct_index": 0, "rationales": ["Correct — the chapter's examples include job loss, an inheritance, and lifestyle changes.", "Feasibility analysis (Chapter 3) assesses an idea's viability — it comes after the decision.", "A business model describes how a firm creates value, not what prompts the founder.", "Entrepreneurial intensity describes firms, not personal turning points."], "probes": [null, "Is analyzing an idea's viability the same as the event that starts someone down the path?", "Does that term describe the founder's prompt or the firm's plan for creating value?", "Is that a firm-level concept or a personal one?"], "source_anchor": "Chapter 1 → Decision to Become an Entrepreneur (Chapter 1)"}, {"q_id": "c1-t1-025", "lo": "1.8", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which of the following is Step 1 of the entrepreneurial process as presented in the chapter?", "options": ["Decision to become an entrepreneur", "Developing successful business ideas", "Moving from an idea to an entrepreneurial firm", "Managing and growing an entrepreneurial firm"], "correct_index": 0, "rationales": ["Correct — the four steps begin with the decision to become an entrepreneur.", "Developing ideas is Step 2 (Chapters 2–6).", "Moving from idea to firm is Step 3 (Chapters 7–10).", "Managing and growing is Step 4 (Chapters 11–15)."], "probes": [null, "The double-headed arrow in Figure 1.3 connects Steps 1 and 2 — which comes first in the model?", "Which chapters does the book assign to Step 3, and what precedes them?", "Growth is the final stage — what has to happen first?"], "source_anchor": "Chapter 1 → The Entrepreneurial Process"}, {"q_id": "c1-t1-026", "lo": "1.9", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: The chapter argues that studying entrepreneurship and the entrepreneurial process can benefit your career even if you never start your own firm.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — the Developing Skills for Your Career section ties entrepreneurial skills to career success broadly, including within established organizations.", "The chapter's career section explicitly frames entrepreneurial understanding as valuable beyond founding a firm."], "probes": [null, "What does the Developing Skills for Your Career section say these skills are useful for besides founding?"], "source_anchor": "Chapter 1 → Developing Skills for Your Career"}, {"q_id": "c1-t2-001", "lo": "1.1", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Richard Branson describes dividing Virgin's units into smaller companies whenever they grow too big, giving deputies ownership of new units. The chapter uses this example to illustrate:", "options": ["How firms with high entrepreneurial intensity cut bureaucracy to stay entrepreneurial", "Why large firms cannot practice corporate entrepreneurship", "The process of creative destruction between competing firms", "Why lifestyle firms stay deliberately small"], "correct_index": 0, "rationales": ["Correct — Virgin exemplifies an established firm maintaining entrepreneurial intensity by keeping units small and incentives sharp.", "The example proves the opposite — Virgin is a large firm behaving entrepreneurially.", "Creative destruction is about new products displacing old ones, not organizational design.", "Virgin is a large conglomerate, not a lifestyle firm; the smallness is strategic, not lifestyle-driven."], "probes": [null, "Does the Virgin example show large-firm entrepreneurship failing or succeeding?", "Is Branson describing market displacement or organizational structure?", "What type of firm is Virgin, and why does it keep units small?"], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t2-002", "lo": "1.1", "tier": 2, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: A firm can be publicly traded and very large and still be considered an entrepreneurial firm.", "options": ["True", "False"], "correct_index": 0, "justify_options": ["Because entrepreneurial character depends on being proactive, innovative, and risk-taking, not on size — the chapter cites NASDAQ-listed firms like Apple and Amgen as entrepreneurial", "Because all publicly traded firms are automatically entrepreneurial", "Because firm size is the chapter's main criterion for entrepreneurial status"], "justify_correct": 0, "rationales": ["Correct — with the right justification: behavior, not size, defines entrepreneurial character.", "The chapter treats entrepreneurial behavior as a continuum firms occupy to different degrees, independent of size."], "probes": [null, "What behaviors — not attributes like size — does the chapter say mark an entrepreneurial firm?"], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t2-003", "lo": "1.2", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The chapter presents 'pursue financial rewards' as one reason people become entrepreneurs, yet also debunks the myth that entrepreneurs are motivated primarily by money. How does the chapter reconcile these?", "options": ["Financial rewards are a real but rarely primary motivation; autonomy and ideas typically matter more", "The chapter contradicts itself and offers no reconciliation", "Financial rewards motivate only failed entrepreneurs", "Money matters only to entrepreneurs in the technology sector"], "correct_index": 0, "rationales": ["Correct — money is one of three genuine reasons, but the myth section shows it is rarely the *primary* driver, citing founders like Colin Angle who subordinate it to mission.", "The two passages are consistent once 'a reason' is distinguished from 'the primary reason.'", "The chapter draws no link between money motivation and failure.", "No sector-specific claim about money appears in the chapter."], "probes": [null, "What's the difference between money being *a* motivation and being the *primary* motivation?", "Does the chapter connect money-motivation to outcomes at all?", "Does the chapter limit any of its three reasons to particular industries?"], "source_anchor": "Chapter 1 → Common Myths About Entrepreneurs"}, {"q_id": "c1-t2-004", "lo": "1.3", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Yelp's founders discovered their original email-recommendation plan was failing, noticed users loved writing unsolicited reviews, and revised the business plan around that feature. The chapter uses this story to illustrate:", "options": ["Tenacity despite failure", "Passion for the business", "Execution intelligence", "Product/customer focus"], "correct_index": 0, "rationales": ["Correct — Yelp appears in the Tenacity Despite Failure section: the founders persevered through a failed plan and pivoted.", "Passion is discussed with different examples; the Yelp story is about surviving a failed plan.", "Execution intelligence is plausible but not where the chapter places this example — the emphasis is perseverance through setback.", "Customer focus played a role in noticing the review behavior, but the chapter frames the story around persisting past failure."], "probes": [null, "Which section of the chapter does the Yelp story appear in?", "What nearly happened to Yelp before the pivot, and what quality got it through?", "Is the chapter's point about listening to customers, or about not quitting when the plan fails?"], "source_anchor": "Chapter 1 → Tenacity Despite Failure"}, {"q_id": "c1-t2-005", "lo": "1.3", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which pairing of characteristic and its meaning is INCORRECT according to the chapter?", "options": ["Tenacity despite failure — avoiding ventures where failure is possible", "Passion for the business — belief that the business will positively influence people's lives", "Product/customer focus — keeping products and customers as the two most important elements", "Execution intelligence — the ability to fashion a solid idea into a viable business"], "correct_index": 0, "rationales": ["Correct (this is the flawed pairing) — tenacity means persevering *through* setbacks, not avoiding the possibility of failure.", "This matches the chapter's treatment of passion.", "This matches the chapter's treatment of product/customer focus.", "This matches the chapter's definition of execution intelligence."], "probes": [null, "Re-read the pairing for passion — does it match the chapter?", "Re-read the pairing for product/customer focus — does it match the chapter?", "Re-read the pairing for execution intelligence — does it match the chapter?"], "source_anchor": "Chapter 1 → Characteristics of Successful Entrepreneurs"}, {"q_id": "c1-t2-006", "lo": "1.4", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The chapter says the gambler myth persists for two reasons. Which pair is correct?", "options": ["Entrepreneurs' jobs are less structured with more uncertain possibilities, and their challenging achievement-driven goals are mistaken for risk-taking", "Entrepreneurs frequently visit casinos, and media coverage exaggerates their losses", "Entrepreneurs invest mostly borrowed money, and most ventures fail within a year", "Entrepreneurs refuse insurance, and they hire few employees"], "correct_index": 0, "rationales": ["Correct — unstructured work and high achievement motivation are the chapter's two stated sources of the myth.", "Neither casinos nor media coverage appears in the chapter's explanation.", "The chapter doesn't attribute the myth to financing choices, and it elsewhere debunks exaggerated failure-rate beliefs.", "Insurance and headcount are not part of the chapter's explanation."], "probes": [null, "What two features of entrepreneurial work does the chapter say get *mistaken* for gambling?", "Does the chapter root the myth in behavior around money, or in the nature of entrepreneurial jobs and goals?", "Are those factors mentioned anywhere in Myth 2?"], "source_anchor": "Chapter 1 → Myth 2: Entrepreneurs Are Gamblers"}, {"q_id": "c1-t2-007", "lo": "1.4", "tier": 2, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: The finding that people with self-employed parents are more likely to become entrepreneurs supports the myth that entrepreneurs are born, not made.", "options": ["True", "False"], "correct_index": 1, "justify_options": ["Because the parental effect works through environment and observation — witnessing independence makes it appealing — which is the 'made' side, not genetics", "Because parental influence is genetic by definition", "Because the chapter says family background is irrelevant to entrepreneurship"], "justify_correct": 0, "rationales": ["The parental link is environmental evidence — it undermines rather than supports the 'born' claim.", "Correct — the chapter interprets the parental effect as social/environmental: observing a parent's workplace independence shapes preferences and reduces uncertainty."], "probes": ["Does the chapter explain the parental effect through genes or through what children observe and learn?", null], "source_anchor": "Chapter 1 → Myth 1: Entrepreneurs Are Born, Not Made"}, {"q_id": "c1-t2-008", "lo": "1.5", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "A hair salon and a bed & breakfast are both small, owner-run businesses. According to the chapter's typology, why might they fall into different categories?", "options": ["The salon replaces a conventional salary with common services (salary-substitute), while the B&B lets its owner earn a living while pursuing a chosen way of life (lifestyle)", "The salon is entrepreneurial because it serves more customers per day", "The B&B is a salary-substitute firm because it involves real estate", "They cannot fall into different categories because both are small"], "correct_index": 0, "rationales": ["Correct — the chapter lists hairstyling salons under salary-substitute firms and bed & breakfasts under lifestyle firms; the distinction is purpose, not size.", "Customer volume is not a criterion, and neither business brings new products/services to market.", "The chapter explicitly lists B&Bs as lifestyle firms; industry doesn't determine the category.", "Size is not the basis of the typology — purpose and innovativeness are."], "probes": [null, "What is the defining feature of an entrepreneurial firm in the chapter's typology?", "Which category does the chapter's own example list place bed & breakfasts in?", "Does Figure 1.2 sort firms by size or by what they do for the owner and market?"], "source_anchor": "Chapter 1 → Types of Start-Up Firms"}, {"q_id": "c1-t2-009", "lo": "1.5", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which statement about the three types of start-up firms is best supported by the chapter?", "options": ["The vast majority of small businesses are salary-substitute firms offering common, easily available products", "Most small businesses are entrepreneurial firms", "Lifestyle firms typically grow quickly once established", "Entrepreneurial firms avoid partnering with other organizations"], "correct_index": 0, "rationales": ["Correct — the chapter states the vast majority of small businesses are salary-substitute firms with non-innovative offerings.", "Entrepreneurial firms are the innovative minority, not the majority.", "The chapter says lifestyle firms are not innovative and do not grow quickly.", "The chapter says the opposite — partnering is a hallmark of entrepreneurial firms ('Partnering for Success')."], "probes": [null, "Which category does the chapter say holds the vast majority of small businesses?", "What two things does the chapter say lifestyle firms are *not*?", "What recurring boxed feature in every chapter highlights entrepreneurial firms' partnerships?"], "source_anchor": "Chapter 1 → Types of Start-Up Firms"}, {"q_id": "c1-t2-010", "lo": "1.6", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Based on the chapter's demographics discussion, which conclusion is best supported?", "options": ["Support and advocacy organizations are an important factor facilitating growth for both women and minority entrepreneurs", "Women-owned firms are concentrated exclusively in technology sectors", "Minority entrepreneurship has stagnated since 2007", "Demographic shifts have had no effect on who becomes an entrepreneur"], "correct_index": 0, "rationales": ["Correct — the chapter cites NAWBO for women and groups like the MBDA and Latin Business Association for minority entrepreneurs as growth facilitators.", "The chapter identifies four leading sectors for women-owned firms — services, health care, professional services, and administrative support — not technology.", "Minority-owned firms grew 38 percent since 2007 per the chapter.", "The entire section documents substantial demographic change among entrepreneurs."], "probes": [null, "Which four sectors does the chapter say hold roughly 6 in 10 women-owned firms?", "What growth figure does the chapter give for minority-owned firms since 2007?", "What four groups does the chapter single out as changing the face of entrepreneurship?"], "source_anchor": "Chapter 1 → Changing Demographics of Entrepreneurs"}, {"q_id": "c1-t2-011", "lo": "1.7", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The chapter notes that creative destruction is not limited to new products and technologies. Which of the following does it give as an additional form?", "options": ["New pricing strategies, distribution channels, or retail formats — such as Warby Parker in eyewear or IKEA in furniture", "New tax structures imposed by governments", "New corporate mission statements", "New employee benefit packages"], "correct_index": 0, "rationales": ["Correct — the chapter extends creative destruction to pricing (Warby Parker), channels (e-books), and formats (IKEA, Whole Foods).", "Government tax policy is not an example the chapter gives of creative destruction.", "Mission statements appear in the money-myth discussion, not creative destruction.", "Benefits packages are not among the chapter's examples."], "probes": [null, "Creative destruction is driven by whom — governments or start-ups improving what's available?", "Where in the chapter do mission statements come up, and is it here?", "What three non-product forms of creative destruction does the chapter list, with examples?"], "source_anchor": "Chapter 1 → The Positive Effects of Entrepreneurship and Entrepreneurial Firms"}, {"q_id": "c1-t2-012", "lo": "1.7", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The chapter describes SpeakLike (real-time translation) and Box (cloud storage), whose customers are largely big companies. These examples illustrate which positive effect of entrepreneurial firms?", "options": ["Their impact on larger firms — building business models around making big companies more efficient or effective", "Their impact on society through improved health care", "Job creation by firms under one year old", "The rise of senior entrepreneurship"], "correct_index": 0, "rationales": ["Correct — both firms built models around serving larger firms' needs, the chapter's third positive effect.", "The societal-impact examples are drugs like NEUPOGEN and everyday innovations, not these two firms.", "Job creation is discussed via SBA and Kauffman data, not these examples.", "Demographics are a separate section; these examples aren't about founder age."], "probes": [null, "Who are SpeakLike's and Box's main customers, per the chapter — consumers or large firms?", "Which section's examples are NEUPOGEN and smartphones?", "Is the point of these examples who founded the firms, or whom the firms serve?"], "source_anchor": "Chapter 1 → Entrepreneurial Firms' Impact on Larger Firms"}, {"q_id": "c1-t2-013", "lo": "1.8", "tier": 2, "type": "rank_order", "origin": "bank", "status": "draft", "stem": "Place the four steps of the entrepreneurial process in the order presented in the chapter.", "options": ["Decision to become an entrepreneur", "Developing successful business ideas", "Moving from an idea to an entrepreneurial firm", "Managing and growing an entrepreneurial firm"], "correct_order": [0, 1, 2, 3], "rationales": ["Step 1 — the decision, often prompted by a triggering event (Chapter 1).", "Step 2 — idea development: opportunity recognition, feasibility, business model (Chapters 2–6).", "Step 3 — from idea to firm: legal/ethical foundation, finances, team, funding (Chapters 7–10).", "Step 4 — managing and growing: marketing, IP, growth strategy (Chapters 11–15)."], "probes": ["Figure 1.3's double-headed arrow links the first two steps — but which does the model list first?"], "source_anchor": "Chapter 1 → The Entrepreneurial Process"}, {"q_id": "c1-t3-001", "lo": "1.5", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Danielle quit her accounting job to open a bookkeeping practice serving local businesses. She earns roughly what she made as an employee, offers standard services identical to other bookkeepers in town, and has no plans to expand. Marcus, meanwhile, launched an app that automates bookkeeping using a novel document-scanning method no competitor offers, and is scaling nationally. According to the chapter's typology, Danielle and Marcus run, respectively:", "options": ["A salary-substitute firm and an entrepreneurial firm", "A lifestyle firm and a salary-substitute firm", "An entrepreneurial firm and a lifestyle firm", "Two entrepreneurial firms, since both are self-employed"], "correct_index": 0, "rationales": ["Correct — Danielle replaces her salary with common, non-innovative services; Marcus brings a new service to market by creating and seizing an opportunity.", "Danielle's motive is income replacement, not pursuing a lifestyle; Marcus is innovating, not substituting a salary.", "Reversed — innovation and growth mark Marcus's firm as entrepreneurial, not Danielle's.", "Self-employment alone doesn't make a firm entrepreneurial; the typology turns on innovation and value creation."], "source_anchor": "Chapter 1 → Types of Start-Up Firms"}, {"q_id": "c1-t3-002", "lo": "1.1", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Priya has invented a biodegradable food-packaging film in her university lab. She has no interest in commercializing it herself. Her classmate Jordan licenses the technology, recruits a team, raises seed funding, develops a business model targeting meal-kit companies, and launches a company. According to the chapter's distinction, Priya and Jordan are best described as:", "options": ["An inventor and an entrepreneur", "An entrepreneur and an inventor", "Two entrepreneurs at different stages", "A corporate entrepreneur and a franchisee"], "correct_index": 0, "rationales": ["Correct — Priya created something new; Jordan assembled and integrated the money, people, business model, strategy, and risk-bearing to make it a viable business.", "Reversed — the inventor creates; the entrepreneur commercializes.", "Priya explicitly declines the resource-assembly role that defines entrepreneurship in the chapter.", "Neither is acting within an established firm, and no franchise exists in the scenario."], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t3-003", "lo": "1.3", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Tomás launched a meal-delivery start-up whose first concept — weekly subscription boxes — flopped after three months. Reviewing customer feedback, he noticed users mostly wanted single 'emergency dinner' orders. He relaunched around on-demand delivery, personally handling deliveries for six weeks to watch how customers used the service before hiring. Which TWO chapter characteristics does Tomás most clearly display?", "options": ["Tenacity despite failure and product/customer focus", "Passion for the business and love of the spotlight", "Execution intelligence and preference for high-stakes gambles", "Moderate risk taking and pursuit of financial rewards"], "correct_index": 0, "rationales": ["Correct — persevering past a failed concept shows tenacity; redesigning around observed customer behavior shows product/customer focus.", "Love of the spotlight is a myth the chapter debunks, not a characteristic.", "High-stakes gambling contradicts the chapter's moderate-risk finding; pairing it with execution intelligence spoils the option.", "These describe motivations and traits, but they aren't the two behaviors the scenario most directly displays."], "source_anchor": "Chapter 1 → Characteristics of Successful Entrepreneurs"}, {"q_id": "c1-t3-004", "lo": "1.4", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "At a family dinner, Aunt Rosa tells 52-year-old Miguel he's 'too old to start a business — that's a young person's game — and besides, you'd be betting the house like a gambler.' Based on the chapter, which response best reflects the evidence?", "options": ["Both claims are myths: age is no barrier, and entrepreneurs are typically moderate, calculated risk takers", "Rosa is right about age but wrong about risk", "Rosa is right about risk but wrong about age", "Both claims are supported by the research the chapter cites"], "correct_index": 0, "rationales": ["Correct — Rosa's claims restate Myth 4 (young and energetic) and Myth 2 (gamblers), both of which the chapter debunks.", "The chapter rejects the age claim; seniors are a growing entrepreneur demographic.", "The chapter rejects the risk claim; entrepreneurs are moderate risk takers.", "The chapter's evidence contradicts both claims."], "source_anchor": "Chapter 1 → Common Myths About Entrepreneurs"}, {"q_id": "c1-t3-005", "lo": "1.7", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "A start-up introduces direct-to-consumer prescription glasses at a fraction of traditional retail prices, forcing established optical chains to cut prices and redesign their stores; some close. Consumers get cheaper, better options. Which chapter concept does this scenario best illustrate?", "options": ["Creative destruction", "Corporate entrepreneurship", "A triggering event", "A salary-substitute firm"], "correct_index": 0, "rationales": ["Correct — a new approach (here, a pricing/distribution innovation, like the chapter's Warby Parker example) displaces incumbents while stimulating consumer demand and economic activity.", "Corporate entrepreneurship is entrepreneurial behavior inside established firms — the disruptor here is a start-up.", "A triggering event prompts an individual to become an entrepreneur; this scenario is about market-level effects.", "The firm is innovating on price and channel — the opposite of offering common, easily available services."], "source_anchor": "Chapter 1 → The Positive Effects of Entrepreneurship and Entrepreneurial Firms"}, {"q_id": "c1-t3-006", "lo": "1.2", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Keisha, a software engineer, has sketched an idea for a tutoring platform for years but never acted. When her employer announces layoffs and offers her a severance package, she decides the moment has come and launches the platform full time. In the chapter's terms, the layoff-and-severance announcement functions as:", "options": ["A triggering event prompting the decision to become an entrepreneur", "A feasibility analysis validating her idea", "Evidence of corporate entrepreneurship at her employer", "Proof that she is motivated primarily by money"], "correct_index": 0, "rationales": ["Correct — like the chapter's job-loss and inheritance examples, the layoff (with severance funding) prompts the entrepreneurial decision.", "No systematic assessment of the idea's viability occurred — only a prompt to act.", "Her employer shedding staff is not entrepreneurial behavior within the firm.", "The scenario shows timing and opportunity, not a money-primary motive; the chapter treats that belief as a myth anyway."], "source_anchor": "Chapter 1 → Decision to Become an Entrepreneur (Chapter 1)"}, {"q_id": "c1-t1-027", "lo": "1.2", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Of the three reasons people become entrepreneurs, which does the chapter say is given most commonly?", "options": ["To be their own boss", "To pursue financial rewards", "To pursue their own ideas", "To gain public recognition"], "correct_index": 0, "rationales": ["Correct — the chapter states being one's own boss is the most commonly given reason.", "Financial rewards are a real reason but not the most common, and rarely primary.", "Pursuing one's own ideas is the second reason discussed, not the most common.", "Recognition echoes the spotlight myth; it is not one of the three reasons."], "probes": [null, "Which reason does the chapter explicitly label as 'given most commonly'?", "The chapter orders the reasons — which one does it discuss first and label most common?", "Is that a reason the chapter lists, or a myth it debunks?"], "source_anchor": "Chapter 1 → Be Their Own Boss"}, {"q_id": "c1-t1-028", "lo": "1.2", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "According to the chapter, why do some entrepreneurs start their businesses on a part-time basis?", "options": ["To gain experience, save money, and find out if they like the business before leaving their job", "Because banks require part-time operation before lending", "Because full-time start-ups are illegal in some industries", "To avoid having to develop a client list"], "correct_index": 0, "rationales": ["Correct — the chapter describes part-time entry as a gradual transition that builds experience, savings, and fit before departure.", "No lending requirement of this kind appears in the chapter.", "The chapter mentions no such legal restriction.", "Backwards — the chapter says some businesses like catering take time to build a client list, which is a reason to start part time."], "probes": [null, "What three benefits does the chapter attribute to starting part time?", "Is the part-time path framed as a legal matter or a personal strategy?", "Why does the chapter mention catering and financial planning in this discussion?"], "source_anchor": "Chapter 1 → Be Their Own Boss"}, {"q_id": "c1-t1-029", "lo": "1.3", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which characteristic does the chapter identify as the number one characteristic shared by successful entrepreneurs?", "options": ["Passion for the business", "Execution intelligence", "Product/customer focus", "Tenacity despite failure"], "correct_index": 0, "rationales": ["Correct — the chapter explicitly calls passion the number one shared characteristic, in new firms and existing businesses alike.", "Execution intelligence is a key characteristic and often decides success or failure, but it is not the one ranked first.", "Product/customer focus is described as a second defining characteristic.", "Tenacity is one of the four but not the one the chapter ranks first."], "probes": [null, "Which characteristic does the chapter's opening sentence on this topic rank first?", "The chapter calls one characteristic 'a second defining characteristic' — so which came first?", "Which characteristic does the chapter say 'gets a business going and keeps it going when times are tough'?"], "source_anchor": "Chapter 1 → Passion for the Business"}, {"q_id": "c1-t1-030", "lo": "1.3", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "According to the chapter's 'Savvy Entrepreneurial Firm' feature, which statement correctly distinguishes incubators from accelerators?", "options": ["Incubators typically do not take equity or provide seed funding; accelerators offer seed funding in exchange for small equity positions", "Incubators are for-profit; accelerators are always government-run", "Accelerators provide only office space; incubators provide funding", "There is no difference — the terms are interchangeable"], "correct_index": 0, "rationales": ["Correct — incubators (often university, government, or nonprofit sponsored) provide space, networking, and mentors without equity; accelerators are mostly for-profit, cohort-based, and trade seed funding for equity.", "Reversed — incubators are sponsored by universities, governments, or nonprofits; accelerators are mostly for-profit.", "Reversed — accelerators provide the seed funding; incubators provide shared space without funding.", "The feature devotes separate paragraphs to distinguishing the two models."], "probes": [null, "Who sponsors incubators, per the feature — and what does that imply about profit motive?", "Which of the two models runs cohorts through a 10-to-15-week program ending in a Demo Day?", "What does the feature say incubators typically do NOT ask for that accelerators do?"], "source_anchor": "Chapter 1 → SAVVY ENTREPRENEURIAL FIRM: Start-Up Incubators and Accelerators"}, {"q_id": "c1-t1-031", "lo": "1.6", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The chapter reports a gap between millennials' entrepreneurial aspirations and their actions. Which pair of findings illustrates it?", "options": ["66 percent of millennials want to start a business, yet only 3.6 percent of U.S. businesses were owned by someone under 30 in 2013", "90 percent of millennials own businesses, but only 10 percent want to", "Millennials start businesses at the highest rate of any age group", "No millennials report wanting to start businesses"], "correct_index": 0, "rationales": ["Correct — the Bentley survey found strong desire (66 percent) while ownership among the under-30s remained low (3.6 percent in 2013).", "The direction is reversed — desire is high, ownership is low.", "The chapter's data show the opposite: young ownership rates are low despite high interest.", "Two-thirds of millennials in the Bentley survey expressed exactly that desire."], "probes": [null, "Which is high in the chapter's data — millennial desire or millennial ownership?", "What ownership percentage does the chapter give for under-30s in 2013?", "What did the Bentley University survey find about millennial desire?"], "source_anchor": "Chapter 1 → Millennial Entrepreneurs"}, {"q_id": "c1-t1-032", "lo": "1.6", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: According to SBA data in the chapter, the percentage of individuals age 62 and older starting a business increased from 4.2 percent in 1988 to 5.4 percent in 2015.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — the SBA Office of Advocacy reported this growth and characterized it as healthy for the U.S. economy.", "The chapter cites exactly these SBA figures for senior entrepreneurs."], "probes": [null, "What trend does the chapter's SBA data show for entrepreneurs age 62 and older between 1988 and 2015?"], "source_anchor": "Chapter 1 → Senior Entrepreneurs"}, {"q_id": "c1-t1-033", "lo": "1.7", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "According to the chapter, why does creative destruction stimulate economic activity?", "options": ["New products and technologies are typically better than those they replace, and their availability increases consumer demand", "It forces governments to lower interest rates", "It reduces the total number of firms in an economy", "It transfers wealth from consumers to producers"], "correct_index": 0, "rationales": ["Correct — better replacements plus increased demand is the chapter's stated mechanism; improved products may also raise productivity across society.", "Monetary policy plays no role in the chapter's account of creative destruction.", "Firm counts are not the mechanism; the process is about products and technologies replacing inferior ones.", "The chapter frames the process as benefiting consumers with better products, not extracting from them."], "probes": [null, "What does the chapter say happens to consumer demand when improved products become available?", "Is the chapter's mechanism about the number of firms or the quality of products?", "Who receives the better products in Schumpeter's process, per the chapter?"], "source_anchor": "Chapter 1 → The Positive Effects of Entrepreneurship and Entrepreneurial Firms"}, {"q_id": "c1-t1-034", "lo": "1.7", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: According to the SBA Office of Advocacy figures cited in the chapter, small innovative firms are 16 times more productive than large innovative firms in terms of patents per employee.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — the chapter cites this figure in its discussion of innovation's economic impact.", "The chapter reports exactly this SBA statistic."], "probes": [null, "What measure does the chapter use to compare the innovativeness of small versus large firms?"], "source_anchor": "Chapter 1 → Economic Impact of Entrepreneurial Firms"}, {"q_id": "c1-t1-035", "lo": "1.8", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "In the book's model of the entrepreneurial process, which chapters cover Step 2, 'Developing successful business ideas'?", "options": ["Chapters 2–6", "Chapter 1 only", "Chapters 7–10", "Chapters 11–15"], "correct_index": 0, "rationales": ["Correct — Step 2 spans opportunity recognition through business planning (Chapters 2–6).", "Chapter 1 covers Step 1, the decision to become an entrepreneur.", "Chapters 7–10 cover Step 3, moving from an idea to an entrepreneurial firm.", "Chapters 11–15 cover Step 4, managing and growing an entrepreneurial firm."], "probes": [null, "Which step does the chapter you are studying right now belong to?", "What step do the chapters on legal foundation, finances, team, and funding belong to?", "What step do the chapters on marketing, IP, and growth belong to?"], "source_anchor": "Chapter 1 → The Entrepreneurial Process"}, {"q_id": "c1-t1-036", "lo": "1.8", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "In Figure 1.3, what does the double-headed arrow between 'decision to become an entrepreneur' and 'developing successful business ideas' indicate?", "options": ["Sometimes the opportunity to develop an idea prompts a person to become an entrepreneur", "The two steps must always be completed simultaneously", "Entrepreneurs must abandon their ideas before deciding to start a firm", "The model has no fixed steps"], "correct_index": 0, "rationales": ["Correct — the arrow shows influence can run both directions: an idea can trigger the decision, not just follow it.", "The arrow indicates bidirectional influence, not required simultaneity.", "Nothing in the model suggests abandoning ideas.", "The model has four defined steps; the arrow qualifies the relationship between the first two only."], "probes": [null, "Does a two-way arrow mean 'at the same time' or 'either can lead to the other'?", "What does the chapter's own sentence about the arrow say prompts what?", "How many major stages does Figure 1.3 present?"], "source_anchor": "Chapter 1 → The Entrepreneurial Process"}, {"q_id": "c1-t1-037", "lo": "1.3", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: The chapter cautions that passion alone is not enough — entrepreneurs should also understand an idea's potential flaws and risks, and their passion should be consistent with their skills and a legitimate business opportunity.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — the chapter's 'note of caution' warns against rose-colored glasses: enthusiasm must be paired with clear-eyed assessment.", "The chapter explicitly warns it would be a mistake to believe all one needs is passion."], "probes": [null, "What metaphor does the chapter use to warn about unchecked passion, and what must accompany enthusiasm?"], "source_anchor": "Chapter 1 → Passion for the Business"}, {"q_id": "c1-t1-038", "lo": "1.1", "tier": 1, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The word 'entrepreneur' derives from French words meaning:", "options": ["'Between' and 'to take'", "'Risk' and 'reward'", "'New' and 'venture'", "'Idea' and 'market'"], "correct_index": 0, "rationales": ["Correct — entre ('between') and prendre ('to take'), originally describing those who take on the risk between buyers and sellers or undertake a new venture.", "Risk and reward describe the concept, but they are not the word's roots.", "Not the etymology given in the chapter.", "Not the etymology given in the chapter."], "probes": [null, "What did the original usage describe someone as taking on, and between whom?", "The chapter gives two French roots — what do they literally mean?", "What two French words does the chapter cite?"], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t1-039", "lo": "1.2", "tier": 1, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: The chapter notes that established firms often resist innovation, which can leave employees with good but unfulfilled ideas — prompting some to leave and start their own firms.", "options": ["True", "False"], "correct_index": 0, "rationales": ["Correct — this dynamic appears in the 'Pursue Their Own Ideas' discussion of why people become entrepreneurs.", "The chapter describes exactly this chain of events as a driver of the second reason people start firms."], "probes": [null, "In the 'Pursue Their Own Ideas' section, what happens when an established firm resists an employee's innovation?"], "source_anchor": "Chapter 1 → Pursue Their Own Ideas"}, {"q_id": "c1-t2-014", "lo": "1.2", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The chapter says the desire to be one's own boss 'doesn't mean entrepreneurs are difficult to work with or have trouble accepting authority.' What does it attribute the desire to instead?", "options": ["A long-time ambition to own a firm, or frustration with traditional jobs", "An inability to hold conventional employment", "A dislike of teamwork in all forms", "A legal requirement for founders to be sole decision makers"], "correct_index": 0, "rationales": ["Correct — the chapter gives these two sources, illustrated by Wendy DeFeudis's frustration with corporate structure.", "The chapter explicitly rejects the difficult-to-work-with interpretation.", "Teamwork aversion appears nowhere; entrepreneurs are elsewhere described as networkers.", "No legal requirement of this kind exists in the chapter."], "probes": [null, "What two positive/situational sources does the chapter give for the be-your-own-boss motive?", "What does the DeFeudis quote identify as frustrating — people, or corporate process?", "Is the chapter describing a preference or a legal rule?"], "source_anchor": "Chapter 1 → Be Their Own Boss"}, {"q_id": "c1-t2-015", "lo": "1.3", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Table 1.2 lists five reasons passion is important for launching a successful entrepreneurial organization. Which of the following is NOT one of them?", "options": ["The ability to attract venture capital on favorable terms", "The ability to learn and iterate", "A willingness to work hard for an extended period of time", "Perseverance and persistence when the going gets tough"], "correct_index": 0, "rationales": ["Correct (not in the table) — fundraising advantages are not among the five reasons; the table also includes overcoming setbacks and 'no's' and listening to feedback.", "This is reason 1 in Table 1.2.", "This is reason 2 in Table 1.2.", "This is reason 5 in Table 1.2."], "probes": [null, "Scan Table 1.2 — is learning and iterating listed?", "Scan Table 1.2 — is sustained hard work listed?", "Scan Table 1.2 — is perseverance listed?"], "source_anchor": "Chapter 1 → Passion for the Business"}, {"q_id": "c1-t2-016", "lo": "1.3", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "The Bouqs Company bypassed conventional flower distribution by building direct relationships with growers, shipping farm-to-customer in 2–4 days instead of 10–14, curating selection, and pricing transparently. The chapter presents this as an example of:", "options": ["Creating an advantage through execution intelligence", "A lifestyle firm serving a founder's hobby", "Creative destruction eliminating the flower industry", "A salary-substitute firm offering common services"], "correct_index": 0, "rationales": ["Correct — the chapter says the founders 'took on the industry primarily by creating an advantage via execution intelligence.'", "The Bouqs is a growth venture with $19 million raised, not a lifestyle pursuit.", "The Bouqs improved industry practices; the chapter's point is about executing a business idea, not industry-level obsolescence.", "Fresher flowers, curated selection, and transparent pricing are differentiated innovations, not common offerings."], "probes": [null, "In which characteristic's section does the Bouqs example appear?", "Does the chapter describe the Bouqs as pursuing a lifestyle or building a competitive advantage?", "Is the chapter's point about what happened to the industry, or about how the founders executed?"], "source_anchor": "Chapter 1 → Execution Intelligence"}, {"q_id": "c1-t2-017", "lo": "1.3", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "According to the chapter's incubator/accelerator feature, what is the GREATEST advantage of participating in either type of program?", "options": ["The mentorship opportunities they provide", "Guaranteed venture capital funding", "Exemption from business regulations", "Free advertising in national media"], "correct_index": 0, "rationales": ["Correct — the feature names mentorship as the greatest advantage, along with meeting potential cofounders, partners, and investors.", "Accelerators provide small seed amounts and pitch access, not guaranteed VC funding.", "No regulatory exemption is mentioned.", "Demo Days may draw reporters, but the feature does not present media coverage as the core benefit."], "probes": [null, "What single word does the feature use when naming the greatest advantage?", "What do accelerators actually provide financially — a guarantee or a small seed amount for equity?", "What happens at a Demo Day, and is that the feature's headline benefit?"], "source_anchor": "Chapter 1 → SAVVY ENTREPRENEURIAL FIRM: Start-Up Incubators and Accelerators"}, {"q_id": "c1-t2-018", "lo": "1.6", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "According to the EY/EIG study cited in the chapter, which set correctly names obstacles preventing millennials from acting on entrepreneurial desires?", "options": ["Lack of finances, fear of failure, and lack of knowledge of the start-up process", "Excess savings, too many mentors, and abundant free time", "Mandatory retirement rules and licensing bans on young founders", "The absence of any entrepreneurship courses at U.S. universities"], "correct_index": 0, "rationales": ["Correct — the study's biggest obstacles were lack of finances, lack of desire, fear of failure, and lack of start-up knowledge; student debt and risk aversion are also noted.", "These are the opposite of the constraints the chapter reports.", "No such rules appear in the chapter.", "The chapter reports over 2,300 U.S. colleges and universities offer at least one entrepreneurship course."], "probes": [null, "Are the chapter's obstacles about abundance or scarcity — of money, confidence, and knowledge?", "Does the chapter attribute the gap to rules or to resources and psychology?", "How many colleges does the chapter say offer entrepreneurship courses?"], "source_anchor": "Chapter 1 → Millennial Entrepreneurs"}, {"q_id": "c1-t2-019", "lo": "1.3", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "John Wood cashed in Microsoft stock to build schools in Nepal, eventually leaving the company to run Room to Read full time. The chapter uses his story to show that:", "options": ["Passion drives social enterprises too — founders may set aside promising careers to pursue a social goal", "Nonprofit ventures do not require entrepreneurial characteristics", "Financial rewards are the primary motive behind social enterprises", "Corporate employees cannot become entrepreneurs"], "correct_index": 0, "rationales": ["Correct — the chapter states passion matters for both for-profit and not-for-profit entrepreneurial organizations, and Wood exemplifies career sacrifice for a social mission.", "The chapter's point is the opposite: building a social enterprise is demanding and requires the same passion.", "Wood's story is about mission, and the chapter elsewhere debunks the money-primary myth.", "Wood was a corporate employee who became a social entrepreneur — the story disproves this."], "probes": [null, "Does the chapter say passion applies only to for-profit ventures, or to social enterprises as well?", "What motivated Wood, per the chapter — returns or a mission?", "Where did Wood work before founding Room to Read?"], "source_anchor": "Chapter 1 → Passion for the Business"}, {"q_id": "c1-t2-020", "lo": "1.6", "tier": 2, "type": "mc4", "origin": "bank", "status": "draft", "stem": "Which combination of factors does the chapter cite to explain the increase in senior entrepreneurs?", "options": ["Corporate downsizing, desire for personal fulfillment, and worries about income for future health care and expenses", "Government mandates requiring seniors to start firms", "Declining life expectancy pushing earlier career changes", "Loss of business experience among older workers"], "correct_index": 0, "rationales": ["Correct — the chapter also notes seniors often bring substantial business experience, financial resources, and good health to founding.", "No mandate exists; the trend is driven by circumstances and preferences.", "Backwards — the chapter cites *increasing* life expectancy and healthier aging as enabling longer engagement.", "Backwards — the chapter says many seniors have substantial business experience, an asset for founding."], "probes": [null, "Is the trend driven by policy or by economic and personal factors?", "What does the chapter say is happening to life expectancy, and what does that enable?", "What assets does the chapter say people 60 and older bring to entrepreneurship?"], "source_anchor": "Chapter 1 → Senior Entrepreneurs"}, {"q_id": "c1-t2-021", "lo": "1.3", "tier": 2, "type": "tf_justify", "origin": "bank", "status": "draft", "stem": "True or False: The chapter's 'What Went Wrong?' feature on Prim, a laundry start-up, illustrates that a lack of passion and resolve can kill a business.", "options": ["True", "False"], "correct_index": 0, "justify_options": ["Because the feature's own framing ties Prim's failure to insufficient passion and resolve — the qualities the chapter says sustain founders through demanding periods", "Because Prim failed due to a government ban on laundry services", "Because the feature shows passion guarantees success"], "justify_correct": 0, "rationales": ["Correct — the feature's title and framing attribute Prim's demise to lacking passion and resolve.", "The feature explicitly connects Prim's failure to the passion characteristic discussed in the chapter."], "probes": [null, "What does the title of the Prim feature attribute the failure to?"], "source_anchor": "Chapter 1 → WHAT WENT WRONG? Prim"}, {"q_id": "c1-t3-007", "lo": "1.3", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Amara's food-tech start-up is admitted to a 12-week program alongside nine other start-ups. The program provides a small amount of seed funding in exchange for a 6 percent equity stake, weekly mentor meetings, pitch coaching, and ends with a Demo Day in front of about 250 investors. Based on the chapter's feature, Amara has joined:", "options": ["An accelerator", "An incubator", "A salary-substitute firm", "A student-run venture fund"], "correct_index": 0, "rationales": ["Correct — cohort admission, a 10-to-15-week intensive program, seed funding for small equity, and a Demo Day are the chapter's accelerator markers.", "Incubators provide shared space, networking, and mentors but typically take no equity and provide no seed funding.", "A start-up type, not a support program.", "The Dorm Room Fund is the chapter's example of that — an investor, not a cohort program."], "source_anchor": "Chapter 1 → SAVVY ENTREPRENEURIAL FIRM: Start-Up Incubators and Accelerators"}, {"q_id": "c1-t3-008", "lo": "1.2", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Lena works full time in hospital administration and has started a weekend catering business. Her plan: keep the day job, bank the catering profits, learn the industry's rhythms, and quit only when her client list is large and profitable enough to support her full time. According to the chapter, Lena's approach illustrates:", "options": ["A gradual, part-time transition into entrepreneurship that builds experience, savings, and confirmation of fit before departure", "A lifestyle firm, since catering happens on weekends", "Proof that Lena lacks the tenacity of a real entrepreneur", "Corporate entrepreneurship within the hospital"], "correct_index": 0, "rationales": ["Correct — the chapter describes exactly this strategy, noting catering as a business where building a client list takes time and founders may time their departure accordingly.", "The timing of the work doesn't make it a lifestyle firm; her goal is a full-time business, not a lifestyle pursuit.", "The chapter presents part-time entry as a legitimate, prudent path — not a character deficiency.", "Her venture is external to her employer; nothing entrepreneurial is happening within the hospital."], "source_anchor": "Chapter 1 → Be Their Own Boss"}, {"q_id": "c1-t3-009", "lo": "1.2", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Devon, an engineer at a large appliance manufacturer, proposes a smart water-leak sensor. Management shelves it twice as 'off-strategy.' Convinced the idea has real market potential, Devon resigns and founds a company around it. The chapter would classify Devon's primary motivation as:", "options": ["Pursuing his own ideas after his employer resisted the innovation", "Pursuing financial rewards above all", "Escaping the need to accept any authority", "Responding to a triggering event such as a layoff"], "correct_index": 0, "rationales": ["Correct — the chapter describes this exact chain: established firms often resist innovation, leaving employees with unfulfilled ideas, and some leave to develop them.", "Nothing in the scenario centers money; the chapter treats money-primary motivation as rare and mythologized.", "The chapter explicitly says the autonomy motive doesn't mean trouble accepting authority.", "Devon chose to leave over an idea; he wasn't prompted by a job loss, inheritance, or similar event."], "source_anchor": "Chapter 1 → Pursue Their Own Ideas"}, {"q_id": "c1-t3-010", "lo": "1.3", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Marcus is euphoric about his idea for artisanal ice-cream vending machines. Friends raise concerns — high machine costs, winter demand collapse, no food-service experience — but Marcus dismisses them: 'Passion is everything. If you believe, anything is possible.' Based on the chapter, what is the most accurate assessment?", "options": ["Marcus is wearing rose-colored glasses; passion must be paired with understanding an idea's flaws and risks, and aligned with skills and a legitimate opportunity", "Marcus is correct — the chapter says passion is all a founder needs", "Marcus lacks passion, which is his main problem", "Marcus should abandon entrepreneurship because he has doubters"], "correct_index": 0, "rationales": ["Correct — the chapter's note of caution warns against exactly this: enthusiasm without clear-eyed assessment of flaws, risks, and skill fit.", "The chapter explicitly calls the passion-is-everything belief a mistake.", "Marcus has plenty of passion; the deficit is in risk assessment.", "The chapter never counsels quitting because of critics; it counsels listening to well-intentioned feedback."], "source_anchor": "Chapter 1 → Passion for the Business"}, {"q_id": "c1-t3-011", "lo": "1.1", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Two established regional banks face the rise of mobile payments. FirstBank launches experimental products, partners with fintech start-ups, and accepts calculated risks of failure. SecondBank adopts a 'wait and see' posture, preferring to copy proven features years later. In the chapter's terms, the two banks differ most clearly in their:", "options": ["Entrepreneurial intensity — their positions on the conservative-to-entrepreneurial continuum", "Execution intelligence — one founder is smarter than the other", "Type of start-up firm — one is a lifestyle firm", "Triggering events — one bank experienced a layoff"], "correct_index": 0, "rationales": ["Correct — proactive, innovative, risk-taking behavior versus a wait-and-see, risk-averse posture is precisely the continuum whose positions the chapter calls entrepreneurial intensity.", "Execution intelligence describes individuals fashioning ideas into businesses; these are established firms with differing orientations.", "Neither bank is a start-up; the typology of start-up firms doesn't apply.", "Triggering events prompt individuals to become entrepreneurs — irrelevant to comparing two firms' postures."], "source_anchor": "Chapter 1 → What Is Entrepreneurship and Why Is It Important?"}, {"q_id": "c1-t3-012", "lo": "1.3", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Sofia leaves a lucrative consulting career to found a nonprofit that installs solar-powered water pumps in rural communities. The work is grueling and unpaid at first, but she says her drive to see children with clean water 'keeps her going through every setback.' According to the chapter, Sofia's story shows that:", "options": ["Passion is important for not-for-profit entrepreneurial organizations just as it is for for-profit ones", "Nonprofits are not entrepreneurial organizations", "Sofia's motivation is best classified as pursuit of financial rewards", "Social enterprises succeed without any of the four characteristics"], "correct_index": 0, "rationales": ["Correct — the chapter states passion matters for both for-profit and not-for-profit entrepreneurial organizations because building either is demanding; John Wood's Room to Read is its parallel example.", "The chapter treats social enterprises as entrepreneurial organizations founded by people who may set aside promising careers.", "Sofia sacrificed income; her drive is mission-based.", "The chapter's point is the opposite — the same characteristics sustain social founders."], "source_anchor": "Chapter 1 → Passion for the Business"}, {"q_id": "c1-t3-013", "lo": "1.6", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Frank, 64, is offered early retirement when his employer downsizes. Healthy and energetic, with decades of industry experience, meaningful savings, and worries about future health-care costs, he launches a consulting practice instead of retiring. Frank exemplifies which demographic trend and its drivers as described in the chapter?", "options": ["Senior entrepreneurship, driven by corporate downsizing, desire for fulfillment, income concerns, and the experience, resources, and health many seniors possess", "Millennial entrepreneurship constrained by student debt", "The myth that entrepreneurs should be young and energetic", "A lifestyle firm, because consulting is done from home"], "correct_index": 0, "rationales": ["Correct — Frank matches the chapter's profile of senior entrepreneurs almost point for point.", "Frank is 64; millennial constraints don't apply.", "Frank's founding *contradicts* that myth rather than exemplifying it — the question asks what he exemplifies, which is the senior trend.", "Work location doesn't determine firm type; nothing suggests a lifestyle-pursuit motive."], "source_anchor": "Chapter 1 → Senior Entrepreneurs"}, {"q_id": "c1-t3-014", "lo": "1.7", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "A city council debates economic development strategy. One member argues: 'Only recruiting big, established employers creates jobs — new little start-ups are too small to matter.' Based on the research cited in the chapter, what is the strongest rebuttal?", "options": ["Kauffman Foundation research shows firm age matters more than size — companies under one year old have averaged 1.5 million new jobs per year, and young firms inject competition and spur innovation", "The chapter shows start-ups create no jobs but improve morale", "Established employers create no jobs at all", "Job creation depends only on tax incentives"], "correct_index": 0, "rationales": ["Correct — the chapter's SBA and Kauffman evidence directly counters the size-based argument: young firms are disproportionate job creators and sources of economic dynamism.", "The chapter documents substantial job creation by small and young firms, not merely morale effects.", "The rebuttal doesn't require denying large-firm job creation — only correcting the claim that start-ups don't matter.", "Tax incentives are not part of the chapter's evidence on job creation."], "source_anchor": "Chapter 1 → Economic Impact of Entrepreneurial Firms"}, {"q_id": "c1-t3-015", "lo": "1.9", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Priya plans a career in brand management at a large consumer-products company and has no intention of founding a firm. She wonders whether her Intro to Entrepreneurship course is a waste of time. Based on the chapter, which response is most accurate?", "options": ["No — established firms value entrepreneurial behavior (corporate entrepreneurship), and understanding opportunity recognition and the entrepreneurial process builds skills useful throughout a career", "Yes — entrepreneurship knowledge applies only to founders", "Yes — large firms are forbidden from acting entrepreneurially", "No — because the course guarantees she will eventually start a company"], "correct_index": 0, "rationales": ["Correct — the chapter's career-skills discussion and its treatment of corporate entrepreneurship both support the value of entrepreneurial understanding inside established firms.", "The chapter frames entrepreneurial skills as career assets beyond founding.", "The chapter's examples of entrepreneurial established firms (e.g., Google, Virgin) show the opposite.", "No guarantee exists; the value lies in transferable skills, not a predetermined founding."], "source_anchor": "Chapter 1 → Developing Skills for Your Career"}, {"q_id": "c1-t3-016", "lo": "1.4", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Jaylen grew up watching his mother run her own landscaping company and is close friends with two founders from his dorm. He tells his advisor, 'I wasn't born with the entrepreneur gene, so this path is closed to me.' Based on the chapter's treatment of Myth 1, what is the best response?", "options": ["The research consensus finds no genetic difference — and Jaylen's background actually raises his odds, since people with self-employed parents and entrepreneur acquaintances are more likely to start firms", "Jaylen is right — hundreds of studies confirm entrepreneurs are genetically distinct", "Jaylen's background is irrelevant because traits play no role in entrepreneurship", "Only people without entrepreneur role models succeed as founders"], "correct_index": 0, "rationales": ["Correct — Myth 1's rebuttal: environment, experiences, and choices drive founding, and both of Jaylen's influences (self-employed parent, knowing entrepreneurs) are cited as raising the likelihood.", "The chapter says the consensus of hundreds of studies is the opposite — no genetic difference.", "The chapter lists common traits (Table 1.3) but says they develop over time from social context — Jaylen's context is favorable.", "Backwards — knowing an entrepreneur more than doubles the likelihood of starting a firm."], "source_anchor": "Chapter 1 → Myth 1: Entrepreneurs Are Born, Not Made"}, {"q_id": "c1-t3-017", "lo": "1.4", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "A journalist profiles two founders. Founder A quietly runs a thriving industrial-sensors company and declines most interviews. Founder B constantly seeks TV appearances but her company is struggling. The journalist concludes, 'Founder B is the real entrepreneur — entrepreneurs love the spotlight.' Which chapter-based critique is most accurate?", "options": ["The journalist is repeating Myth 5 — most entrepreneurs don't seek the spotlight, and media visibility says nothing about entrepreneurial substance", "The journalist is correct; spotlight-seeking is a defining entrepreneurial characteristic", "Founder A cannot be an entrepreneur because industrial products aren't innovative", "Both founders are equally entrepreneurial because both own businesses"], "correct_index": 0, "rationales": ["Correct — 'entrepreneurs love the spotlight' is Myth 5; the chapter debunks it, and the scenario's contrast shows visibility and venture quality are independent.", "The chapter classifies this belief as a myth, not a characteristic.", "Industry sector doesn't determine entrepreneurial status; innovation and value creation do.", "Ownership alone doesn't settle it — the chapter's typology and characteristics are about behavior, not the fact of owning."], "source_anchor": "Chapter 1 → Common Myths About Entrepreneurs"}, {"q_id": "c1-t3-018", "lo": "1.5", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Rosa, a former tour guide, runs a small kayaking-tours business on the coast where she loves to paddle. It supports her comfortably, employs just her and one friend, offers the same tours as competitors, and she has no interest in expanding — the point is to be on the water. According to the chapter's typology, Rosa's business is best classified as:", "options": ["A lifestyle firm", "A salary-substitute firm", "An entrepreneurial firm", "A corporate venture"], "correct_index": 0, "rationales": ["Correct — the business exists so Rosa can pursue a particular way of life and earn a living doing it; tour guides are among the chapter's own lifestyle-firm examples, and the firm is neither innovative nor growth-oriented.", "Income replacement isn't the driver — her stated purpose is the lifestyle; salary-substitute firms are defined by replacing a paycheck with common services.", "Nothing new is brought to market; the tours match competitors' offerings.", "No established parent firm is involved."], "source_anchor": "Chapter 1 → Types of Start-Up Firms"}, {"q_id": "c1-t3-019", "lo": "1.5", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Three friends each start a business. Nia opens a standard neighborhood dry cleaner earning what her old job paid. Owen becomes a golf pro giving lessons so he can live at the course he loves. Zara launches an app that matches restaurants' surplus food with discount buyers — a service her city has never had — and is raising money to scale. Which classification matches the chapter's typology?", "options": ["Nia: salary-substitute; Owen: lifestyle; Zara: entrepreneurial", "Nia: lifestyle; Owen: entrepreneurial; Zara: salary-substitute", "Nia: entrepreneurial; Owen: salary-substitute; Zara: lifestyle", "All three are entrepreneurial firms because all three are new"], "correct_index": 0, "rationales": ["Correct — dry cleaners are the chapter's flagship salary-substitute example; golf pros its lifestyle example; and Zara is bringing a new service to market by creating and seizing an opportunity.", "Nia's purpose is income replacement, not lifestyle; Owen isn't innovating; Zara isn't replacing a salary with a common service.", "Each assignment contradicts the chapter's definitions and examples.", "Newness of the firm isn't the criterion — newness of the products/services to the market is what marks the entrepreneurial type."], "source_anchor": "Chapter 1 → Types of Start-Up Firms"}, {"q_id": "c1-t3-020", "lo": "1.6", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Dee, a 24-year-old with a business idea she believes in, hesitates to launch: she has student loans, little savings, worries she'd fail, and admits she doesn't know the first legal or financial step of starting up. According to the chapter's millennial-entrepreneur research, Dee's situation:", "options": ["Matches the study-documented obstacles almost exactly — lack of finances, fear of failure, and lack of start-up knowledge — which resources like SBDCs and campus programs exist to address", "Is unusual, since research shows millennials face no meaningful barriers to founding", "Proves the myth that entrepreneurs must be young and energetic", "Shows millennials have no interest in entrepreneurship"], "correct_index": 0, "rationales": ["Correct — the EY/EIG findings name exactly these obstacles (plus student debt and risk aversion), and the chapter points to SBDC counseling and 2,300+ colleges with entrepreneurship courses as countervailing supports.", "The research documents substantial barriers — that's the explanation for the aspiration-action gap.", "Dee's youth isn't the issue, and that claim is a myth the chapter debunks anyway.", "Interest is high (66 percent want to start a business); the gap is about obstacles, not desire."], "source_anchor": "Chapter 1 → Millennial Entrepreneurs"}, {"q_id": "c1-t3-021", "lo": "1.8", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Track Malia's venture: (1) after being laid off she resolves to start a company; (2) she researches whether busy clinics would pay for her scheduling idea and drafts how the business would make money; (3) she incorporates, recruits a cofounder, and raises seed funding; (4) two years in, she's managing marketing campaigns and planning expansion to new cities. How do her activities map onto the chapter's entrepreneurial process?", "options": ["They follow the four steps in order: deciding to become an entrepreneur, developing the business idea, moving from idea to firm, then managing and growing the firm", "Steps 2 and 3 are reversed — funding always precedes idea development", "She skipped the entrepreneurial process entirely", "Only steps 1 and 4 are part of the chapter's model"], "correct_index": 0, "rationales": ["Correct — the layoff is a triggering event (Step 1); feasibility and business-model work is Step 2; incorporation, team, and funding are Step 3; managing marketing and growth is Step 4.", "In the model, idea development (Step 2) precedes moving from idea to firm, which includes funding (Step 3).", "Her path is a textbook walk through all four steps.", "The model has four steps, and her activities map to each of them."], "source_anchor": "Chapter 1 → The Entrepreneurial Process"}, {"q_id": "c1-t3-022", "lo": "1.8", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Theo never planned to start a company. While coaching youth soccer he stumbles onto an idea for a scheduling tool that leagues keep begging him to build — and the pull of that idea is what convinces him to become an entrepreneur at all. Which feature of the chapter's process model does Theo's path illustrate?", "options": ["The double-headed arrow between Steps 1 and 2 — sometimes the opportunity to develop an idea prompts the decision to become an entrepreneur", "That the process must always begin with a formal business plan", "That triggering events are always negative, like layoffs", "That Step 4 can be completed before Step 3"], "correct_index": 0, "rationales": ["Correct — the model's two-way arrow captures exactly this: the idea came first and prompted the decision, rather than the decision preceding the idea.", "No such requirement exists in the model; business planning belongs to Step 2's development work.", "Triggering events include positive prompts too — an inheritance, a lifestyle change, or a compelling idea.", "The model presents managing and growing as following the move from idea to firm."], "source_anchor": "Chapter 1 → The Entrepreneurial Process"}, {"q_id": "c1-t3-023", "lo": "1.9", "tier": 3, "type": "scenario_mc", "origin": "bank", "status": "draft", "stem": "Two years after graduating, Amir works in product development at a large food company. He spots an unmet consumer need, sketches how a new snack line could create value, assesses its feasibility, and pitches it with a plan for taking it to market — skills he says came straight from his entrepreneurship course. Amir's situation best illustrates which chapter point?", "options": ["Entrepreneurial skills — recognizing opportunities and working the entrepreneurial process — facilitate career success inside established firms, where they power corporate entrepreneurship", "Entrepreneurship coursework only pays off if the graduate founds a start-up", "Established firms have no use for opportunity recognition", "Amir is legally required to leave his employer to pursue the idea"], "correct_index": 0, "rationales": ["Correct — the chapter's career-skills discussion says exactly this: understanding entrepreneurship and its process builds career value beyond founding, and firms with entrepreneurial intensity prize employees who behave this way.", "The chapter frames the skills as broadly career-facilitating, not founder-only.", "The chapter's entrepreneurial-firm examples (Google, Virgin) are built on internal opportunity recognition.", "Nothing requires leaving; innovating within an established firm is corporate entrepreneurship."], "source_anchor": "Chapter 1 → Developing Skills for Your Career"}]};
+
+/* ============ Remediation excerpts (pre-extracted, §4.2/§10.1) ============ */
+const EXCERPTS = {
+"Chapter 1 → What Is Entrepreneurship and Why Is It Important?":"Entrepreneurship is the process by which individuals pursue opportunities without regard to the resources they currently control. Inventors create something new; entrepreneurs assemble the money, people, business model, strategy, and risk-bearing to make it a viable business. Established firms acting entrepreneurially practice corporate entrepreneurship; a firm's position on the conservative-to-entrepreneurial continuum is its entrepreneurial intensity.",
+"Chapter 1 → Why Do People Become Entrepreneurs?":"The chapter gives three reasons people become entrepreneurs: to be their own boss (the most common), to pursue their own ideas, and to pursue financial rewards — noting money is rarely the primary driver.",
+"Chapter 1 → Be Their Own Boss":"Being one's own boss is the most commonly given reason, rooted in long-time ambition or frustration with traditional jobs — not difficulty accepting authority. Some found part time first to gain experience, save money, and confirm fit before leaving a job, especially where client lists take time to build.",
+"Chapter 1 → Pursue Their Own Ideas":"Established firms often resist innovation. Employees whose good ideas go unfulfilled sometimes leave to start firms of their own as the means to develop those ideas.",
+"Chapter 1 → Characteristics of Successful Entrepreneurs":"The chapter identifies four primary characteristics of successful entrepreneurs: passion for the business, product/customer focus, tenacity despite failure, and execution intelligence.",
+"Chapter 1 → Passion for the Business":"Passion is the number one characteristic — it gets a business going and keeps it going in tough times, for social enterprises as well as for-profits. But the chapter cautions against rose-colored glasses: enthusiasm must be paired with understanding an idea's flaws and risks, and aligned with your skills and a legitimate opportunity.",
+"Chapter 1 → Product/Customer Focus":"Products and customers are the two most important elements of any business; management, marketing, and finance matter only if the firm has good products that satisfy customers.",
+"Chapter 1 → Tenacity Despite Failure":"Because entrepreneurs try new things, setbacks are inevitable — the chapter compares the process to a chemist testing many combinations. The litmus test is persevering through failures, as Yelp's founders did when their original plan flopped and they pivoted to user-written reviews.",
+"Chapter 1 → Execution Intelligence":"Execution intelligence is the ability to fashion a solid idea into a viable business — developing the model, building the team, raising money, managing, and translating creativity into measurable results. It often determines whether a start-up succeeds or fails.",
+"Chapter 1 → Common Myths About Entrepreneurs":"The five myths: entrepreneurs are born not made; they are gamblers; they are motivated primarily by money; they should be young and energetic; they love the spotlight. The chapter debunks each.",
+"Chapter 1 → Myth 1: Entrepreneurs Are Born, Not Made":"Hundreds of studies find entrepreneurs are not genetically different from other people — becoming one is a function of environment, life experiences, and personal choices. People who personally know an entrepreneur are more than twice as likely to start a firm, because observation reduces ambiguity and uncertainty.",
+"Chapter 1 → Myth 2: Entrepreneurs Are Gamblers":"Entrepreneurs are usually moderate risk takers, like most people. The gambler image comes from their less-structured jobs (more uncertainty) and their challenging, achievement-driven goals being mistaken for risk-seeking.",
+"Chapter 1 → Types of Start-Up Firms":"Three types: salary-substitute firms (the vast majority of small businesses; common, non-innovative offerings that replace a paycheck), lifestyle firms (let owners pursue a way of life; not innovative or fast-growing), and entrepreneurial firms (bring new products and services to market — creating value, meaning worth, importance, or utility).",
+"Chapter 1 → Changing Demographics of Entrepreneurs":"Women-owned firms grew 45% from 2007–2016 versus 9% for all firms. Minority-owned firms grew 38% since 2007. Entrepreneurs age 62+ rose from 4.2% (1988) to 5.4% (2015). And 66% of millennials want to start a business while under-30s owned just 3.6% of firms in 2013.",
+"Chapter 1 → Senior Entrepreneurs":"Senior founding is rising, driven by corporate downsizing, desire for personal fulfillment, and worries about income for future health care — and enabled by seniors' business experience, financial resources, and health.",
+"Chapter 1 → Millennial Entrepreneurs":"Millennial desire is high (66% want to start a business) but under-30 ownership was just 3.6% in 2013. The biggest obstacles: lack of finances, lack of desire, fear of failure, and lack of knowledge of the start-up process. Over 2,300 U.S. colleges offer entrepreneurship courses.",
+"Chapter 1 → The Positive Effects of Entrepreneurship and Entrepreneurial Firms":"Schumpeter's creative destruction: entrepreneurs develop new products and technologies that make current ones obsolete; because the replacements are better and increase consumer demand, the process stimulates economic activity. It extends beyond products to new pricing strategies, distribution channels, and retail formats.",
+"Chapter 1 → Economic Impact of Entrepreneurial Firms":"Innovation — creating something new — is central to entrepreneurship; small innovative firms produce 16 times more patents per employee than large ones. On jobs, Kauffman research finds a firm's age matters more than size: companies under one year old have averaged 1.5 million new jobs per year.",
+"Chapter 1 → Entrepreneurial Firms' Impact on Larger Firms":"Many entrepreneurial firms build their entire business models around making larger firms more efficient or effective — like SpeakLike's real-time translation and Box's cloud storage, whose customers are largely big companies.",
+"Chapter 1 → The Entrepreneurial Process":"The process has four steps: (1) decision to become an entrepreneur, (2) developing successful business ideas, (3) moving from an idea to an entrepreneurial firm, (4) managing and growing the firm. The double-headed arrow between steps 1 and 2 means an idea can prompt the decision.",
+"Chapter 1 → Decision to Become an Entrepreneur (Chapter 1)":"A triggering event — losing a job, receiving an inheritance, a lifestyle change — usually prompts the decision to become an entrepreneur.",
+"Chapter 1 → Developing Skills for Your Career":"Understanding entrepreneurship and the entrepreneurial process builds skills that facilitate career success broadly — including inside established organizations — not only for founders.",
+"Chapter 1 → SAVVY ENTREPRENEURIAL FIRM: Start-Up Incubators and Accelerators":"Incubators (university/government/nonprofit sponsored) provide shared space, networking, and mentors — typically no equity taken and no seed funding. Accelerators are mostly for-profit: cohorts, a 10–15 week program, small seed funding for small equity, ending in a Demo Day. The greatest advantage of either: mentorship.",
+"Chapter 1 → WHAT WENT WRONG? Prim":"The Prim feature attributes the laundry start-up's failure to a lack of passion and resolve — the qualities the chapter says founders need to push through the demanding early period."
+};
+
+/* ================= Storage adapter (window.storage → localStorage fallback) ================= */
+const store = {
+  async get(k){ try{ if(window.storage){ const r=await window.storage.get(k); return r?JSON.parse(r.value):null; } }catch(e){ /* missing key */ }
+    try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } },
+  async set(k,v){ const s=JSON.stringify(v);
+    try{ if(window.storage){ await window.storage.set(k,s); return; } }catch(e){}
+    try{ localStorage.setItem(k,s); }catch(e){} },
+  async del(k){ try{ if(window.storage){ await window.storage.delete(k); return; } }catch(e){}
+    try{ localStorage.removeItem(k); }catch(e){} }
+};
+const SKEY='quizprep-v1';
+const LEGEND=`One row per learning objective.<br>Rungs = recall → comprehension → application; a dashed rung means the bank has no questions at that level.<br>Filled rungs show the level you've reached. Mastery also needs a streak of <b>2 straight first-try corrects</b> at the top level — the <span class="streak">x/2</span> chip tracks it.<br><span style="color:var(--ok)">✓</span> mastered · <span style="color:var(--no)">⚑</span> needs review`;
+
+/* ================= App state ================= */
+let DATA={ name:'', sessions:[], carryReview:{}, ladder:{} };   // ladder: {"1":{"1.1":{tier,consec,mastered}}}
+let S=null;   // active session
+
+const $=id=>document.getElementById(id);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const uuid=()=>('s'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+/* ================= Engine helpers ================= */
+const CH=1;
+const LOS=Object.keys(BANK.bank_meta.learning_objectives);
+const itemsByLO=lo=>BANK.items.filter(i=>i.lo===lo);
+const tiersAvail=lo=>[...new Set(itemsByLO(lo).map(i=>i.tier))].sort();
+const maxTier=lo=>Math.max(...tiersAvail(lo));
+
+function loNeed(st,lo){ // perfect-play first-try corrects to master this LO
+  const mt=maxTier(lo);
+  return Math.max(0,mt-Math.min(st.tier,mt))+Math.max(0,2-st.consec);
+}
+function estRemaining(losMap){ // from a ladder map {lo:{tier,consec,mastered}}
+  let n=0; LOS.forEach(lo=>{const p=losMap[lo]||{tier:1,consec:0,mastered:false};
+    if(!p.mastered)n+=loNeed(p,lo);}); return n;
+}
+function recommendedLen(){
+  const est=estRemaining(DATA.ladder[CH]||{});
+  if(est===0)return {n:10,est,label:'Chapter mastered — 10-question review'};
+  const n=Math.min(15,Math.max(5,est));
+  return {n,est,label:`Recommended: ${n} questions`};
+}
+function estForX(x){ // perfect-play answers to master the X nearest-to-mastery objectives
+  const saved=DATA.ladder[CH]||{};
+  const needs=LOS.map(lo=>{const p=saved[lo]||{tier:1,consec:0,mastered:false};
+      return p.mastered?null:loNeed(p,lo);})
+    .filter(n=>n!==null).sort((a,b)=>a-b);
+  return needs.slice(0,Math.min(x,needs.length)).reduce((s,n)=>s+n,0);
+}
+const HARD_CAP=60;
+function initSession(goal){
+  const carry=(DATA.carryReview[CH]||[]);
+  const saved=(DATA.ladder[CH]||{});
+  const los={};
+  LOS.forEach(lo=>{const p=saved[lo]||{};
+    los[lo]={tier:p.tier||1,consec:p.consec||0,mastered:!!p.mastered,exhausted:false,misses:0,covered:0,
+    needsReview:false,carry:carry.includes(lo),wasMastered:!!p.mastered};});
+  S={id:uuid(),chapter:CH,started:new Date().toISOString(),goal,los,items:[],
+     idx:0,current:null,phase:'answering',usedIds:new Set(),tStart:0,firstMs:0,
+     focus:null,nextCk:(goal.type==='count'?goal.n:null),ckShown:0};
+}
+function readGoal(){
+  const g=document.querySelector('input[name=goal]:checked').value;
+  if(g==='count')return{type:'count',n:+$('selLen').value};
+  if(g==='mastery'){const m=document.querySelector('input[name=mxmode]:checked');
+    return{type:'mastery',x:+$('selMx').value,focus:(m&&m.value)||'nearest'};}
+  return{type:'count',n:recommendedLen().n};
+}
+function newMasteredCount(){return LOS.filter(lo=>S.los[lo].mastered&&!S.los[lo].wasMastered).length;}
+
+function pickLO(){
+  let open=LOS.filter(lo=>!S.los[lo].mastered&&!S.los[lo].exhausted);
+  if(S.focus){const f=open.filter(lo=>S.focus.has(lo)); if(f.length)open=f; else {S.focus=null;}}
+  if(S.goal.type==='mastery'&&S.goal.focus==='nearest'&&!S.focus){
+    const mn=Math.min(...open.map(lo=>loNeed(S.los[lo],lo)));
+    return shuffle(open.filter(lo=>loNeed(S.los[lo],lo)===mn))[0];
+  }
+  if(!open.length)return null;
+  const under=open.filter(lo=>S.los[lo].covered<2);
+  if(under.length){const min=Math.min(...under.map(lo=>S.los[lo].covered));
+    return shuffle(under.filter(lo=>S.los[lo].covered===min))[0];}
+  // weighted: 1 + 2*misses + carry
+  const w=open.map(lo=>({lo,w:1+2*S.los[lo].misses+(S.los[lo].carry?1:0)}));
+  const tot=w.reduce((s,x)=>s+x.w,0); let r=Math.random()*tot;
+  for(const x of w){ r-=x.w; if(r<=0)return x.lo; } return w[w.length-1].lo;
+}
+function pickItem(lo,wantTier){
+  const pool=itemsByLO(lo);
+  const order=[]; for(let t=wantTier;t>=1;t--)order.push(t); for(let t=wantTier+1;t<=3;t++)order.push(t);
+  for(const t of order){
+    const c=pool.filter(i=>i.tier===t&&!S.usedIds.has(i.q_id));
+    if(c.length)return shuffle(c)[0];
+  }
+  return null;
+}
+function effTier(lo){ const t=S.los[lo].tier, av=tiersAvail(lo);
+  let best=av[0]; for(const a of av){ if(a<=t)best=a; } return best; }
+
+function nextQuestion(){
+  if(S.idx>=S.len)return endSession();
+  const lo=pickLO(); if(!lo)return endSession();
+  const st=S.los[lo];
+  const item=pickItem(lo,st.tier);
+  if(!item){st.exhausted=true;return nextQuestion();}
+  S.usedIds.add(item.q_id); st.covered++;
+  const perm=(item.type==='mc4'||item.type==='scenario_mc')?shuffle([0,1,2,3])
+            :(item.type==='rank_order')?shuffle([...item.options.keys()]):null;
+  const jperm=item.justify_options?shuffle([...item.justify_options.keys()]):null;
+  S.current={item,lo,perm,jperm,attempt:1,rec:{q_id:item.q_id,lo,tier:item.tier,type:item.type,
+    origin:item.origin,probe_shown:false,student_answer_1:null,student_answer_2:null,
+    outcome:null,remediated:false,response_ms:[]}};
+  S.phase='answering'; S.tStart=Date.now();
+  renderQuestion();
+}
+
+/* ================= Rendering ================= */
+function railHTML(){
+  return LOS.map(lo=>{const st=S.los[lo];const av=tiersAvail(lo);
+    const rungs=[1,2,3].map(t=>{
+      const na=!av.includes(t)?' na':'';
+      const on=(st.mastered||st.tier>t||(st.tier===t&&(st.covered>0||st.consec>0)))?' on':'';
+      return `<span class="rung t${t}${na}${on}"></span>`;}).join('');
+    const mt=maxTier(lo);
+    const atTop=!st.mastered&&Math.min(st.tier,3)>=mt;
+    const streak=atTop?`<span class="streak">${st.consec}/2</span>`:'';
+    const flag=st.mastered?'<span class="flag mastered">✓</span>':(st.needsReview?'<span class="flag review">⚑</span>':'');
+    const act=S.current&&S.current.lo===lo?' active':'';
+    return `<div class="lo-row${act}"><span class="lo-id">${lo}</span><span class="ladder">${rungs}</span>${streak}${flag}</div>`;
+  }).join('');
+}
+function headMeta(){
+  const tgt=S.goal.type==='mastery'&&!S.nextCk?null:S.nextCk;
+  $('qCount').textContent=tgt?`Q ${S.idx+1} / ${tgt}`:`Q ${S.idx+1} · goal: master ${S.goal.x} objective${S.goal.x>1?'s':''}`;
+  const t=S.current.item.tier;
+  const names={1:'Recall',2:'Comprehension',3:'Application'};
+  const tp=$('qTier'); tp.textContent=`Tier ${t} · ${names[t]}`; tp.className='tierpill t'+t;
+  $('qLO').textContent='Learning Objective '+S.current.lo;
+  const p=(S.goal.type==='mastery'&&!S.nextCk)?(newMasteredCount()/S.goal.x):(S.idx/(S.nextCk||1));
+  $('progBar').style.width=Math.min(100,100*p)+'%';
+  $('loRail').innerHTML=railHTML();
+  if(!$('railLegend').innerHTML)$('railLegend').innerHTML=LEGEND;
+}
+function renderQuestion(){
+  headMeta();
+  const it=S.current.item; const qa=$('qArea'); $('fbArea').innerHTML='';
+  let h=`<div class="stem">${esc(it.stem)}</div>`;
+  if(it.type==='mc4'||it.type==='scenario_mc'){
+    h+='<div class="opts">'+S.current.perm.map((orig,pos)=>
+      `<button class="opt" data-pos="${pos}"><span class="key">${'ABCD'[pos]}</span><span>${esc(it.options[orig])}</span></button>`).join('')+'</div>';
+  } else if(it.type==='tf_justify'){
+    h+='<div class="opts">'+[0,1].map(i=>
+      `<button class="opt" data-pos="${i}"><span class="key">${'TF'[i]}</span><span>${esc(it.options[i])}</span></button>`).join('')+'</div>';
+    if(it.justify_options){
+      h+=`<div class="subq"><div class="lbl">…and why?</div><div class="opts">`+
+        S.current.jperm.map((orig,pos)=>`<button class="opt jopt" data-jpos="${pos}"><span class="key">${pos+1}</span><span>${esc(it.justify_options[orig])}</span></button>`).join('')+'</div></div>';
+    }
+  } else if(it.type==='rank_order'){
+    h+=`<p class="muted" style="margin-bottom:.6rem">Tap the steps in order (first → last).</p><div class="rank-list">`+
+      S.current.perm.map((orig,pos)=>`<button class="rank-pick" data-pos="${pos}"><span class="ordkey" data-ord></span><span>${esc(it.options[orig])}</span></button>`).join('')+
+      `</div><div class="btnrow"><button class="btn quiet sm" id="rankReset">Start over</button></div>`;
+  }
+  qa.innerHTML=h;
+  wireAnswerInputs();
+  $('actionRow').innerHTML=`<button class="btn brand" id="btnSubmit" disabled>Check answer</button>
+    <button class="btn quiet" id="btnSkip">Skip</button>`;
+  $('btnSubmit').onclick=submitAnswer;
+  $('btnSkip').onclick=doSkip;
+}
+let SEL={pos:null,jpos:null,rank:[]};
+function wireAnswerInputs(){
+  SEL={pos:null,jpos:null,rank:[]};
+  const it=S.current.item;
+  document.querySelectorAll('#qArea .opt:not(.jopt)').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#qArea .opt:not(.jopt)').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');SEL.pos=+b.dataset.pos;checkReady();});
+  document.querySelectorAll('#qArea .jopt').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#qArea .jopt').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');SEL.jpos=+b.dataset.jpos;checkReady();});
+  document.querySelectorAll('#qArea .rank-pick').forEach(b=>b.onclick=()=>{
+    if(b.classList.contains('picked'))return;
+    b.classList.add('picked');SEL.rank.push(+b.dataset.pos);
+    b.querySelector('[data-ord]').textContent=SEL.rank.length+'.';checkReady();});
+  const rr=$('rankReset'); if(rr)rr.onclick=()=>{SEL.rank=[];
+    document.querySelectorAll('#qArea .rank-pick').forEach(x=>{x.classList.remove('picked');x.querySelector('[data-ord]').textContent='';});checkReady();};
+  function checkReady(){
+    let ok=false;
+    if(it.type==='rank_order')ok=SEL.rank.length===it.options.length;
+    else if(it.type==='tf_justify'&&it.justify_options)ok=SEL.pos!==null&&SEL.jpos!==null;
+    else ok=SEL.pos!==null;
+    $('btnSubmit').disabled=!ok;
+  }
+}
+function answerIsCorrect(){
+  const it=S.current.item;
+  if(it.type==='mc4'||it.type==='scenario_mc')return S.current.perm[SEL.pos]===it.correct_index;
+  if(it.type==='tf_justify'){
+    const tf=SEL.pos===it.correct_index;
+    if(!it.justify_options)return tf;
+    return tf&&S.current.jperm[SEL.jpos]===it.justify_correct;
+  }
+  if(it.type==='rank_order'){
+    const chosen=SEL.rank.map(p=>S.current.perm[p]);
+    return JSON.stringify(chosen)===JSON.stringify(it.correct_order);
+  }
+  return false;
+}
+function chosenOrigIndex(){ const it=S.current.item;
+  if(it.type==='tf_justify')return SEL.pos;
+  if(it.type==='rank_order')return null;
+  return S.current.perm[SEL.pos]; }
+
+function submitAnswer(){
+  const ms=Date.now()-S.tStart; S.current.rec.response_ms.push(ms);
+  const correct=answerIsCorrect();
+  const it=S.current.item; const st=S.los[S.current.lo];
+  if(S.current.attempt===1){
+    S.current.rec.student_answer_1=serializeAnswer();
+    if(correct){ st.misses=Math.max(0,st.misses); resolveCorrect(true); }
+    else showProbe();
+  } else {
+    S.current.rec.student_answer_2=serializeAnswer();
+    if(correct)resolveCorrect(false); else resolveWrongFinal();
+  }
+}
+function serializeAnswer(){ const it=S.current.item;
+  if(it.type==='rank_order')return SEL.rank.map(p=>S.current.perm[p]);
+  if(it.type==='tf_justify'&&it.justify_options)return{tf:SEL.pos,why:S.current.jperm[SEL.jpos]};
+  return chosenOrigIndex(); }
+
+function showProbe(){
+  S.current.rec.probe_shown=true; S.current.attempt=2; S.phase='probe';
+  const it=S.current.item; const wrongIdx=chosenOrigIndex();
+  let probe='Take another look — which part of the chapter does this question point to?';
+  if(it.probes){
+    if(it.type==='rank_order')probe=it.probes[0]||probe;
+    else if(wrongIdx!==null&&it.probes[wrongIdx])probe=it.probes[wrongIdx];
+    else if(it.type==='tf_justify'&&it.justify_options&&SEL.pos===it.correct_index)
+      probe='Your True/False call is right — re-examine which reason the chapter actually gives.';
+  }
+  $('fbArea').innerHTML=`<div class="panel probe"><span class="plabel">Not quite — think it through</span>${esc(probe)}</div>`;
+  // re-render same question, same order
+  const saveFb=$('fbArea').innerHTML;
+  renderQuestionPreserve(); $('fbArea').innerHTML=saveFb;
+  $('actionRow').innerHTML=`<button class="btn brand" id="btnSubmit" disabled>Check answer</button>
+    <button class="btn quiet" id="btnTell">Just tell me</button>`;
+  $('btnSubmit').onclick=submitAnswer;
+  $('btnTell').onclick=()=>{S.current.rec.student_answer_2='(revealed)';resolveWrongFinal(true);};
+  S.tStart=Date.now();
+}
+function renderQuestionPreserve(){ // identical order (perm/jperm unchanged)
+  const qa=$('qArea'); const it=S.current.item;
+  let h=`<div class="stem">${esc(it.stem)}</div>`;
+  if(it.type==='mc4'||it.type==='scenario_mc'){
+    h+='<div class="opts">'+S.current.perm.map((orig,pos)=>
+      `<button class="opt" data-pos="${pos}"><span class="key">${'ABCD'[pos]}</span><span>${esc(it.options[orig])}</span></button>`).join('')+'</div>';
+  } else if(it.type==='tf_justify'){
+    h+='<div class="opts">'+[0,1].map(i=>
+      `<button class="opt" data-pos="${i}"><span class="key">${'TF'[i]}</span><span>${esc(it.options[i])}</span></button>`).join('')+'</div>';
+    if(it.justify_options){
+      h+=`<div class="subq"><div class="lbl">…and why?</div><div class="opts">`+
+        S.current.jperm.map((orig,pos)=>`<button class="opt jopt" data-jpos="${pos}"><span class="key">${pos+1}</span><span>${esc(it.justify_options[orig])}</span></button>`).join('')+'</div></div>';
+    }
+  } else if(it.type==='rank_order'){
+    h+=`<p class="muted" style="margin-bottom:.6rem">Tap the steps in order (first → last).</p><div class="rank-list">`+
+      S.current.perm.map((orig,pos)=>`<button class="rank-pick" data-pos="${pos}"><span class="ordkey" data-ord></span><span>${esc(it.options[orig])}</span></button>`).join('')+
+      `</div><div class="btnrow"><button class="btn quiet sm" id="rankReset">Start over</button></div>`;
+  }
+  qa.innerHTML=h; wireAnswerInputs();
+}
+function correctRationale(){ const it=S.current.item;
+  if(it.type==='rank_order')return it.rationales.map((r,i)=>`${i+1}. ${r}`).join(' ');
+  return it.rationales[it.correct_index]; }
+
+function resolveCorrect(firstAttempt){
+  const it=S.current.item; const st=S.los[S.current.lo];
+  markOptions();
+  const mt=maxTier(S.current.lo);
+  if(firstAttempt){
+    if(it.tier>=mt){ st.consec++; if(st.consec>=2){st.mastered=true;} }
+    /* correct at a lower tier neither advances nor breaks the top-tier streak */
+    st.tier=Math.min(st.tier+1,3);
+    S.current.rec.outcome='correct_first';
+  } else { st.consec=0; S.current.rec.outcome='correct_after_probe'; }
+  const mt2=maxTier(S.current.lo);
+  const mast=st.mastered?` <b style="color:var(--ok)">Learning Objective ${S.current.lo} mastered ✓</b>`
+    :(firstAttempt&&it.tier>=mt2?` <b style="color:var(--brand)">Streak ${st.consec}/2 toward mastering Learning Objective ${S.current.lo}.</b>`:'');
+  let extra=firstAttempt?'':(`<div style="margin-top:.4rem">Your first choice: ${esc(wrongWhy())}</div>`);
+  $('fbArea').innerHTML=`<div class="panel good"><span class="plabel">Correct</span>${esc(correctRationale())}${extra}${mast}
+    <ul class="rats" id="ratList">${allRats()}</ul></div>`;
+  finishItemControls();
+}
+function wrongWhy(){ const it=S.current.item; const w=S.current.rec.student_answer_1;
+  if(typeof w==='number'&&it.rationales[w])return it.rationales[w]; return 'see rationale above.'; }
+function allRats(){ const it=S.current.item;
+  if(it.type==='rank_order')return it.rationales.map(r=>`<li>${esc(r)}</li>`).join('');
+  return it.options.map((o,i)=>`<li><b>${esc(o.length>60?o.slice(0,60)+'…':o)}</b> — ${esc(it.rationales[i])}</li>`).join(''); }
+
+function resolveWrongFinal(revealed){
+  const it=S.current.item; const st=S.los[S.current.lo];
+  markOptions(true);
+  st.tier=Math.max(1,st.tier-1); st.consec=0; st.misses++;
+  S.current.rec.outcome=revealed?'revealed':'wrong_after_probe';
+  S.current.rec.remediated=true;
+  const ex=EXCERPTS[it.source_anchor]||null;
+  const correctTxt=(it.type==='rank_order')?'Correct order: '+it.correct_order.map(i=>it.options[i]).join(' → ')
+    :'Answer: '+it.options[it.correct_index];
+  $('fbArea').innerHTML=
+   `<div class="panel bad"><span class="plabel">${revealed?'Answer revealed':'Not this time'}</span><b>${esc(correctTxt)}</b><div style="margin-top:.4rem">${esc(correctRationale())}</div>
+      <ul class="rats" id="ratList">${allRats()}</ul></div>
+    <div class="panel remed"><span class="plabel">Review before your quiz</span>
+      <div class="pointer">📖 ${esc(it.source_anchor)}</div>
+      ${ex?`<div class="excerpt">${esc(ex)}</div>`:''}
+      <div>This is the section your missed question came from — a follow-up check is next.</div>
+    </div>`;
+  // follow-up: fresh T1 same LO
+  const fu=pickFollowUp(S.current.lo,it.q_id);
+  $('actionRow').innerHTML=`<button class="btn quiet sm" id="btnRats">Explain all options</button>
+    <button class="btn brand" id="btnFU">${fu?'Try the follow-up check':'Continue'}</button>`;
+  $('btnRats').onclick=()=>$('ratList').classList.toggle('show');
+  $('btnFU').onclick=()=>{ recordItem(); if(fu)startFollowUp(fu); else {S.los[S.current.lo].needsReview=true;advance();} };
+}
+function pickFollowUp(lo,notId){
+  const c=itemsByLO(lo).filter(i=>i.tier===1&&i.q_id!==notId&&!S.usedIds.has(i.q_id));
+  if(c.length)return shuffle(c)[0];
+  const any=itemsByLO(lo).filter(i=>i.tier===1&&i.q_id!==notId);
+  return any.length?shuffle(any)[0]:null;
+}
+function startFollowUp(item){
+  S.usedIds.add(item.q_id);
+  const perm=(item.type==='mc4')?shuffle([0,1,2,3]):null;
+  S.current={item,lo:S.current.lo,perm,jperm:null,attempt:1,followUp:true,
+    rec:{q_id:item.q_id,lo:S.current.lo,tier:1,type:item.type,origin:item.origin,follow_up:true,
+    probe_shown:false,student_answer_1:null,outcome:null,remediated:false,response_ms:[]}};
+  headMeta();
+  const qa=$('qArea');
+  let h=`<div class="panel remed" style="margin:0 0 .8rem"><span class="plabel">Follow-up check · Learning Objective ${S.current.lo}</span>One more on this concept, back at recall level.</div>
+    <div class="stem">${esc(item.stem)}</div>`;
+  if(item.type==='mc4'){
+    h+='<div class="opts">'+perm.map((orig,pos)=>
+      `<button class="opt" data-pos="${pos}"><span class="key">${'ABCD'[pos]}</span><span>${esc(item.options[orig])}</span></button>`).join('')+'</div>';
+  } else { // tf
+    h+='<div class="opts">'+[0,1].map(i=>
+      `<button class="opt" data-pos="${i}"><span class="key">${'TF'[i]}</span><span>${esc(item.options[i])}</span></button>`).join('')+'</div>';
+  }
+  qa.innerHTML=h; $('fbArea').innerHTML='';
+  wireAnswerInputs();
+  $('actionRow').innerHTML=`<button class="btn brand" id="btnSubmit" disabled>Check answer</button>`;
+  $('btnSubmit').onclick=()=>{
+    S.current.rec.response_ms.push(Date.now()-S.tStart);
+    S.current.rec.student_answer_1=serializeAnswer();
+    const ok=answerIsCorrect(); const st=S.los[S.current.lo];
+    markOptions(!ok);
+    if(ok){ S.current.rec.outcome='followup_correct';
+      $('fbArea').innerHTML=`<div class="panel good"><span class="plabel">Got it</span>${esc(correctRationale())} Back into rotation.</div>`; }
+    else { S.current.rec.outcome='followup_wrong'; st.needsReview=true;
+      $('fbArea').innerHTML=`<div class="panel bad"><span class="plabel">Flagged for review</span>Read <b>${esc(S.current.item.source_anchor)}</b> before your quiz — it's on your end-of-session reading list.</div>`; }
+    recordItem();
+    $('actionRow').innerHTML=`<button class="btn brand" id="btnNext">Next question</button>`;
+    $('btnNext').onclick=advance;
+  };
+  S.tStart=Date.now();
+}
+function markOptions(showWrong){
+  const it=S.current.item;
+  document.querySelectorAll('#qArea .opt,#qArea .rank-pick').forEach(b=>b.disabled=true);
+  if(it.type==='mc4'||it.type==='scenario_mc'){
+    document.querySelectorAll('#qArea .opt').forEach(b=>{
+      const orig=S.current.perm[+b.dataset.pos];
+      if(orig===it.correct_index)b.classList.add('correct');
+      else if(+b.dataset.pos===SEL.pos&&showWrong)b.classList.add('wrong');
+      else if(+b.dataset.pos===SEL.pos&&!showWrong&&orig!==it.correct_index)b.classList.add('wrong');
+    });
+  } else if(it.type==='tf_justify'){
+    document.querySelectorAll('#qArea .opt:not(.jopt)').forEach(b=>{
+      if(+b.dataset.pos===it.correct_index)b.classList.add('correct');
+      else if(+b.dataset.pos===SEL.pos)b.classList.add('wrong');});
+    document.querySelectorAll('#qArea .jopt').forEach(b=>{
+      if(it.justify_options&&S.current.jperm[+b.dataset.jpos]===it.justify_correct)b.classList.add('correct');
+      else if(+b.dataset.jpos===SEL.jpos)b.classList.add('wrong');});
+  }
+}
+function finishItemControls(){
+  recordItem();
+  $('actionRow').innerHTML=`<button class="btn quiet sm" id="btnRats">Explain all options</button>
+    <button class="btn brand" id="btnNext">Next question</button>`;
+  $('btnRats').onclick=()=>$('ratList').classList.toggle('show');
+  $('btnNext').onclick=advance;
+}
+function recordItem(){ if(S.current&&!S.current.recorded){S.items.push(S.current.rec);S.current.recorded=true;} }
+function doSkip(){
+  S.los[S.current.lo].misses++; // weighting only, no tier penalty
+  S.current.rec.outcome='skipped'; S.current.rec.response_ms.push(Date.now()-S.tStart);
+  recordItem(); advance();
+}
+function advance(){
+  S.idx++; $('loRail').innerHTML=railHTML();
+  if(S.idx>=HARD_CAP)return endSession();
+  const openAll=LOS.some(lo=>!S.los[lo].mastered&&!S.los[lo].exhausted);
+  if(!openAll)return endSession();
+  if(S.focus){
+    const done=[...S.focus].every(lo=>S.los[lo].mastered||S.los[lo].exhausted);
+    if(done||(S.nextCk&&S.idx>=S.nextCk))return checkpoint();
+  } else if(S.goal.type==='count'){
+    if(S.nextCk&&S.idx>=S.nextCk)return checkpoint();
+  } else if(S.goal.type==='mastery'){
+    if(newMasteredCount()>=S.goal.x)return checkpoint(true);
+  }
+  nextQuestion();
+}
+function ckOptions(){
+  const close=LOS.filter(lo=>{const st=S.los[lo];
+    return !st.mastered&&!st.exhausted&&Math.min(st.tier,3)>=maxTier(lo);});
+  const weak=LOS.filter(lo=>{const st=S.los[lo];
+    return !st.mastered&&!st.exhausted&&(st.misses>0||st.carry||st.needsReview);});
+  const opts=[];
+  if(close.length){const k=close.reduce((s,lo)=>s+Math.max(1,2-S.los[lo].consec),0);
+    opts.push({id:'close',label:`Finish the close ones — Learning Objective${close.length>1?'s':''} ${close.join(', ')} (~${k} good answers)`,
+      focus:close,add:Math.min(k*2+2,14)});}
+  if(weak.length)opts.push({id:'weak',label:`Drill my weak spots — Learning Objective${weak.length>1?'s':''} ${weak.join(', ')}`,
+      focus:weak,add:6});
+  opts.push({id:'more',label:'Keep going — 5 more, mixed',focus:null,add:5});
+  return opts;
+}
+function checkpoint(goalMet){
+  S.ckShown++;
+  const mNew=newMasteredCount();
+  const head=goalMet?`Goal met — ${mNew} LO${mNew===1?'':'s'} mastered this session.`:
+    `Checkpoint — ${S.idx} questions in.`;
+  const stats=`${S.items.filter(r=>r.outcome==='correct_first'&&!r.follow_up).length} first-try correct · `+
+    `${LOS.filter(lo=>S.los[lo].mastered).length}/${LOS.length} learning objectives mastered so far`;
+  const opts=ckOptions();
+  $('qArea').innerHTML=`<div class="stem" style="margin-top:0">${head}</div>
+    <p class="muted">${stats}</p>
+    <div class="opts" style="margin-top:1rem">`+
+    opts.map((o,i)=>`<button class="opt" data-ck="${i}"><span class="key">${i+1}</span><span>${esc(o.label)}</span></button>`).join('')+
+    `</div>`;
+  $('fbArea').innerHTML='';
+  $('actionRow').innerHTML=`<button class="btn brand" id="btnDigest">Finish — see my digest</button>`;
+  $('btnDigest').onclick=endSession;
+  document.querySelectorAll('[data-ck]').forEach(b=>b.onclick=()=>{
+    const o=opts[+b.dataset.ck];
+    S.focus=o.focus?new Set(o.focus):null;
+    S.nextCk=S.idx+o.add;
+    if(S.goal.type==='mastery'&&!S.focus)S.goal={type:'count',n:S.nextCk};
+    nextQuestion();
+  });
+  window.scrollTo(0,0);
+}
+
+/* ================= Digest / persistence ================= */
+async function endSession(){
+  S.ended=new Date().toISOString();
+  const lo_state={}, review=[];
+  LOS.forEach(lo=>{const st=S.los[lo];
+    lo_state[lo]=st.mastered?'mastered':(st.needsReview?'needs_review':(st.covered>0?'in_progress':'untouched'));
+    if(st.needsReview)review.push(lo);});
+  const anchors=lo=>[...new Set(S.items.filter(r=>r.lo===lo&&['wrong_after_probe','revealed','followup_wrong'].includes(r.outcome))
+      .map(r=>{const it=BANK.items.find(b=>b.q_id===r.q_id);return it?it.source_anchor:null;}).filter(Boolean))];
+  const digest={needs_review:review.map(lo=>({lo,sections:anchors(lo)}))};
+  const firstCorrect=S.items.filter(r=>r.outcome==='correct_first'&&!r.follow_up).length;
+  const answered=S.items.filter(r=>!r.follow_up&&r.outcome!=='skipped').length;
+  const mastered=LOS.filter(lo=>S.los[lo].mastered);
+  const newlyMastered=LOS.filter(lo=>S.los[lo].mastered&&!S.los[lo].wasMastered);
+  const atTop=LOS.filter(lo=>!S.los[lo].mastered&&S.los[lo].tier>=maxTier(lo));
+  const recovered=[...new Set(S.items.filter(r=>['revealed','wrong_after_probe'].includes(r.outcome))
+      .filter(r=>!review.includes(r.lo))
+      .map(r=>{const it=BANK.items.find(b=>b.q_id===r.q_id);return it?it.source_anchor:null;}).filter(Boolean))];
+  // persist ladder
+  DATA.ladder=DATA.ladder||{}; DATA.ladder[CH]=DATA.ladder[CH]||{};
+  LOS.forEach(lo=>{const st=S.los[lo];
+    DATA.ladder[CH][lo]={tier:st.tier,consec:st.consec,mastered:st.mastered};});
+
+  // stub "encryption" of item detail (dev only)
+  const enc={key_version:'DEV', alg:'DEV-STUB-BASE64 (not encrypted — replaced by AES-256-GCM + RSA-OAEP at deployment)',
+    ciphertext:btoa(unescape(encodeURIComponent(JSON.stringify(S.items))))};
+  const bundle={session:{id:S.id,chapter:S.chapter,student:DATA.name||'(unnamed)',started_at:S.started,ended_at:S.ended,
+      mode:S.goal.type==='mastery'?`mastery-goal(${S.goal.x})`:'untimed',spec_version:BANK.bank_meta.spec_version,bank_version:BANK.bank_meta.bank_version},
+    lo_state,digest,encrypted_items:enc};
+  S.bundle=bundle;
+
+  DATA.carryReview[CH]=review;
+  DATA.sessions.push({id:S.id,chapter:CH,ended:S.ended,answered,firstCorrect,
+    mastered:mastered.length,review:review.slice(),
+    trace:S.items.map(r=>({lo:r.lo,tier:r.tier,outcome:r.outcome,follow_up:!!r.follow_up})),
+    bundle});
+  DATA.name=$('inpName').value.trim()||DATA.name;
+  await store.set(SKEY,DATA);
+
+  // render digest
+  $('digestHead').textContent= review.length? 'Session done — a little reading to do.'
+    : (mastered.length===LOS.length?'Chapter mastered. Go get that quiz.':'Nice work — ladder saved for next time.');
+  $('digestStats').innerHTML=
+    `<div class="stat"><b>${answered}</b><span>questions</span></div>
+     <div class="stat"><b>${firstCorrect}</b><span>right first try</span></div>
+     <div class="stat"><b>${mastered.length}/${LOS.length}</b><span>objectives mastered so far</span></div>
+     <div class="stat"><b>${atTop.length}</b><span>at top tier, closing in</span></div>
+     <div class="stat"><b>${review.length}</b><span>need review</span></div>`;
+  let readHtml='';
+  if(review.length){readHtml+=`<h2 style="margin-top:.5rem">Before your quiz, read:</h2><div class="readlist">`+
+      digest.needs_review.map(r=>`<div class="ritem"><b>Learning Objective ${r.lo}</b> — ${esc(BANK.bank_meta.learning_objectives[r.lo])}
+        ${r.sections.map(s=>`<div class="anchor">📖 ${esc(s)}</div>`).join('')}</div>`).join('')+`</div>`;}
+  if(recovered.length){readHtml+=`<h2 style="margin-top:1rem;font-size:1.05rem">Missed once but recovered — worth a skim:</h2>
+    <div class="readlist">`+recovered.map(s=>`<div class="ritem" style="border-left-color:var(--hilite)"><div class="anchor">📖 ${esc(s)}</div></div>`).join('')+`</div>`;}
+  if(newlyMastered.length){readHtml+=`<p style="margin-top:.8rem">Newly mastered this session: <b style="color:var(--ok)">Learning Objective${newlyMastered.length>1?'s':''} ${newlyMastered.join(', ')}</b></p>`;}
+  if(!readHtml)readHtml=`<p class="muted">Nothing flagged for review this session.</p>`;
+  $('digestRead').innerHTML=readHtml;
+  $('digestRail').innerHTML=railHTML();
+  $('digestLegend').innerHTML=LEGEND;
+  show('viewDigest');
+}
+function downloadJSON(obj,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}));
+  a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+
+/* ================= Home / report ================= */
+function renderHome(){
+  const lad=DATA.ladder[1]||{}; const mCount=Object.values(lad).filter(x=>x.mastered).length;
+  const released=[{n:1,title:BANK.bank_meta.chapter_title,items:BANK.items.length,m:mCount}];
+  const upcoming=[[2,'Recognizing Opportunities and Generating Ideas'],[3,'Feasibility Analysis'],[4,'Developing an Effective Business Model']];
+  $('chapterList').innerHTML=
+    released.map(c=>`<button class="chap" data-ch="${c.n}"><span class="cnum">CHAPTER ${c.n} · ${c.items} items</span>
+      <span class="ctitle" style="display:block">${esc(c.title)}</span><span class="cmeta">${c.m?`${c.m}/9 LOs mastered · continue →`:'Start a practice session →'}</span></button>`).join('')+
+    upcoming.map(([n,t])=>`<button class="chap" disabled><span class="cnum">CHAPTER ${n}</span>
+      <span class="ctitle" style="display:block">${esc(t)}</span><span class="cmeta">Not yet released</span></button>`).join('');
+  const rec=recommendedLen();
+  $('recLabel').textContent=rec.label;
+  $('recLine').textContent= rec.est===0 ? 'Every LO is mastered — sessions now run as mixed review.'
+    : `About ${rec.est} more first-try correct answers to master the whole chapter (ladder saved from your last session).`;
+  const remain=LOS.length-Object.values(lad).filter(x=>x.mastered).length;
+  $('selMx').innerHTML=Array.from({length:Math.max(1,remain)},(_,i)=>`<option>${i+1}</option>`).join('');
+  const updateMx=()=>{
+    const isM=document.querySelector('input[name=goal]:checked').value==='mastery';
+    $('masteryOpts').classList.toggle('hidden',!isM);
+    if(isM){const x=+$('selMx').value;const e=estForX(x);
+      $('mxEst').innerHTML=`Fastest path to <b>${x}</b> more master${x===1?'y':'ies'}: about <b>${e}</b> first-try correct answer${e===1?'':'s'} (more if you miss along the way).`;}
+  };
+  document.querySelectorAll('input[name=goal]').forEach(r=>r.onchange=updateMx);
+  $('selMx').onchange=updateMx;
+  updateMx();
+  const startSession=()=>{ initSession(readGoal()); show('viewSession'); nextQuestion(); };
+  document.querySelectorAll('.chap[data-ch]').forEach(b=>b.onclick=startSession);
+  $('btnStart').onclick=startSession;
+  if(DATA.name)$('inpName').value=DATA.name;
+}
+function renderReport(){
+  const w=$('reportWrap'); w.classList.remove('hidden');
+  if(!DATA.sessions.length){w.innerHTML='<p class="muted">No sessions yet — run one and your history shows up here.</p>';return;}
+  const rows=DATA.sessions.slice().reverse().map(s=>
+    `<tr><td>${new Date(s.ended).toLocaleString()}</td><td>Ch ${s.chapter}</td><td>${s.answered}</td>
+     <td>${s.firstCorrect}</td><td>${s.mastered}</td><td>${s.review.length?s.review.join(', '):'—'}</td></tr>`).join('');
+  const carry=(DATA.carryReview[CH]||[]);
+  w.innerHTML=`<h2>Progress report${DATA.name?' — '+esc(DATA.name):''}</h2>
+    ${carry.length?`<p style="margin-top:.4rem">Carried into your next session (extra weight): <b>Learning Objective${carry.length>1?'s':''} ${carry.join(', ')}</b></p>`:''}
+    <table class="hist"><tr><th>When</th><th>Chapter</th><th>Answered</th><th>First-try ✓</th><th>Objectives mastered</th><th>Needs review</th></tr>${rows}</table>`;
+}
+function show(id){['viewHome','viewSession','viewDigest'].forEach(v=>$(v).classList.toggle('hidden',v!==id));
+  if(id==='viewHome')$('reportWrap').classList.add('hidden');window.scrollTo(0,0);}
+
+/* ================= Wiring ================= */
+$('btnEnd').onclick=()=>{ if(S.current&&!S.current.recorded){S.current.rec.outcome=S.current.rec.outcome||'abandoned';recordItem();} endSession(); };
+$('btnReport').onclick=renderReport;
+$('btnExportAll').onclick=()=>{downloadJSON(DATA,'quizprep-backup.json');toast('Backup downloaded');};
+function sessionRecordFromExport(d){
+  let items=null;
+  if(d.encrypted_items&&/^DEV-STUB/.test(d.encrypted_items.alg||'')){
+    try{items=JSON.parse(decodeURIComponent(escape(atob(d.encrypted_items.ciphertext))));}catch(e){}
+  }
+  const mains=(items||[]).filter(r=>!r.follow_up);
+  return {
+    id:d.session.id, chapter:d.session.chapter, ended:d.session.ended_at,
+    answered:mains.filter(r=>r.outcome!=='skipped'&&r.outcome!=='abandoned').length,
+    firstCorrect:mains.filter(r=>r.outcome==='correct_first').length,
+    mastered:Object.values(d.lo_state||{}).filter(v=>v==='mastered').length,
+    review:(d.digest&&d.digest.needs_review||[]).map(r=>r.lo),
+    trace:items?items.map(r=>({lo:r.lo,tier:r.tier,outcome:r.outcome,follow_up:!!r.follow_up})):null,
+    bundle:d
+  };
+}
+function rebuildLadderFromHistory(){
+  DATA.ladder=DATA.ladder||{}; DATA.ladder[CH]={};   // clear, then replay everything
+  replayLadder();
+}
+$('btnImport').onclick=()=>$('fileImport').click();
+$('fileImport').onchange=async e=>{
+  const files=[...e.target.files]; if(!files.length)return;
+  let backups=0,sessions=0,dupes=0,bad=0;
+  for(const f of files){
+    let d; try{ d=JSON.parse(await f.text()); }catch(_){ bad++; continue; }
+    if(Array.isArray(d.sessions)){ DATA=normalizeData(d); backups++; }
+    else if(d.session&&d.session.id&&d.encrypted_items){
+      if(DATA.sessions.some(s=>s.id===d.session.id)){ dupes++; continue; }
+      DATA.sessions.push(sessionRecordFromExport(d)); sessions++;
+    } else bad++;
+  }
+  if(backups+sessions>0){
+    DATA.sessions.sort((a,b)=>new Date(a.ended)-new Date(b.ended));
+    rebuildLadderFromHistory();
+    await store.set(SKEY,DATA); renderHome();
+  }
+  const parts=[];
+  if(backups)parts.push(`${backups} backup${backups>1?'s':''}`);
+  if(sessions)parts.push(`${sessions} session export${sessions>1?'s':''}`);
+  if(dupes)parts.push(`${dupes} already present`);
+  if(bad)parts.push(`${bad} unrecognized`);
+  toast(parts.length?('Imported: '+parts.join(', ')+(backups+sessions?' — ladder rebuilt':'')):'No usable files found');
+  e.target.value='';
+};
+$('btnFresh').onclick=async()=>{ if(confirm('Restart the Chapter 1 mastery ladder? Your session history is kept.')){
+  DATA.ladder[CH]={_reset:new Date().toISOString()}; delete DATA.carryReview[CH];
+  await store.set(SKEY,DATA); renderHome(); toast('Chapter 1 ladder reset'); }};
+$('btnReset').onclick=async()=>{ if(confirm('Erase all local QuizPrep data on this device? Export a backup first if you want to keep it.')){
+  DATA={name:'',sessions:[],carryReview:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');toast('Data cleared');}};
+$('btnExportSession').onclick=()=>{downloadJSON(S.bundle,`quizprep-ch${CH}-${S.id}.json`);toast('Session export downloaded — upload it to the Canvas assignment');};
+$('btnProg').onclick=()=>{renderHome();show('viewHome');renderReport();setTimeout(()=>$('reportWrap').scrollIntoView&&$('reportWrap').scrollIntoView(),0);};
+$('btnAgain').onclick=()=>{initSession({type:'count',n:recommendedLen().n});show('viewSession');nextQuestion();};
+$('btnHome').onclick=()=>{renderHome();show('viewHome');};
+
+function normalizeData(d){
+  d=d&&typeof d==='object'?d:{};
+  d.name=typeof d.name==='string'?d.name:'';
+  d.sessions=Array.isArray(d.sessions)?d.sessions:[];
+  d.carryReview=d.carryReview&&typeof d.carryReview==='object'?d.carryReview:{};
+  d.ladder=d.ladder&&typeof d.ladder==='object'?d.ladder:{};
+  return d;
+}
+function replayLadder(){
+  DATA.ladder=DATA.ladder||{};
+  if(DATA.ladder[CH]&&Object.keys(DATA.ladder[CH]).length)return false;
+  const sess=DATA.sessions.filter(s=>s.chapter===CH)
+    .sort((a,b)=>new Date(a.ended)-new Date(b.ended));
+  if(!sess.length)return false;
+  const los={};LOS.forEach(lo=>los[lo]={tier:1,consec:0,mastered:false});
+  let any=false;
+  for(const s of sess){
+    let items=s.trace;
+    if(!items&&s.bundle&&s.bundle.encrypted_items&&/^DEV-STUB/.test(s.bundle.encrypted_items.alg||'')){
+      try{items=JSON.parse(decodeURIComponent(escape(atob(s.bundle.encrypted_items.ciphertext))));}catch(e){}
+    }
+    if(!items)continue;
+    for(const r of items){
+      if(r.follow_up)continue;
+      const st=los[r.lo]; if(!st||st.mastered)continue;
+      const mt=maxTier(r.lo);
+      if(r.outcome==='correct_first'){
+        if(r.tier>=mt){st.consec++;if(st.consec>=2)st.mastered=true;}
+        st.tier=Math.min(st.tier+1,3); any=true;
+      } else if(r.outcome==='correct_after_probe'){ st.consec=0; any=true;
+      } else if(r.outcome==='wrong_after_probe'||r.outcome==='revealed'){
+        st.tier=Math.max(1,st.tier-1); st.consec=0; any=true;
+      }
+    }
+  }
+  if(!any)return false;
+  DATA.ladder[CH]={};
+  LOS.forEach(lo=>DATA.ladder[CH][lo]={tier:los[lo].tier,consec:los[lo].consec,mastered:los[lo].mastered});
+  return true;
+}
+(async function boot(){
+  const saved=await store.get(SKEY);
+  DATA=normalizeData(saved||DATA);
+  if(replayLadder()){ await store.set(SKEY,DATA); toast('Progress rebuilt from your earlier sessions'); }
+  renderHome();
+})();
+</script>
+</body>
+</html>
