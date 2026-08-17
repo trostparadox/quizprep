@@ -266,8 +266,10 @@ const BANK = {"bank_meta": {"chapter": 1, "chapter_title": "Introduction to Entr
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.3';
+const APP_VERSION='0.4';
 const CHANGELOG=[
+  {v:'0.4', date:'Aug 17, 2026', notes:[
+    'Refreshing the page — or closing the tab and coming back later — now resumes your in-progress practice session where you left off, instead of starting over. Your current question is re-asked fresh; every earlier answer in the session is kept.']},
   {v:'0.3', date:'Aug 17, 2026', notes:[
     'Mastering an objective now matches how far its questions go: objectives that include application questions still take 2 straight first-try corrects at the top level, while objectives that top out at comprehension take 3 — a comparably strong bar either way. The streak chip shows your target (x/2 or x/3).']},
   {v:'0.2', date:'Aug 16, 2026', notes:[
@@ -380,6 +382,24 @@ function initSession(goal){
      idx:0,current:null,phase:'answering',usedIds:new Set(),tStart:0,firstMs:0,
      focus:null,nextCk:(goal.type==='count'?goal.n:null),ckShown:0};
 }
+/* Active-session persistence: snapshot the in-progress session so a page refresh (or
+   coming back later) resumes it instead of dropping to home. Saved only at clean question
+   boundaries (fresh current question); the current question is re-asked from scratch on resume,
+   so all earlier resolved progress is preserved with no double-counting. Sets → arrays because
+   store.set JSON-stringifies. */
+const AKEY='quizprep-active-v1';
+function serializeS(){ return {...S, usedIds:[...S.usedIds], focus:S.focus?[...S.focus]:null}; }
+function saveActive(){ if(!S||S.ended)return;
+  store.set(AKEY,{v:APP_VERSION,bank:BANK.bank_meta.bank_version,chapter:S.chapter,s:serializeS()}); }
+function clearActive(){ store.del(AKEY); }
+function resumeSession(s){
+  S=s; S.usedIds=new Set(s.usedIds||[]); S.focus=s.focus?new Set(s.focus):null;
+  S.phase='answering'; S.tStart=Date.now();
+  if(S.current){ S.current.attempt=1;
+    const r=S.current.rec; if(r){ r.probe_shown=false; r.student_answer_1=null; r.student_answer_2=null; r.outcome=null; r.response_ms=[]; } }
+  SEL={pos:null,jpos:null,rank:[]};
+  show('viewSession'); renderQuestion(); toast('Resumed your in-progress session');
+}
 function readGoal(){
   const g=document.querySelector('input[name=goal]:checked').value;
   if(g==='count')return{type:'count',n:+$('selLen').value};
@@ -433,6 +453,7 @@ function nextQuestion(){
     outcome:null,remediated:false,response_ms:[]}};
   S.phase='answering'; S.tStart=Date.now();
   renderQuestion();
+  saveActive();
 }
 
 /* ================= Rendering ================= */
@@ -808,6 +829,7 @@ async function endSession(){
     bundle});
   DATA.name=$('inpName').value.trim()||DATA.name;
   await store.set(SKEY,DATA);
+  clearActive();   // session complete — don't resume it on the next load
 
   // render digest
   $('digestHead').textContent= review.length? 'Session done — a little reading to do.'
@@ -936,9 +958,9 @@ $('btnFresh').onclick=async()=>{ if(confirm('Restart the Chapter 1 mastery ladde
 $('btnReset').onclick=async()=>{ if(confirm('Erase all local QuizPrep data on this device? Export a backup first if you want to keep it.')){
   DATA={name:'',sessions:[],carryReview:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');toast('Data cleared');}};
 $('btnExportSession').onclick=()=>{downloadJSON(S.bundle,`quizprep-ch${CH}-${S.id}.json`);toast('Session export downloaded — upload it to the Canvas assignment');};
-$('btnProg').onclick=()=>{renderHome();show('viewHome');renderReport();setTimeout(()=>$('reportWrap').scrollIntoView&&$('reportWrap').scrollIntoView(),0);};
+$('btnProg').onclick=()=>{clearActive();renderHome();show('viewHome');renderReport();setTimeout(()=>$('reportWrap').scrollIntoView&&$('reportWrap').scrollIntoView(),0);};
 $('btnAgain').onclick=()=>{initSession({type:'count',n:recommendedLen().n});show('viewSession');nextQuestion();};
-$('btnHome').onclick=()=>{renderHome();show('viewHome');};
+$('btnHome').onclick=()=>{clearActive();renderHome();show('viewHome');};
 
 function normalizeData(d){
   d=d&&typeof d==='object'?d:{};
@@ -1011,6 +1033,11 @@ $('clModal').onclick=e=>{ if(e.target===$('clModal'))$('clModal').classList.remo
   DATA=normalizeData(saved||DATA);
   if(replayLadder()){ await store.set(SKEY,DATA); toast('Progress rebuilt from your earlier sessions'); }
   renderHome();
+  // resume an in-progress session across a refresh, if one was saved for this chapter/bank
+  const act=await store.get(AKEY);
+  if(act&&act.chapter===CH&&act.bank===BANK.bank_meta.bank_version&&act.s&&act.s.current&&!act.s.ended){
+    try{ resumeSession(act.s); }catch(e){ clearActive(); }
+  }
   maybeWhatsNew();
   checkUpdate(); setInterval(checkUpdate,300000);
 })();
