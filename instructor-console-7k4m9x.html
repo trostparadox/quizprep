@@ -1,0 +1,1354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>QuizPrep — Instructor Console</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#ffffff; --ink:#1c2430; --muted:#5b6672; --line:#e2e6ea;
+    --brand:#2c6bed; --ok:#1e874b; --okbg:#e7f6ec; --warn:#9a6a00; --warnbg:#fdf3dd;
+    --no:#c02a2a; --nobg:#fbe9e9; --chip:#eef1f5;
+  }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+    --bg:#12161c; --panel:#1a2028; --ink:#e6ebf1; --muted:#9aa6b2; --line:#2a323c;
+    --brand:#6ea0ff; --ok:#5fd08a; --okbg:#173226; --warn:#e6be5a; --warnbg:#332a12;
+    --no:#ff8a8a; --nobg:#3a1e1e; --chip:#232b34;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#12161c; --panel:#1a2028; --ink:#e6ebf1; --muted:#9aa6b2; --line:#2a323c;
+    --brand:#6ea0ff; --ok:#5fd08a; --okbg:#173226; --warn:#e6be5a; --warnbg:#332a12;
+    --no:#ff8a8a; --nobg:#3a1e1e; --chip:#232b34;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--ink)}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:.7rem 1rem;
+    display:flex;align-items:center;gap:1rem;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+  header h1{font-size:1.05rem;margin:0;font-weight:700}
+  header .sub{color:var(--muted);font-size:.85rem}
+  nav{display:flex;gap:.3rem;flex-wrap:wrap;margin-left:auto}
+  nav button{background:transparent;border:1px solid transparent;color:var(--muted);
+    padding:.4rem .7rem;border-radius:8px;cursor:pointer;font-size:.9rem}
+  nav button.on{background:var(--chip);color:var(--ink);border-color:var(--line)}
+  nav button:disabled{opacity:.45;cursor:not-allowed}
+  main{max-width:1050px;margin:1rem auto;padding:0 1rem 4rem}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem}
+  .panel h2{margin:.1rem 0 .6rem;font-size:1.05rem}
+  .muted{color:var(--muted)}
+  button.act{background:var(--brand);color:#fff;border:0;padding:.5rem .9rem;border-radius:8px;cursor:pointer;font-size:.9rem}
+  button.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);padding:.5rem .9rem;border-radius:8px;cursor:pointer;font-size:.9rem}
+  button.ghost.on{background:var(--chip);border-color:var(--brand)}
+  button.ghost:disabled{opacity:.45;cursor:not-allowed}
+  .row{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+  textarea{width:100%;min-height:120px;font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;
+    background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:.6rem}
+  input[type=file]{font-size:.85rem}
+  .pill{display:inline-block;padding:.1rem .5rem;border-radius:999px;background:var(--chip);font-size:.8rem;color:var(--muted)}
+  .count{font-variant-numeric:tabular-nums;font-weight:700}
+  .msg{padding:.5rem .7rem;border-radius:8px;margin:.35rem 0;font-size:.9rem}
+  .msg.err{background:var(--nobg);color:var(--no)}
+  .msg.warn{background:var(--warnbg);color:var(--warn)}
+  .msg.ok{background:var(--okbg);color:var(--ok)}
+  .big{font-size:1.6rem;font-weight:800;font-variant-numeric:tabular-nums}
+  table{border-collapse:collapse;width:100%;font-size:.88rem}
+  th,td{border:1px solid var(--line);padding:.35rem .5rem;text-align:center}
+  th{background:var(--chip);font-weight:600}
+  td.lo{text-align:left;white-space:nowrap}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem}
+  .stat{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:.7rem .8rem}
+  .stat .k{color:var(--muted);font-size:.8rem}
+  .krow{display:flex;justify-content:space-between;gap:1rem;font-size:.9rem;padding:.12rem 0}
+  .krow+.krow{border-top:1px solid var(--line)}
+  .krow.clk{cursor:pointer;border-radius:4px}
+  .krow.clk:hover{background:var(--chip);color:var(--brand)}
+  .scroll{overflow-x:auto}
+  .dot{display:inline-block;width:.6rem;height:.6rem;border-radius:50%;vertical-align:middle}
+  .dot.g{background:var(--ok)} .dot.a{background:var(--warn)} .dot.r{background:var(--no)}
+  code{background:var(--chip);padding:.05rem .3rem;border-radius:4px;font-size:.85em}
+  .hide{display:none!important}
+  .edwrap{display:grid;grid-template-columns:340px 1fr;gap:1rem;align-items:start}
+  @media(max-width:820px){.edwrap{grid-template-columns:1fr}}
+  #edList{max-height:70vh;overflow:auto}
+  .edrow{padding:.45rem .5rem;border:1px solid var(--line);border-radius:8px;margin-bottom:.4rem;cursor:pointer;font-size:.84rem;line-height:1.35}
+  .edrow:hover{border-color:var(--brand)}
+  .fld{margin:.55rem 0}
+  .fld>label{display:block;font-size:.78rem;color:var(--muted);margin-bottom:.15rem}
+  .fld input[type=text],.fld input[type=number],.fld select,.fld textarea,.opt textarea,.opt input{width:100%;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:.35rem .5rem;font:inherit;font-size:.88rem}
+  .fld textarea,.opt textarea{min-height:44px;resize:vertical}
+  .opt{display:grid;grid-template-columns:auto 1fr;gap:.5rem;align-items:start;margin:.35rem 0;padding:.4rem;border:1px solid var(--line);border-radius:8px}
+  .opt.key{border-color:var(--ok);background:var(--okbg)}
+  .alt{background:var(--chip)}
+  .zebra tbody tr:nth-child(even) td{background:var(--chip)}
+  #edList .edrow:nth-child(even),#setList .edrow:nth-child(even){background:var(--chip)}
+  .opt input[type=radio],.opt input[type=number]{width:auto;margin-top:.35rem}
+  .opt input[type=checkbox]{width:auto;margin:0 .25rem 0 0;vertical-align:middle}
+  .prow{display:grid;grid-template-columns:2rem 1fr;gap:.5rem;align-items:center;margin:.3rem 0}
+  .plbl{font-size:.85rem;color:var(--muted);font-weight:600;text-align:center}
+  .plbl.ok{color:var(--ok)}
+  .rvrow{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:start;padding:.5rem .6rem;border:1px solid var(--line);border-radius:8px;margin:.35rem 0 0;cursor:pointer}
+  .rvrow:hover{border-color:var(--brand)}
+  .rvrow.done{background:var(--okbg);border-color:var(--ok)}
+  .rvrow.open{border-color:var(--brand);border-bottom-color:transparent;border-radius:8px 8px 0 0;box-shadow:inset 3px 0 0 var(--brand)}
+  .rvchk{width:1.05rem;height:1.05rem;margin-top:.15rem;cursor:pointer;flex:none}
+  .rvcaret{color:var(--muted);user-select:none;margin-top:.05rem;transition:transform .15s}
+  .rvrow.open .rvcaret{transform:rotate(90deg);color:var(--brand)}
+  .rvdetail{border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px;margin:0 0 .35rem;padding:.6rem .8rem;background:var(--bg)}
+  .rvrow.open + .rvdetail{border-color:var(--brand);box-shadow:inset 3px 0 0 var(--brand)}
+  .rvopt{padding:.35rem .5rem;border:1px solid var(--line);border-radius:6px;margin:.25rem 0}
+  .rvopt.key{border-color:var(--ok);background:var(--okbg)}
+  .revtools{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+  .cvcell{cursor:pointer;font-weight:600}
+  .cvcell:hover{background:var(--chip);color:var(--brand)}
+  .verlink{cursor:pointer;color:var(--brand);font-size:.78rem;text-decoration:underline;white-space:nowrap}
+  .strow{cursor:pointer}
+  .strow:hover{background:var(--chip)}
+  .stcaret{display:inline-block;transition:transform .15s;color:var(--muted)}
+  .strow.open .stcaret{transform:rotate(90deg);color:var(--brand)}
+  footer{max-width:1050px;margin:0 auto;padding:1rem;color:var(--muted);font-size:.8rem}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>QuizPrep · Instructor Console</h1>
+    <div class="sub" id="loadState">No bank loaded</div>
+    <div class="sub" id="loadSource"></div>
+  </div>
+  <nav id="nav">
+    <button data-tab="load" class="on">Load</button>
+    <button data-tab="validate" disabled>Validate</button>
+    <button data-tab="health" disabled>Health</button>
+    <button data-tab="editor" disabled>Editor</button>
+    <button data-tab="config" disabled>Config</button>
+    <button data-tab="dashboard">Dashboard</button>
+  </nav>
+</header>
+
+<main>
+  <!-- LOAD -->
+  <section id="tab-load">
+    <div class="panel">
+      <h2>Load a question bank</h2>
+      <p class="muted">Pick a bank JSON file, or paste its contents. Everything runs in your browser — nothing is uploaded. This tool never touches the live student app. Your loaded bank and imported exports are <b>remembered on this device</b>, so a refresh keeps them.</p>
+      <div class="row">
+        <input type="file" id="fileIn" accept=".json,application/json">
+        <span class="muted">or paste below and click Load</span>
+      </div>
+      <textarea id="pasteIn" placeholder='{ "bank_meta": { ... }, "items": [ ... ], "question_sets": [ ... ] }'></textarea>
+      <div class="row" style="margin-top:.5rem">
+        <button class="act" id="loadPaste">Load pasted JSON</button>
+        <button class="ghost" id="forgetBtn">Forget remembered bank &amp; data</button>
+        <span id="loadErr" class="msg err hide"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- VALIDATE + REVIEW -->
+  <section id="tab-validate" class="hide">
+    <div class="panel">
+      <h2>Automated checks <span class="pill" id="valSummary"></span></h2>
+      <p class="muted">Structural checks (errors must be zero to ship) plus soft quality warnings — a faithful port of tools/validate_bank.py, including the length-tell and self-defining-option flags and the ≥K-items-at-top-tier rule (2 at an application top, 3 at a comprehension top). Questions carrying any of these show a <span class="pill" style="background:var(--warnbg);color:var(--warn)">flag</span> in the review list below.</p>
+      <div id="valBody"></div>
+    </div>
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Instructor review &amp; sign-off</h2>
+        <span class="pill" id="reviewProgress"></span>
+      </div>
+      <p class="muted">Check off each question you've reviewed. Click a row to expand and view it; use “Edit in Editor →” to change its content. Review status is saved on this device and travels with an exported bank.</p>
+      <div class="revtools" id="reviewFilters" style="margin:.5rem 0"></div>
+      <div id="reviewList"></div>
+    </div>
+  </section>
+
+  <!-- HEALTH -->
+  <section id="tab-health" class="hide">
+    <div class="panel">
+      <h2>Bank health &amp; coverage</h2>
+      <div class="grid" id="healthStats"></div>
+    </div>
+    <div class="panel">
+      <h2>Coverage by learning objective × tier</h2>
+      <p class="muted">Each LO's top available tier sets its mastery ceiling; the dot flags whether it has enough items at that tier to be masterable in a single session (2 at Tier 3, 3 at Tier 2/1).</p>
+      <div class="scroll"><table id="coverTable" class="zebra"></table></div>
+    </div>
+  </section>
+
+  <!-- EDITOR -->
+  <section id="tab-editor" class="hide">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <div class="row" style="gap:.4rem;align-items:center">
+          <h2 style="margin:0">Editor</h2>
+          <button class="ghost on" id="edModeQ">Questions</button>
+          <button class="ghost" id="edModeS">Sets</button>
+        </div>
+        <div class="row">
+          <span class="pill" id="edValBadge"></span>
+          <button class="ghost" id="edAdd">+ Add item</button>
+          <button class="ghost hide" id="setAdd">+ Add set</button>
+          <button class="act" id="edExport">Export JSON</button>
+        </div>
+      </div>
+      <p class="muted" style="margin:.4rem 0 0">Edits apply to the in-memory bank and re-validate live (see the badge and the Validate/Health tabs). Export writes a new bank JSON — the original file is never modified. <b>Questions</b> edits standalone items; <b>Sets</b> edits shared-option (mc_pool) question sets.</p>
+      <div class="row" id="edFilters" style="margin-top:.5rem"></div>
+    </div>
+    <div class="edwrap" id="edQWrap">
+      <div class="panel" id="edList"></div>
+      <div class="panel" id="edForm"><p class="muted">Select an item to edit, or add one.</p></div>
+    </div>
+    <div class="edwrap hide" id="edSWrap">
+      <div class="panel" id="setList"></div>
+      <div class="panel" id="setForm"><p class="muted">Select a set to edit, or add one.</p></div>
+    </div>
+  </section>
+
+  <!-- CONFIG -->
+  <section id="tab-config" class="hide">
+    <div class="panel">
+      <h2>Config package builder</h2>
+      <p class="muted">Build the config a colleague deploys to a class. <b>Model 1</b> (default, for edited banks) exports one file (config + this bank) to hand off via your shared folder — students launch with <code>?cfg=&lt;id&gt;&amp;sec=…</code>. <b>Model 2</b> makes a share link that carries the config in the URL and uses the stock bank (no edits). Use <b>Schedule chapter releases</b> below to drip-release chapters by date across the term; leave it off and every authored chapter is available at once.</p>
+      <div id="cfgForm"></div>
+      <div class="row" style="margin-top:.6rem">
+        <button class="act" id="cfgExport1">Export config + bank (Model 1)</button>
+        <button class="ghost" id="cfgLink2">Make share link (Model 2, stock bank)</button>
+      </div>
+      <div id="cfgOut" style="margin-top:.5rem"></div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section id="tab-dashboard" class="hide">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Analytics dashboard</h2>
+        <div class="row">
+          <input type="file" id="dashFiles" accept=".json,application/json" multiple>
+          <input type="file" id="dashFolder" webkitdirectory directory style="display:none">
+          <button class="ghost" id="dashFolderBtn">Choose folder…</button>
+          <label class="muted" style="font-size:.85rem"><input type="checkbox" id="dashSubfolders" checked> include subfolders</label>
+          <button class="ghost" id="dashClear">Clear</button>
+        </div>
+        <div class="row" style="margin-top:.4rem">
+          <input type="file" id="dashKeyFile" accept=".json,application/json">
+          <input type="password" id="dashKeyPass" placeholder="key passphrase" style="max-width:170px">
+          <button class="ghost" id="dashKeyBtn">Load decryption key</button>
+          <span id="dashKeyStat" class="muted" style="font-size:.85rem"></span>
+        </div>
+      </div>
+      <p class="muted" style="margin:.4rem 0 0">Import student session exports (the JSON they upload to Canvas) — decoded in your browser, nothing uploaded. Roster and mastery read from the plaintext summary; encrypted item detail needs your private key loaded above (the <code>&lt;cfg_id&gt;.privatekey.json</code> from the Config tab, plus its passphrase) to feed item analysis.</p>
+      <div id="dashState" class="muted" style="margin-top:.4rem">No exports imported.</div>
+    </div>
+    <div id="dashBody"></div>
+  </section>
+</main>
+
+<footer>QuizPrep Instructor Console · runs entirely in your browser · <span id="ver"></span></footer>
+
+<script>
+"use strict";
+/* ============================================================
+   QuizPrep Instructor Console
+   Self-contained, no backend. Increment 1: load + validate + health.
+   ============================================================ */
+const TOOL_VERSION = "0.2-dev";
+const $ = id => document.getElementById(id);
+document.getElementById("ver").textContent = "console " + TOOL_VERSION;
+
+let BANK = null;   // the loaded bank object
+
+/* ---------- local persistence: remember the loaded bank + dashboard across a refresh ---------- */
+const IK = { bank:"quizprep-instructor-bank-v1", dash:"quizprep-instructor-dash-v1", tab:"quizprep-instructor-tab-v1", hidewarn:"quizprep-instructor-hidewarn-v1" };
+let HIDDEN_WARNS = new Set();
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+function saveBank(){ if (BANK) lsSet(IK.bank, JSON.stringify(BANK)); }
+function saveDash(){ lsSet(IK.dash, JSON.stringify((DASH.bundles || []).map(b => b.encrypted ? Object.assign({}, b, { recs:[], decrypted:false }) : b))); }   // never persist decrypted item detail
+function saveHiddenWarns(){ lsSet(IK.hidewarn, JSON.stringify([...HIDDEN_WARNS])); }
+function forgetSaved(){ lsDel(IK.bank); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); HIDDEN_WARNS = new Set(); }
+function restoreState(){
+  const hw = lsGet(IK.hidewarn);
+  if (hw){ try{ HIDDEN_WARNS = new Set(JSON.parse(hw) || []); }catch(e){} }
+  const b = lsGet(IK.bank);
+  if (b){ try{ onBankLoaded(JSON.parse(b)); }catch(e){ lsDel(IK.bank); } }
+  const d = lsGet(IK.dash);
+  if (d){ try{ DASH.bundles = JSON.parse(d) || []; if (DASH.bundles.length) renderDashboard(); }catch(e){ lsDel(IK.dash); } }
+  const t = lsGet(IK.tab);
+  if (t && (BANK || t === "load" || t === "dashboard")) showTab(t);   // others need a loaded bank
+}
+
+/* ---------- tabs ---------- */
+const nav = $("nav");
+nav.addEventListener("click", e => {
+  const b = e.target.closest("button[data-tab]");
+  if (!b || b.disabled) return;
+  showTab(b.dataset.tab);
+});
+function showTab(name){
+  [...nav.querySelectorAll("button")].forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  ["load","validate","health","editor","config","dashboard"].forEach(t =>
+    $("tab-" + t).classList.toggle("hide", t !== name));
+  lsSet(IK.tab, name);
+}
+
+/* ============================================================
+   VALIDATOR — faithful port of tools/validate_bank.py
+   Returns {errors:[], warns:[]}
+   ============================================================ */
+const TYPES = new Set(["mc4","scenario_mc","tf_justify","rank_order"]);
+const NOPT = {mc4:4, scenario_mc:4, tf_justify:2};
+const STOP = new Set(("that this with from they their which would could should when what have been were into than then " +
+  "them such also more most some these those your about because while after before between within without will " +
+  "firm firms business businesses entrepreneur entrepreneurs entrepreneurial chapter people person concept " +
+  "founder company companies owner market").split(" "));
+const carriesClause = o => { o = String(o).trim(); return o.length > 45 && /(,\s+\w|\s[—–-]\s+\w)/.test(o); };
+const contentWords = s => {
+  const set = new Set();
+  (String(s).toLowerCase().match(/[a-z]{4,}/g) || []).forEach(w => { if (!STOP.has(w)) set.add(w); });
+  return set;
+};
+const inter = (a,b) => { let n = 0; a.forEach(x => { if (b.has(x)) n++; }); return n; };
+
+function validateBank(bank){
+  const errors = [], warns = [];
+  const E = m => errors.push(m), W = m => warns.push(m);
+  const meta = bank.bank_meta || {};
+  const los = meta.learning_objectives || {};
+  const items = bank.items || [];
+  const sets = bank.question_sets || [];
+
+  // expand pool questions into pseudo-items for id + coverage checks
+  const setItems = [];
+  for (const s of sets){
+    const saDefault = s.source_anchor || "";
+    for (const q of (s.questions || []))
+      setItems.push({q_id:q.q_id, lo:q.lo, tier:q.tier, type:"mc_pool", source_anchor:q.source_anchor || saDefault});
+  }
+  const allItems = items.concat(setItems);
+
+  // duplicate q_ids
+  const idCount = {};
+  allItems.forEach(i => { idCount[i.q_id] = (idCount[i.q_id]||0)+1; });
+  Object.entries(idCount).forEach(([q,n]) => { if (n > 1) E(`duplicate q_id ${JSON.stringify(q)} (${n}×)`); });
+
+  for (const it of items){
+    const q = it.q_id ?? "?";
+    const lo = it.lo, tier = it.tier, typ = it.type;
+    if (!(lo in los)) E(`${q}: lo ${JSON.stringify(lo)} not in learning_objectives`);
+    if (![1,2,3].includes(tier)) E(`${q}: tier ${JSON.stringify(tier)} not 1..3`);
+    if (!TYPES.has(typ)){ E(`${q}: unknown type ${JSON.stringify(typ)}`); continue; }
+    const opts = it.options || [], rats = it.rationales || [];
+    const want = NOPT[typ];
+    if (want && opts.length !== want) E(`${q}: ${typ} has ${opts.length} options, expected ${want}`);
+    if (typ === "rank_order" && opts.length < 2) E(`${q}: rank_order needs ≥2 options`);
+    if (rats.length !== opts.length) E(`${q}: ${rats.length} rationales for ${opts.length} options`);
+
+    if (typ === "rank_order"){
+      const co = it.correct_order || [];
+      const sorted = [...co].sort((a,b)=>a-b);
+      const perm = sorted.length === opts.length && sorted.every((v,k)=>v===k);
+      if (!perm) E(`${q}: correct_order ${JSON.stringify(co)} is not a permutation of 0..${opts.length-1}`);
+    } else {
+      const ci = it.correct_index;
+      if (!(Number.isInteger(ci) && ci >= 0 && ci < opts.length)) E(`${q}: correct_index ${JSON.stringify(ci)} out of range`);
+    }
+
+    const probes = it.probes;
+    if (probes != null){
+      if (typ === "rank_order"){
+        if (probes.length !== 1 || !probes[0]) E(`${q}: rank_order needs exactly 1 non-null probe, got ${JSON.stringify(probes)}`);
+      } else {
+        const ci = it.correct_index;
+        if (probes.length !== opts.length) E(`${q}: ${probes.length} probes for ${opts.length} options`);
+        else probes.forEach((p,idx) => {
+          if (idx === ci && p != null) E(`${q}: probe at correct index ${idx} should be null`);
+          if (idx !== ci && !p) E(`${q}: missing probe for distractor ${idx}`);
+        });
+      }
+    } else if ([1,2].includes(tier)){
+      W(`${q}: tier ${tier} item has no probes (Socratic probe expected)`);
+    }
+
+    // length parity (§1.5): correct option must not be the lone longest
+    if (typ === "mc4" || typ === "scenario_mc"){
+      const ci = it.correct_index;
+      const L = opts.map(o => String(o).length);
+      if (L.length && Number.isInteger(ci) && ci >= 0 && ci < L.length){
+        const others = L.filter((_,k)=>k!==ci);
+        const maxO = Math.max(...others), minL = Math.max(1, Math.min(...L));
+        if (others.length && L[ci] > maxO && (L[ci] > 1.4*minL || L[ci]-maxO > 40))
+          W(`${q}: correct option is the lone longest (${L[ci]} vs ${maxO} ch) — length tell (§1.5)`);
+      }
+    }
+
+    // self-defining + word-match tells for application items (§1.5/§2)
+    if (typ === "scenario_mc" && opts.length){
+      const ci = it.correct_index;
+      const selfdef = opts.filter(carriesClause).length;
+      if (selfdef >= Math.max(2, opts.length-1))
+        W(`${q}: ${selfdef}/${opts.length} scenario options carry an explanatory clause (self-defining) — verify still Tier-3 application, not word-matching (§1.5/§2)`);
+      if (Number.isInteger(ci) && ci >= 0 && ci < opts.length){
+        const sw = contentWords(it.stem || "");
+        const ov = opts.map(o => inter(contentWords(o), sw));
+        const rest = ov.filter((_,k)=>k!==ci);
+        const maxR = Math.max(...rest);
+        if (rest.length && ov[ci] > maxR && ov[ci]-maxR >= 2)
+          W(`${q}: correct option echoes ${ov[ci]} scenario words vs ${maxR} for the best distractor — word-matchable (difficulty tell, §1.5)`);
+      }
+    }
+
+    if (typ === "tf_justify" && it.justify_options != null){
+      const jo = it.justify_options, jc = it.justify_correct;
+      if (jo.length !== 3) E(`${q}: justify_options has ${jo.length}, expected 3`);
+      if (!(Number.isInteger(jc) && jc >= 0 && jc < jo.length)) E(`${q}: justify_correct ${JSON.stringify(jc)} out of range`);
+    }
+
+    if (!String(it.source_anchor || "").trim()) W(`${q}: missing source_anchor`);
+    if (!String(it.stem || "").trim()) E(`${q}: missing stem`);
+  }
+
+  // mc_pool sets
+  for (const s of sets){
+    const sid = s.set_id ?? "?";
+    if (s.type !== "mc_pool") E(`set ${sid}: type ${JSON.stringify(s.type)} != 'mc_pool'`);
+    const npq = s.options_per_question ?? 4;
+    const pool = s.shared_options || [];
+    const pids = pool.map(o => o.id);
+    const pc = {}; pids.forEach(id => pc[id]=(pc[id]||0)+1);
+    Object.entries(pc).forEach(([id,c]) => { if (c > 1) E(`set ${sid}: duplicate option id ${JSON.stringify(id)}`); });
+    for (const o of pool) for (const f of ["id","text","theme","correction"])
+      if (!String(o[f] || "").trim()) E(`set ${sid}: option ${JSON.stringify(o.id ?? "?")} missing ${f}`);
+    if (pool.length < npq) E(`set ${sid}: pool has ${pool.length} options < options_per_question ${npq}`);
+    const tl = pool.map(o => String(o.text || "").length);
+    if (tl.length && Math.max(...tl) > 1.5*Math.max(1, Math.min(...tl)))
+      W(`set ${sid}: pool option lengths uneven (${Math.min(...tl)}–${Math.max(...tl)} ch) — parity (§1.5)`);
+    const pidset = new Set(pids), keyed = new Set();
+    for (const q of (s.questions || [])){
+      const qq = q.q_id ?? "?";
+      if (!pidset.has(q.correct)) E(`${qq}: correct ${JSON.stringify(q.correct)} not a pool option of set ${sid}`);
+      keyed.add(q.correct);
+      for (const ex of (q.sample_exclude || [])) if (!pidset.has(ex)) E(`${qq}: sample_exclude ${JSON.stringify(ex)} not a pool option of set ${sid}`);
+      if (!(q.lo in los)) E(`${qq}: lo ${JSON.stringify(q.lo)} not in learning_objectives`);
+      if (![1,2,3].includes(q.tier)) E(`${qq}: tier ${JSON.stringify(q.tier)} not 1..3`);
+      if (!String(q.key_rationale || "").trim()) E(`${qq}: missing key_rationale`);
+      if (!String(q.stem || "").trim()) E(`${qq}: missing stem`);
+      const excl = (q.sample_exclude || []).filter(e => e !== q.correct).length;
+      const avail = pidset.size - 1 - excl;
+      if (avail < npq - 1) E(`${qq}: only ${avail} eligible distractors for a ${npq}-option question (set ${sid})`);
+    }
+    for (const oid of pidset) if (!keyed.has(oid)) W(`set ${sid}: option ${JSON.stringify(oid)} is never keyed (permanent distractor — ok if intended)`);
+  }
+
+  // excerpts
+  const excerpts = meta.excerpts || {};
+  const used = new Set(allItems.map(i => i.source_anchor).filter(a => String(a||"").trim()));
+  [...used].filter(a => !(a in excerpts)).sort().forEach(a => W(`no remediation excerpt for anchor ${JSON.stringify(a)} (bank_meta.excerpts)`));
+  Object.keys(excerpts).filter(a => !used.has(a)).sort().forEach(a => W(`excerpt for ${JSON.stringify(a)} is unused by any item`));
+
+  // coverage
+  for (const lo of Object.keys(los)){
+    const its = allItems.filter(i => i.lo === lo);
+    if (!its.length){ E(`LO ${lo}: no items`); continue; }
+    const tiers = [...new Set(its.map(i => i.tier).filter(t => [1,2,3].includes(t)))].sort();
+    if (!tiers.length){ E(`LO ${lo}: no valid-tier items`); continue; }
+    const top = Math.max(...tiers);
+    const ntop = its.filter(i => i.tier === top).length;
+    const need = top >= 3 ? 2 : 3;
+    if (ntop < need) E(`LO ${lo}: only ${ntop} item(s) at top tier ${top} (mastery needs ≥${need})`);
+  }
+
+  return {errors, warns};
+}
+
+/* ============================================================
+   HEALTH — coverage matrix + reachability
+   ============================================================ */
+function bankStats(bank){
+  const meta = bank.bank_meta || {};
+  const los = meta.learning_objectives || {};
+  const items = bank.items || [];
+  const sets = bank.question_sets || [];
+  const setQ = sets.flatMap(s => (s.questions||[]).map(q => ({lo:q.lo, tier:q.tier, type:"mc_pool"})));
+  const all = items.map(i => ({lo:i.lo, tier:i.tier, type:i.type})).concat(setQ);
+
+  const byTier = {1:0,2:0,3:0};
+  const byType = {};
+  all.forEach(i => { if (byTier[i.tier]!=null) byTier[i.tier]++; byType[i.type]=(byType[i.type]||0)+1; });
+
+  // per-LO × tier matrix
+  const rows = Object.keys(los).sort().map(lo => {
+    const its = all.filter(i => i.lo === lo);
+    const cells = {1:0,2:0,3:0};
+    its.forEach(i => { if (cells[i.tier]!=null) cells[i.tier]++; });
+    const tiers = [1,2,3].filter(t => cells[t] > 0);
+    const top = tiers.length ? Math.max(...tiers) : 0;
+    const need = top >= 3 ? 2 : (top ? 3 : 0);
+    const ntop = top ? cells[top] : 0;
+    const masterable = top > 0 && ntop >= need;
+    return {lo, title:los[lo], cells, top, need, ntop, masterable, total:its.length};
+  });
+
+  return {los, total:all.length, byTier, byType, rows,
+    bankVersion: meta.bank_version || "?", specVersion: meta.spec_version || "?",
+    chapter: meta.chapter, title: meta.chapter_title || "", source: meta.source || null };
+}
+function sourceLine(src){
+  if (!src) return "";
+  const p = [];
+  if (src.authors) p.push(src.authors);
+  if (src.title) p.push(`“${src.title}”`);
+  if (src.edition) p.push(`${src.edition} ed.`);
+  if (src.publisher) p.push(src.publisher);
+  if (src.year) p.push(String(src.year));
+  return p.length ? "Source: " + p.join(", ") : "";
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function onBankLoaded(bank){
+  BANK = bank;
+  saveBank();
+  const s = bankStats(bank);
+  $("loadState").textContent = `Ch ${s.chapter ?? "?"} — ${s.title || "bank"} · v${s.bankVersion} · ${s.total} questions`;
+  $("loadSource").textContent = sourceLine(s.source);
+  ["validate","health","editor","config"].forEach(t => nav.querySelector(`button[data-tab="${t}"]`).disabled = false);
+  renderValidate(bank);
+  renderReview();
+  renderHealth(s);
+  renderEditor();
+  setEditorMode("questions");
+  renderConfig();
+  showTab("validate");
+}
+
+function renderValidate(bank){
+  const {errors, warns} = validateBank(bank);
+  const shownWarns = warns.filter(w => !HIDDEN_WARNS.has(w));
+  const nHidden = warns.length - shownWarns.length;
+  $("valSummary").textContent = `${errors.length} errors · ${warns.length} warnings${nHidden ? ` (${nHidden} hidden)` : ""}`;
+  const body = $("valBody");
+  if (!errors.length && !warns.length){
+    body.innerHTML = `<div class="msg ok">All checks pass — no errors, no warnings.</div>`;
+    return;
+  }
+  let h = "";
+  if (nHidden) h += `<div style="margin:0 0 .35rem"><button class="ghost" id="warnShowAll" style="font-size:.8rem;padding:.2rem .55rem">Show all ${nHidden} hidden warning(s)</button></div>`;
+  if (!errors.length) h += `<div class="msg ok">0 structural errors — the bank is shippable. Warnings below are quality flags to review.</div>`;
+  errors.forEach(m => h += `<div class="msg err">ERROR · ${esc(m)}</div>`);
+  shownWarns.forEach(m => h += `<div class="msg warn" style="display:flex;justify-content:space-between;gap:.5rem;align-items:center"><span>WARN · ${esc(m)}</span><button class="ghost warnHide" style="font-size:.72rem;padding:.05rem .4rem;flex:none">Hide</button></div>`);
+  body.innerHTML = h;
+  const sa = $("warnShowAll"); if (sa) sa.onclick = () => { HIDDEN_WARNS.clear(); saveHiddenWarns(); renderValidate(BANK); };
+  body.querySelectorAll(".warnHide").forEach((b, i) => b.onclick = () => { HIDDEN_WARNS.add(shownWarns[i]); saveHiddenWarns(); renderValidate(BANK); });
+}
+
+/* ============================================================
+   REVIEW & SIGN-OFF — per-question checkbox + expand + deep-link to Editor
+   ============================================================ */
+let REV = { lo:"", tier:"", status:"" };   // review-list filters
+let REV_UNDO = [], REV_REDO = [];          // review-marking history (in-memory, multi-step undo/redo)
+function reviewSnapshot(){ return allReviewQuestions().filter(x => x.q.reviewed).map(x => x.q.q_id); }
+function applyReviewSnapshot(ids){ const set = new Set(ids); allReviewQuestions().forEach(x => x.q.reviewed = set.has(x.q.q_id)); }
+function pushReviewHistory(){ REV_UNDO.push(reviewSnapshot()); if (REV_UNDO.length > 200) REV_UNDO.shift(); REV_REDO = []; }
+function undoReview(){ if (!REV_UNDO.length) return; REV_REDO.push(reviewSnapshot()); applyReviewSnapshot(REV_UNDO.pop()); saveBank(); renderReview(); }
+function redoReview(){ if (!REV_REDO.length) return; REV_UNDO.push(reviewSnapshot()); applyReviewSnapshot(REV_REDO.pop()); saveBank(); renderReview(); }
+function updateUndoButtons(){ const u = $("rUndo"), r = $("rRedo"); if (u) u.disabled = !REV_UNDO.length; if (r) r.disabled = !REV_REDO.length; }
+// map each validator message to the q_id it references (item/pool-question ids only)
+function flagsByQid(){
+  const { errors, warns } = validateBank(BANK);
+  const map = {};
+  const add = (arr, key) => arr.forEach(m => { const mm = /^([\w-]+):/.exec(m); if (mm){ (map[mm[1]] = map[mm[1]] || { errors:[], warns:[] })[key].push(m); } });
+  add(errors, "errors"); add(warns, "warns");
+  return map;
+}
+function allReviewQuestions(){
+  const out = (BANK.items || []).map(it => ({ q: it, isPool: false, setId: null }));
+  (BANK.question_sets || []).forEach(s => (s.questions || []).forEach(q => out.push({ q, isPool: true, setId: s.set_id })));
+  return out;
+}
+function renderReview(){
+  if (!BANK) return;
+  const all = allReviewQuestions();
+  const flags = flagsByQid();
+  $("reviewProgress").textContent = `${all.filter(x => x.q.reviewed).length} / ${all.length} reviewed`;
+  const los = BANK.bank_meta.learning_objectives || {};
+  $("reviewFilters").innerHTML =
+    `<select id="rLO"><option value="">All LOs</option>${Object.keys(los).sort().map(l => `<option${REV.lo === l ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>
+     <select id="rTier"><option value="">All tiers</option>${[1,2,3].map(t => `<option${REV.tier == t ? " selected" : ""}>${t}</option>`).join("")}</select>
+     <select id="rStatus"><option value="">All</option><option value="unrev"${REV.status === "unrev" ? " selected" : ""}>Unreviewed</option><option value="rev"${REV.status === "rev" ? " selected" : ""}>Reviewed</option><option value="flag"${REV.status === "flag" ? " selected" : ""}>Flagged</option></select>
+     <button class="ghost" id="rMark">✓ Mark shown reviewed</button>
+     <button class="ghost" id="rUnmark">Unmark shown</button>
+     <button class="ghost" id="rUndo" title="Undo the last marking change">↶ Undo</button>
+     <button class="ghost" id="rRedo" title="Redo">↷ Redo</button>
+     <span class="muted" id="rCount"></span>`;
+  const setFilter = (id, key) => $(id).onchange = () => { REV[key] = $(id).value; renderReview(); };
+  setFilter("rLO", "lo"); setFilter("rTier", "tier"); setFilter("rStatus", "status");
+  $("rUndo").onclick = undoReview; $("rRedo").onclick = redoReview; updateUndoButtons();
+
+  const shown = all.filter(x => {
+    const q = x.q;
+    if (REV.lo && q.lo !== REV.lo) return false;
+    if (REV.tier && String(q.tier) !== REV.tier) return false;
+    if (REV.status === "rev" && !q.reviewed) return false;
+    if (REV.status === "unrev" && q.reviewed) return false;
+    if (REV.status === "flag" && !flags[q.q_id]) return false;
+    return true;
+  });
+  $("rCount").textContent = `${shown.length} shown`;
+  $("rMark").onclick = () => { pushReviewHistory(); shown.forEach(x => x.q.reviewed = true); saveBank(); renderReview(); };
+  $("rUnmark").onclick = () => { pushReviewHistory(); shown.forEach(x => x.q.reviewed = false); saveBank(); renderReview(); };
+
+  $("reviewList").innerHTML = shown.map(x => {
+    const q = x.q, f = flags[q.q_id];
+    const badge = f ? (f.errors.length
+      ? '<span class="pill" style="background:var(--nobg);color:var(--no)">flag</span>'
+      : '<span class="pill" style="background:var(--warnbg);color:var(--warn)">flag</span>') : "";
+    const snip = esc(String(q.stem || "").slice(0, 90));
+    return `<div class="rvrow${q.reviewed ? " done" : ""}" data-qid="${esc(q.q_id)}">
+        <input type="checkbox" class="rvchk" data-qid="${esc(q.q_id)}"${q.reviewed ? " checked" : ""}>
+        <div><b>${esc(q.q_id)}</b> <span class="pill">T${esc(q.tier)} ${esc(x.isPool ? "mc_pool" : q.type)}</span> <span class="muted">${esc(q.lo)}</span> ${badge}<br><span class="muted">${snip}${String(q.stem || "").length > 90 ? "…" : ""}</span></div>
+        <span class="rvcaret">▸</span>
+      </div>
+      <div class="rvdetail hide" data-detail="${esc(q.q_id)}"></div>`;
+  }).join("") || '<p class="muted">No questions match the filter.</p>';
+
+  $("reviewList").querySelectorAll(".rvchk").forEach(cb => cb.onclick = e => {
+    e.stopPropagation();
+    const x = all.find(y => y.q.q_id === cb.dataset.qid);
+    if (x){ pushReviewHistory(); x.q.reviewed = cb.checked; saveBank();
+      cb.closest(".rvrow").classList.toggle("done", cb.checked);
+      $("reviewProgress").textContent = `${all.filter(y => y.q.reviewed).length} / ${all.length} reviewed`;
+      updateUndoButtons(); }
+  });
+  $("reviewList").querySelectorAll(".rvrow").forEach(row => row.onclick = () => {
+    const qid = row.dataset.qid;
+    const det = row.nextElementSibling;
+    if (!det || !det.classList.contains("rvdetail")) return;
+    if (det.classList.contains("hide")){
+      const x = all.find(y => y.q.q_id === qid);
+      det.innerHTML = reviewDetail(x, flags[qid]);
+      det.classList.remove("hide");
+      row.classList.add("open");
+      const eb = det.querySelector("[data-edit]");
+      if (eb) eb.addEventListener("click", ev => { ev.stopPropagation(); editItem(eb.dataset.edit); });
+    } else { det.classList.add("hide"); row.classList.remove("open"); }
+  });
+}
+function reviewDetail(x, f){
+  const q = x.q;
+  let h = `<div class="stem" style="font-weight:600;margin-bottom:.4rem">${esc(q.stem || "")}</div>`;
+  if (x.isPool){
+    h += `<p class="muted">Shared-option pool question (set <code>${esc(x.setId)}</code>) · correct → <code>${esc(q.correct)}</code> · focus: ${esc(q.focus || "—")}</p>
+          <p><b>Why:</b> ${esc(q.key_rationale || "")}</p>
+          <p class="muted">Pool-set questions are edited in the bank JSON directly (not yet in the Editor).</p>`;
+  } else if (q.type === "rank_order"){
+    h += "<ol>" + (q.correct_order || []).map(i => `<li>${esc((q.options || [])[i] || "")}</li>`).join("") + "</ol>";
+  } else {
+    h += (q.options || []).map((o, k) => {
+      const rat = (q.rationales || [])[k] || "", pr = (q.probes || [])[k];
+      return `<div class="rvopt${k === q.correct_index ? " key" : ""}${k % 2 ? " alt" : ""}">${k === q.correct_index ? "✓ " : ""}${esc(o)}
+        <div class="muted" style="font-size:.85rem">${esc(rat)}${pr ? " · probe: " + esc(pr) : ""}</div></div>`;
+    }).join("");
+    if (q.justify_options) h += `<div class="muted" style="margin-top:.3rem">…and why: ${q.justify_options.map((j, k) => (k === q.justify_correct ? "<b>" + esc(j) + "</b>" : esc(j))).join(" / ")}</div>`;
+  }
+  if (f){ h += (f.errors || []).map(m => `<div class="msg err">${esc(m)}</div>`).join("") + (f.warns || []).map(m => `<div class="msg warn">${esc(m)}</div>`).join(""); }
+  h += `<div class="row" style="margin-top:.5rem;justify-content:space-between"><span class="muted">anchor: ${esc(q.source_anchor || "—")}</span>`;
+  if (!x.isPool) h += `<button class="act" data-edit="${esc(q.q_id)}">Edit in Editor →</button>`;
+  return h + "</div>";
+}
+function editItem(qid){
+  SEL_ID = qid;
+  REV_focus_editor(qid);
+}
+function REV_focus_editor(qid){
+  showTab("editor");
+  renderEditor();   // rebuilds filters (All) + renders the selected item's form
+  setEditorMode("questions");
+  try { const row = document.querySelector(`#edList .edrow[data-id="${CSS.escape(qid)}"]`); if (row) row.scrollIntoView({ block: "nearest" }); } catch(e){}
+}
+function editFilter(lo, tier){   // deep-link from the Health matrix: open the Editor filtered to an LO × tier
+  showTab("editor");
+  renderEditor();                // rebuilds the filter dropdowns (default All)
+  setEditorMode("questions");
+  if ($("fLO")) $("fLO").value = lo || "";
+  if ($("fTier")) $("fTier").value = tier ? String(tier) : "";
+  if ($("fType")) $("fType").value = "";
+  SEL_ID = null;
+  renderList(); renderForm();
+}
+function editByType(type){   // deep-link from Health "By type": open the Editor filtered to a type
+  showTab("editor");
+  if (type === "mc_pool"){ setEditorMode("sets"); return; }   // set questions live in the Set editor
+  renderEditor();
+  setEditorMode("questions");
+  if ($("fLO")) $("fLO").value = "";
+  if ($("fTier")) $("fTier").value = "";
+  if ($("fType")) $("fType").value = type;
+  SEL_ID = null;
+  renderList(); renderForm();
+}
+
+function renderHealth(s){
+  const stats = $("healthStats");
+  const tierNames = { 1: "Tier 1 · recall", 2: "Tier 2 · comprehension", 3: "Tier 3 · application" };
+  const tierRows = [1, 2, 3].map(t => `<div class="krow"><span>${tierNames[t]}</span><b>${s.byTier[t]}</b></div>`).join("");
+  const typeLabel = t => t === "mc_pool" ? "mc_pool · mc4 in sets" : t;
+  const typeRows = Object.entries(s.byType).map(([k, v]) => `<div class="krow clk" data-type="${esc(k)}" title="Open these ${v} ${esc(k)} question(s) in the Editor"><span>${esc(typeLabel(k))}</span><b>${v}</b></div>`).join("") || '<div class="muted">—</div>';
+  stats.innerHTML = `
+    <div class="stat"><div class="k">Questions</div><div class="big">${s.total}</div></div>
+    <div class="stat"><div class="k">By tier</div><div style="margin-top:.3rem">${tierRows}</div></div>
+    <div class="stat"><div class="k">Learning objectives</div><div class="big">${Object.keys(s.los).length}</div></div>
+    <div class="stat"><div class="k">By type</div><div style="margin-top:.3rem">${typeRows}</div></div>
+    <div class="stat"><div class="k">Bank / spec</div><div style="font-size:.95rem;margin-top:.3rem">v${esc(s.bankVersion)} / spec ${esc(s.specVersion)}</div></div>
+    ${s.source ? `<div class="stat"><div class="k">Source text</div><div style="font-size:.9rem;margin-top:.3rem">${esc(sourceLine(s.source).replace(/^Source: /, ""))}</div></div>` : ""}`;
+  stats.querySelectorAll(".krow.clk").forEach(el => el.onclick = () => editByType(el.dataset.type));
+
+  const rows = s.rows.map(r => {
+    const dot = r.masterable ? '<span class="dot g"></span>' : (r.top ? '<span class="dot r"></span>' : '<span class="dot a"></span>');
+    const cell = t => r.cells[t] ? `<td class="cvcell" data-lo="${esc(r.lo)}" data-tier="${t}" title="Open these ${r.cells[t]} question(s) in the Editor">${r.cells[t]}</td>` : `<td class="muted">·</td>`;
+    const reach = r.top ? `top T${r.top}, ${r.ntop}/${r.need} ${r.masterable ? "ok" : "short"}` : "no items";
+    return `<tr><td class="lo" style="white-space:normal;max-width:380px">${dot} <b>${esc(r.lo)}</b> <span class="muted">${esc(r.title)}</span></td>${cell(1)}${cell(2)}${cell(3)}<td class="cvcell" data-lo="${esc(r.lo)}" data-tier="" title="Open all ${r.total} question(s) for ${esc(r.lo)} in the Editor">${r.total}</td><td class="muted" style="text-align:left">${esc(reach)}</td></tr>`;
+  }).join("");
+  $("coverTable").innerHTML =
+    `<thead><tr><th style="text-align:left">Learning objective</th><th>T1</th><th>T2</th><th>T3</th><th>Σ</th><th style="text-align:left">Mastery reachability</th></tr></thead><tbody>${rows}</tbody>`;
+  $("coverTable").querySelectorAll(".cvcell").forEach(c => c.onclick = () => editFilter(c.dataset.lo, +c.dataset.tier));
+}
+
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ============================================================
+   EDITOR — item CRUD + live validation + export
+   ============================================================ */
+let SEL_ID = null;
+
+function reValidate(){
+  renderValidate(BANK);
+  renderReview();
+  renderHealth(bankStats(BANK));
+  const {errors, warns} = validateBank(BANK);
+  const badge = $("edValBadge");
+  if (badge){ badge.textContent = `${errors.length} err · ${warns.length} warn`; badge.style.color = errors.length ? "var(--no)" : "var(--muted)"; }
+  saveBank();   // persist edits so a refresh keeps them
+}
+function newId(prefix){
+  const ids = new Set(BANK.items.map(i => i.q_id)); let n = 1;
+  while (ids.has(`${prefix}-${n}`)) n++;
+  return `${prefix}-${n}`;
+}
+function blankItem(type){
+  const lo = Object.keys(BANK.bank_meta.learning_objectives || {}).sort()[0] || "1.1";
+  const b = {q_id:newId("new"), lo, type, origin:"bank", status:"draft", stem:"", source_anchor:""};
+  if (type === "mc4" || type === "scenario_mc"){ b.tier = type === "scenario_mc" ? 3 : 1; b.options = ["","","",""]; b.correct_index = 0; b.rationales = ["","","",""]; b.probes = [null,"","",""]; }
+  else if (type === "tf_justify"){ b.tier = 1; b.options = ["True","False"]; b.correct_index = 0; b.rationales = ["",""]; b.probes = [null,""]; }
+  else if (type === "rank_order"){ b.tier = 3; b.options = ["","",""]; b.correct_order = [0,1,2]; b.rationales = ["","",""]; b.probes = [""]; }
+  return b;
+}
+function renderEditor(){
+  const los = BANK.bank_meta.learning_objectives || {};
+  const loOpts = '<option value="">All LOs</option>' + Object.keys(los).sort().map(l => `<option>${esc(l)}</option>`).join("");
+  const typeOpts = '<option value="">All types</option>' + ["mc4","scenario_mc","tf_justify","rank_order"].map(t => `<option>${t}</option>`).join("");
+  $("edFilters").innerHTML =
+    `<select id="fLO">${loOpts}</select> <select id="fTier"><option value="">All tiers</option><option>1</option><option>2</option><option>3</option></select> <select id="fType">${typeOpts}</select> <span class="muted" id="edCount"></span>`;
+  ["fLO","fTier","fType"].forEach(id => $(id).onchange = renderList);
+  $("edAdd").onclick = () => {
+    const t = prompt("New item type: mc4, scenario_mc, tf_justify, or rank_order", "mc4");
+    if (!t || !["mc4","scenario_mc","tf_justify","rank_order"].includes(t)) return;
+    const it = blankItem(t); BANK.items.push(it); SEL_ID = it.q_id; renderList(); renderForm(); reValidate();
+  };
+  $("edExport").onclick = exportBank;
+  $("edModeQ").onclick = () => setEditorMode("questions");
+  $("edModeS").onclick = () => setEditorMode("sets");
+  $("setAdd").onclick = addSet;
+  renderList(); renderForm(); reValidate();
+}
+function filteredItems(){
+  const lo = $("fLO") ? $("fLO").value : "", tier = $("fTier") ? $("fTier").value : "", type = $("fType") ? $("fType").value : "";
+  return BANK.items.filter(i => (!lo || i.lo === lo) && (!tier || String(i.tier) === tier) && (!type || i.type === type));
+}
+function renderList(){
+  const items = filteredItems();
+  const cnt = $("edCount"); if (cnt) cnt.textContent = `${items.length} shown / ${BANK.items.length} total`;
+  $("edList").innerHTML = items.map(it => {
+    const on = it.q_id === SEL_ID ? ' style="border-color:var(--brand);background:var(--chip)"' : '';
+    const snip = esc(String(it.stem || "").slice(0,64));
+    return `<div class="edrow" data-id="${esc(it.q_id)}"${on}><b>${esc(it.q_id)}</b> <span class="pill">T${esc(it.tier)} ${esc(it.type)}</span> <span class="muted">${esc(it.lo)}</span><br><span class="muted">${snip}${String(it.stem||"").length > 64 ? "…" : ""}</span></div>`;
+  }).join("") || '<p class="muted">No items match the filter.</p>';
+  $("edList").querySelectorAll(".edrow").forEach(r => r.onclick = () => { SEL_ID = r.dataset.id; renderList(); renderForm(); });
+}
+function fld(label, inner){ return `<div class="fld"><label>${esc(label)}</label>${inner}</div>`; }
+function renderForm(){
+  const host = $("edForm");
+  const it = BANK.items.find(i => i.q_id === SEL_ID);
+  if (!it){ host.innerHTML = '<p class="muted">Select an item to edit, or add one.</p>'; return; }
+  const los = BANK.bank_meta.learning_objectives || {};
+  const loSel = '<select data-bind="lo">' + Object.keys(los).sort().map(l => `<option${l === it.lo ? " selected" : ""}>${esc(l)}</option>`).join("") + '</select>';
+  const tierSel = '<select data-bind="tier">' + [1,2,3].map(t => `<option${t === it.tier ? " selected" : ""}>${t}</option>`).join("") + '</select>';
+  let h = `<div class="row" style="justify-content:space-between"><b>${esc(it.q_id)}</b><button class="ghost" id="edDel">Delete</button></div>`;
+  h += fld("q_id", `<input type="text" data-bind="q_id" value="${esc(it.q_id)}">`);
+  h += `<div class="row"><div style="flex:1;min-width:90px">${fld("LO", loSel)}</div><div style="flex:1;min-width:70px">${fld("Tier", tierSel)}</div><div style="flex:1;min-width:110px">${fld("Type", `<input type="text" value="${esc(it.type)}" disabled>`)}</div></div>`;
+  h += fld("Status", `<input type="text" data-bind="status" value="${esc(it.status || "")}">`);
+  h += fld("Source anchor", `<input type="text" data-bind="source_anchor" value="${esc(it.source_anchor || "")}">`);
+  h += fld("Stem", `<textarea data-bind="stem">${esc(it.stem || "")}</textarea>`);
+
+  if (it.type === "rank_order"){
+    h += `<label class="muted">Options — set each one's position number in the correct order</label>`;
+    it.options.forEach((o,k) => {
+      const pos = (it.correct_order || []).indexOf(k);
+      h += `<div class="opt"><input type="number" min="1" max="${it.options.length}" data-order="${k}" value="${pos >= 0 ? pos+1 : ""}"><textarea data-opt="${k}">${esc(o)}</textarea></div>`;
+    });
+    h += fld("Rationales (one per option)", it.options.map((_,k) => `<textarea data-rat="${k}" placeholder="rationale ${k}">${esc((it.rationales || [])[k] || "")}</textarea>`).join(""));
+    h += fld("Probe (single)", `<input type="text" data-probe="0" value="${esc((it.probes || [])[0] || "")}">`);
+  } else {
+    const isTF = it.type === "tf_justify";
+    h += `<label class="muted">Options — click a radio to mark the correct answer</label>`;
+    it.options.forEach((o,k) => {
+      const key = k === it.correct_index;
+      const optIn = isTF ? `<input type="text" value="${esc(o)}" disabled>` : `<textarea data-opt="${k}">${esc(o)}</textarea>`;
+      h += `<div class="opt${key ? " key" : ""}${k % 2 ? " alt" : ""}"><input type="radio" name="correct" value="${k}"${key ? " checked" : ""}>${optIn}</div>`;
+    });
+    h += fld("Rationales (one per option)", it.options.map((_,k) => `<textarea data-rat="${k}" placeholder="rationale ${k}">${esc((it.rationales || [])[k] || "")}</textarea>`).join(""));
+    h += `<div class="fld"><label>Probes — a Socratic nudge shown when a student picks each distractor (the correct answer has none)</label>`;
+    it.options.forEach((_,k) => {
+      const L = String.fromCharCode(65 + k);
+      if (k === it.correct_index)
+        h += `<div class="prow"><span class="plbl ok">${L} ✓</span><input type="text" disabled placeholder="correct answer — no probe"></div>`;
+      else
+        h += `<div class="prow"><span class="plbl">${L}</span><input type="text" data-probe="${k}" value="${esc((it.probes || [])[k] || "")}" placeholder="probe for option ${L}"></div>`;
+    });
+    h += `</div>`;
+    if (isTF){
+      h += `<div class="fld"><label>Justify options (Tier 2+; leave all blank for a plain T/F)</label>`;
+      for (let k = 0; k < 3; k++){
+        const jo = (it.justify_options || [])[k] || "";
+        const jc = it.justify_correct === k;
+        h += `<div class="opt${jc ? " key" : ""}"><input type="radio" name="jcorrect" value="${k}"${jc ? " checked" : ""}><textarea data-jopt="${k}">${esc(jo)}</textarea></div>`;
+      }
+      h += `</div>`;
+    }
+  }
+  host.innerHTML = h;
+  wireForm(it);
+}
+function wireForm(it){
+  const host = $("edForm");
+  host.querySelector("#edDel").onclick = () => {
+    if (!confirm(`Delete ${it.q_id}?`)) return;
+    BANK.items = BANK.items.filter(x => x !== it); SEL_ID = null; renderList(); renderForm(); reValidate();
+  };
+  host.querySelectorAll("[data-bind]").forEach(el => el.oninput = () => {
+    const k = el.dataset.bind; it[k] = k === "tier" ? Number(el.value) : el.value;
+    if (["q_id","lo","tier","stem"].includes(k)) renderList();
+    reValidate();
+  });
+  host.querySelectorAll("[data-opt]").forEach(el => el.oninput = () => { it.options[+el.dataset.opt] = el.value; renderList(); reValidate(); });
+  host.querySelectorAll("[data-rat]").forEach(el => el.oninput = () => { it.rationales[+el.dataset.rat] = el.value; reValidate(); });
+  host.querySelectorAll("[data-probe]").forEach(el => el.oninput = () => { it.probes[+el.dataset.probe] = el.value || null; reValidate(); });
+  host.querySelectorAll('input[name="correct"]').forEach(el => el.onchange = () => {
+    it.correct_index = +el.value;
+    if (Array.isArray(it.probes)) it.probes = it.probes.map((p,k) => k === it.correct_index ? null : (p || ""));
+    renderForm(); reValidate();
+  });
+  host.querySelectorAll("[data-jopt]").forEach(el => el.oninput = () => {
+    it.justify_options = it.justify_options || ["","",""]; it.justify_options[+el.dataset.jopt] = el.value; reValidate();
+  });
+  host.querySelectorAll('input[name="jcorrect"]').forEach(el => el.onchange = () => { it.justify_correct = +el.value; renderForm(); reValidate(); });
+  host.querySelectorAll("[data-order]").forEach(el => el.oninput = () => {
+    const positions = it.options.map((_,k) => ({k, pos: Number(host.querySelector(`[data-order="${k}"]`).value) || 999}));
+    positions.sort((a,b) => a.pos - b.pos);
+    it.correct_order = positions.map(p => p.k);
+    reValidate();
+  });
+}
+function exportBank(){
+  const txt = JSON.stringify(BANK, null, 2);
+  const blob = new Blob([txt], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `bank_chapter_${BANK.bank_meta.chapter || "edited"}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ============================================================
+   SET EDITOR — edit mc_pool question_sets (shared options + pool questions)
+   ============================================================ */
+let EDMODE = "questions", SET_ID_SEL = null;
+function setEditorMode(mode){
+  EDMODE = mode;
+  $("edModeQ").classList.toggle("on", mode === "questions");
+  $("edModeS").classList.toggle("on", mode === "sets");
+  $("edQWrap").classList.toggle("hide", mode !== "questions");
+  $("edSWrap").classList.toggle("hide", mode !== "sets");
+  $("edAdd").classList.toggle("hide", mode !== "questions");
+  $("setAdd").classList.toggle("hide", mode !== "sets");
+  $("edFilters").classList.toggle("hide", mode !== "questions");
+  if (mode === "sets") renderSetList();
+}
+function allSets(){ return BANK.question_sets || (BANK.question_sets = []); }
+function newSetQId(s){ let n = 1; const ids = new Set((s.questions || []).map(q => q.q_id)); while (ids.has(`${s.set_id}-q${n}`)) n++; return `${s.set_id}-q${n}`; }
+function addSet(){
+  const s = { set_id: "new-set-" + (allSets().length + 1), type: "mc_pool", options_per_question: 4, source_anchor: "", shared_options: [], questions: [] };
+  allSets().push(s); SET_ID_SEL = s.set_id; renderSetList(); reValidate();
+}
+function renderSetList(){
+  const sets = allSets();
+  $("setList").innerHTML = sets.length ? sets.map(s => {
+    const on = s.set_id === SET_ID_SEL ? ' style="border-color:var(--brand);background:var(--chip)"' : '';
+    return `<div class="edrow" data-set="${esc(s.set_id)}"${on}><b>${esc(s.set_id)}</b> <span class="pill">${(s.shared_options || []).length} opts · ${(s.questions || []).length} Qs</span><br><span class="muted">LO ${esc((s.questions || [])[0] ? (s.questions[0].lo || "?") : "?")}</span></div>`;
+  }).join("") : '<p class="muted">No shared-option (mc_pool) sets. Click “+ Add set”.</p>';
+  $("setList").querySelectorAll(".edrow").forEach(r => r.onclick = () => { SET_ID_SEL = r.dataset.set; renderSetList(); renderSetForm(); });
+  renderSetForm();
+}
+function renderSetForm(){
+  const host = $("setForm");
+  const s = allSets().find(x => x.set_id === SET_ID_SEL);
+  if (!s){ host.innerHTML = '<p class="muted">Select a set to edit, or add one.</p>'; return; }
+  const los = BANK.bank_meta.learning_objectives || {};
+  const optIds = (s.shared_options || []).map(o => o.id);
+  let h = `<div class="row" style="justify-content:space-between"><b>${esc(s.set_id)}</b><button class="ghost" id="setDel">Delete set</button></div>`;
+  h += fld("set_id", `<input type="text" data-set-bind="set_id" value="${esc(s.set_id)}">`);
+  h += `<div class="row"><div style="flex:1;min-width:110px">${fld("Options / question", `<input type="number" min="2" data-set-bind="options_per_question" value="${esc(s.options_per_question ?? 4)}">`)}</div><div style="flex:2;min-width:150px">${fld("Source anchor (default)", `<input type="text" data-set-bind="source_anchor" value="${esc(s.source_anchor || "")}">`)}</div></div>`;
+
+  h += `<div class="row" style="justify-content:space-between;margin-top:.5rem"><b style="font-size:.95rem">Shared options</b><button class="ghost" id="optAdd" style="font-size:.8rem;padding:.2rem .5rem">+ option</button></div>`;
+  (s.shared_options || []).forEach((o, k) => {
+    h += `<div class="opt${k % 2 ? " alt" : ""}" style="grid-template-columns:1fr">
+        <div class="row" style="justify-content:space-between"><input type="text" data-opt-id="${k}" value="${esc(o.id)}" placeholder="id" style="max-width:120px"><button class="ghost" data-opt-del="${k}" style="font-size:.8rem;padding:.15rem .45rem">delete</button></div>
+        ${fld("text", `<textarea data-opt-text="${k}">${esc(o.text || "")}</textarea>`)}
+        <div class="row"><div style="flex:1;min-width:120px">${fld("theme", `<input type="text" data-opt-theme="${k}" value="${esc(o.theme || "")}">`)}</div><div style="flex:1;min-width:120px">${fld("correction", `<input type="text" data-opt-corr="${k}" value="${esc(o.correction || "")}">`)}</div></div></div>`;
+  });
+
+  h += `<div class="row" style="justify-content:space-between;margin-top:.5rem"><b style="font-size:.95rem">Questions</b><button class="ghost" id="sqAdd" style="font-size:.8rem;padding:.2rem .5rem">+ question</button></div>`;
+  (s.questions || []).forEach((q, k) => {
+    const correctSel = `<select data-sq-correct="${k}">${optIds.map(id => `<option${id === q.correct ? " selected" : ""}>${esc(id)}</option>`).join("")}</select>`;
+    const loSel = `<select data-sq-lo="${k}">${Object.keys(los).sort().map(l => `<option${l === q.lo ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+    const tierSel = `<select data-sq-tier="${k}">${[1,2,3].map(t => `<option${t === q.tier ? " selected" : ""}>${t}</option>`).join("")}</select>`;
+    const excl = new Set(q.sample_exclude || []);
+    const exclBoxes = optIds.map(id => `<label class="muted" style="font-size:.8rem;margin-right:.6rem;white-space:nowrap"><input type="checkbox" data-sq-excl="${k}" value="${esc(id)}"${excl.has(id) ? " checked" : ""}> ${esc(id)}</label>`).join("");
+    h += `<div class="opt${k % 2 ? " alt" : ""}" style="grid-template-columns:1fr">
+        <div class="row" style="justify-content:space-between"><input type="text" data-sq-id="${k}" value="${esc(q.q_id)}" placeholder="q_id" style="max-width:150px"><button class="ghost" data-sq-del="${k}" style="font-size:.8rem;padding:.15rem .45rem">delete</button></div>
+        <div class="row"><div style="flex:1;min-width:80px">${fld("LO", loSel)}</div><div style="flex:1;min-width:70px">${fld("Tier", tierSel)}</div><div style="flex:1;min-width:90px">${fld("correct", correctSel)}</div></div>
+        ${fld("stem", `<textarea data-sq-stem="${k}">${esc(q.stem || "")}</textarea>`)}
+        ${fld("focus", `<input type="text" data-sq-focus="${k}" value="${esc(q.focus || "")}">`)}
+        ${fld("key_rationale", `<textarea data-sq-kr="${k}">${esc(q.key_rationale || "")}</textarea>`)}
+        ${fld("sample_exclude", `<div>${exclBoxes || '<span class="muted">no options yet</span>'}</div>`)}</div>`;
+  });
+  host.innerHTML = h;
+  wireSetForm(s);
+}
+function wireSetForm(s){
+  const host = $("setForm");
+  host.querySelector("#setDel").onclick = () => { if (!confirm(`Delete set ${s.set_id}?`)) return; BANK.question_sets = allSets().filter(x => x !== s); SET_ID_SEL = null; renderSetList(); reValidate(); };
+  host.querySelectorAll("[data-set-bind]").forEach(el => el.oninput = () => { const k = el.dataset.setBind; s[k] = (k === "options_per_question") ? Number(el.value) : el.value; if (k === "set_id") renderSetList(); reValidate(); });
+  host.querySelector("#optAdd").onclick = () => { s.shared_options = s.shared_options || []; s.shared_options.push({ id: "opt" + (s.shared_options.length + 1), text: "", theme: "", correction: "" }); renderSetForm(); reValidate(); };
+  host.querySelectorAll("[data-opt-del]").forEach(el => el.onclick = () => { s.shared_options.splice(+el.dataset.optDel, 1); renderSetForm(); reValidate(); });
+  host.querySelectorAll("[data-opt-id]").forEach(el => el.oninput = () => { s.shared_options[+el.dataset.optId].id = el.value; reValidate(); });
+  host.querySelectorAll("[data-opt-text]").forEach(el => el.oninput = () => { s.shared_options[+el.dataset.optText].text = el.value; reValidate(); });
+  host.querySelectorAll("[data-opt-theme]").forEach(el => el.oninput = () => { s.shared_options[+el.dataset.optTheme].theme = el.value; reValidate(); });
+  host.querySelectorAll("[data-opt-corr]").forEach(el => el.oninput = () => { s.shared_options[+el.dataset.optCorr].correction = el.value; reValidate(); });
+  host.querySelector("#sqAdd").onclick = () => { s.questions = s.questions || []; const lo0 = (s.questions[0] && s.questions[0].lo) || Object.keys(BANK.bank_meta.learning_objectives || {})[0] || "1.1"; s.questions.push({ q_id: newSetQId(s), lo: lo0, tier: 2, correct: (s.shared_options[0] && s.shared_options[0].id) || "", stem: "", focus: "", key_rationale: "", sample_exclude: [] }); renderSetForm(); reValidate(); };
+  host.querySelectorAll("[data-sq-del]").forEach(el => el.onclick = () => { s.questions.splice(+el.dataset.sqDel, 1); renderSetForm(); reValidate(); });
+  host.querySelectorAll("[data-sq-id]").forEach(el => el.oninput = () => { s.questions[+el.dataset.sqId].q_id = el.value; reValidate(); });
+  host.querySelectorAll("[data-sq-lo]").forEach(el => el.onchange = () => { s.questions[+el.dataset.sqLo].lo = el.value; reValidate(); });
+  host.querySelectorAll("[data-sq-tier]").forEach(el => el.onchange = () => { s.questions[+el.dataset.sqTier].tier = Number(el.value); reValidate(); });
+  host.querySelectorAll("[data-sq-correct]").forEach(el => el.onchange = () => { s.questions[+el.dataset.sqCorrect].correct = el.value; reValidate(); });
+  host.querySelectorAll("[data-sq-stem]").forEach(el => el.oninput = () => { s.questions[+el.dataset.sqStem].stem = el.value; reValidate(); });
+  host.querySelectorAll("[data-sq-focus]").forEach(el => el.oninput = () => { s.questions[+el.dataset.sqFocus].focus = el.value; reValidate(); });
+  host.querySelectorAll("[data-sq-kr]").forEach(el => el.oninput = () => { s.questions[+el.dataset.sqKr].key_rationale = el.value; reValidate(); });
+  host.querySelectorAll("[data-sq-excl]").forEach(el => el.onchange = () => {
+    const q = s.questions[+el.dataset.sqExcl]; const set = new Set(q.sample_exclude || []);
+    if (el.checked) set.add(el.value); else set.delete(el.value);
+    q.sample_exclude = [...set]; reValidate();
+  });
+}
+
+/* ============================================================
+   DASHBOARD — import student exports, class mastery + item analysis
+   ============================================================ */
+const DASH = { bundles: [] };
+let MERGE_ALL = false;             // universal: pool every question's versions
+const MERGE_QIDS = new Set();      // per-question override: pool just these q_ids' versions
+function decodeItems(d){
+  if (d.encrypted_items && /^DEV-STUB/.test(d.encrypted_items.alg || "")){
+    try { return JSON.parse(decodeURIComponent(escape(atob(d.encrypted_items.ciphertext)))); }
+    catch(e){ return null; }
+  }
+  return null;
+}
+// Canvas bulk "Download Submissions" renames files {lastnamefirstname}_{userid}_{original}
+// (with an optional _late_). Recover the student from the filename so an anonymized file (device
+// code inside, no name) still shows who submitted it.
+function parseCanvasName(fn){
+  const m = String(fn || "").match(/^(.+?)_(?:late_)?(\d+)_/i);
+  return m ? { name:m[1], userid:m[2] } : null;
+}
+function canvasLabel(c){ return c ? `${c.name} · ${c.userid}` : null; }
+function parseBundle(d, filename){
+  const s = d.session || {};
+  const enc = d.encrypted_items || null;
+  const encrypted = !!(enc && /^RSA-OAEP/.test(enc.alg || ""));   // real envelope vs DEV-STUB
+  const canvas = parseCanvasName(filename);
+  const student = String(s.student || "(unknown)").trim() || "(unknown)";
+  return { student, canvas, label:(canvasLabel(canvas) || student), chapter:s.chapter, when:s.ended_at || "",
+    started:s.started_at || "", ended:s.ended_at || "", bank_version:s.bank_version, lo_state:d.lo_state || {},
+    needs_review:((d.digest && d.digest.needs_review) || []).map(r => r.lo), enc, encrypted, recs:decodeItems(d) || [] };
+}
+let PRIVKEY = null;   // loaded instructor private CryptoKey; decrypts item detail in-browser, never persisted
+async function loadPrivateKeyFile(){
+  const f = $("dashKeyFile").files[0];
+  if (!f){ $("dashKeyStat").textContent = "choose your privatekey.json first."; return; }
+  $("dashKeyStat").textContent = "unlocking…";
+  try {
+    const file = JSON.parse(await f.text());
+    PRIVKEY = await unwrapPrivateKey(file, $("dashKeyPass").value || "");
+    const n = await decryptLoadedBundles();
+    renderDashboard();
+    $("dashKeyStat").textContent = `✓ key loaded${file.cfg_id ? ` (${file.cfg_id})` : ""} — decrypted ${n} export${n===1?"":"s"}.`;
+  } catch(e){ PRIVKEY = null; $("dashKeyStat").textContent = "could not load key — wrong passphrase or file."; }
+}
+async function decryptLoadedBundles(){
+  if (!PRIVKEY) return 0;
+  let n = 0;
+  for (const b of DASH.bundles){
+    if (b.encrypted && b.enc && (!b.recs || !b.recs.length)){
+      try { b.recs = JSON.parse(await decryptItemDetail(b.enc, PRIVKEY)); b.decrypted = true; n++; }
+      catch(e){ /* this export was sealed to a different key — leave it encrypted */ }
+    }
+  }
+  return n;
+}
+function importBundles(list, filenames){
+  let added = 0, bad = 0;
+  list.forEach((d, i) => { if (d && d.session && (d.lo_state || d.encrypted_items)){ DASH.bundles.push(parseBundle(d, filenames && filenames[i])); added++; } else bad++; });
+  saveDash();   // persist imported exports so a refresh keeps them
+  return {added, bad};
+}
+function pearson(xs, ys){
+  const n = xs.length; if (n < 2) return null;
+  const mx = xs.reduce((a,b)=>a+b,0)/n, my = ys.reduce((a,b)=>a+b,0)/n;
+  let sxy=0,sxx=0,syy=0;
+  for (let i=0;i<n;i++){ const dx=xs[i]-mx, dy=ys[i]-my; sxy+=dx*dy; sxx+=dx*dx; syy+=dy*dy; }
+  return (sxx===0||syy===0) ? null : sxy/Math.sqrt(sxx*syy);
+}
+function downloadCSV(name, rows){
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv"}); const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function fmtDur(ms){
+  if (!isFinite(ms) || ms < 0) return "—";
+  const s = Math.round(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return h ? `${h}h ${String(m).padStart(2, "0")}m` : (m ? `${m}m ${String(sec).padStart(2, "0")}s` : `${sec}s`);
+}
+function sessionMs(b){ const a = Date.parse(b.started), z = Date.parse(b.ended || b.when); return (isFinite(a) && isFinite(z) && z >= a) ? z - a : NaN; }
+function studentTotalMs(S){ return S.list.reduce((sum, b) => { const d = sessionMs(b); return sum + (isFinite(d) ? d : 0); }, 0); }
+function sessionMetrics(b){
+  const pr = (b.recs || []).filter(r => !r.follow_up);
+  return { when: b.ended || b.when || "", ms: sessionMs(b),
+    answered: pr.filter(r => r.outcome !== "skipped").length,
+    first: pr.filter(r => r.outcome === "correct_first").length };
+}
+function renderDashboard(){
+  const st = $("dashState");
+  if (!DASH.bundles.length){ st.textContent = "No exports imported."; $("dashBody").innerHTML = ""; return; }
+  const idOf = b => b.label || b.student || "(unknown)";   // Canvas-recovered identity, else the in-file code/name
+  const byStudent = {};
+  DASH.bundles.forEach(b => {
+    const key = idOf(b);
+    const s = byStudent[key] || (byStudent[key] = {latest:b, list:[], recs:[], needs:new Set()});
+    s.list.push(b); s.recs.push(...b.recs); b.needs_review.forEach(l => s.needs.add(l));
+    if (!s.latest.when || (b.when && b.when > s.latest.when)) s.latest = b;
+  });
+  const students = Object.keys(byStudent).sort();
+  const los = [...new Set(DASH.bundles.flatMap(b => Object.keys(b.lo_state)))].sort();
+  const encPending = DASH.bundles.filter(b => b.encrypted && (!b.recs || !b.recs.length)).length;
+  st.textContent = `${students.length} student(s) · ${DASH.bundles.length} session export(s) · ${los.length} LOs seen`
+    + (encPending ? ` · ${encPending} with encrypted item detail — load your key to include in item analysis` : "");
+
+  const dist = {}; los.forEach(lo => dist[lo] = {mastered:0,needs_review:0,in_progress:0,untouched:0});
+  students.forEach(stu => { const ls = byStudent[stu].latest.lo_state; los.forEach(lo => { const v = ls[lo] || "untouched"; if (dist[lo][v]!=null) dist[lo][v]++; }); });
+
+  const rosterHead = `<thead><tr><th style="text-align:left">Student</th>${los.map(l=>`<th>${esc(l)}</th>`).join("")}<th>Mastered</th><th>Sessions</th><th>Total time</th></tr></thead>`;
+  const rosterRows = students.map(stu => {
+    const S = byStudent[stu];
+    const ls = S.latest.lo_state;
+    const cells = los.map(lo => { const v = ls[lo] || "untouched";
+      const c = v==="mastered"?"g":(v==="needs_review"?"r":(v==="in_progress"?"a":""));
+      return `<td>${c?`<span class="dot ${c}"></span>`:'<span class="muted">·</span>'}</td>`; }).join("");
+    const m = los.filter(lo => (ls[lo]||"")==="mastered").length;
+    const detail = S.list.slice().sort((a,b) => String(a.when).localeCompare(String(b.when))).map(b => {
+      const mm = sessionMetrics(b);
+      const date = mm.when ? String(mm.when).slice(0,16).replace("T"," ") : "—";
+      return `<tr><td class="lo">${esc(date)}</td><td>${fmtDur(mm.ms)}</td><td>${mm.answered}</td><td>${mm.first}</td></tr>`;
+    }).join("");
+    return `<tr class="strow" data-stu="${esc(stu)}"><td class="lo"><span class="stcaret">▸</span> ${esc(stu)}</td>${cells}<td>${m}/${los.length}</td><td>${S.list.length}</td><td>${fmtDur(studentTotalMs(S))}</td></tr>
+      <tr class="stdetail hide"><td colspan="${los.length + 4}"><div class="scroll"><table><thead><tr><th style="text-align:left">Session (ended)</th><th>Duration</th><th>Answered</th><th>First-try correct</th></tr></thead><tbody>${detail || '<tr><td colspan="4" class="muted">No decoded session detail.</td></tr>'}</tbody></table></div></td></tr>`;
+  }).join("");
+
+  // item analysis — grouped by q_id, then by response signature (question version)
+  const qmap = {}; const stuRate = {};
+  Object.entries(byStudent).forEach(([stu,s]) => {
+    const pr = s.recs.filter(r => !r.follow_up);
+    stuRate[stu] = pr.length ? pr.filter(r=>r.outcome==="correct_first").length/pr.length : 0;
+    pr.forEach(r => {
+      const sig = r.sig || "—";
+      const q = qmap[r.q_id] || (qmap[r.q_id] = {q_id:r.q_id, lo:r.lo, tier:r.tier, type:r.type, sigs:{}});
+      const a = q.sigs[sig] || (q.sigs[sig] = {sig, attempts:0, first:0, choices:{}, byStudent:{}});
+      a.attempts++; const ok = r.outcome==="correct_first" ? 1 : 0; a.first += ok;
+      a.byStudent[stu] = Math.max(a.byStudent[stu]||0, ok);
+      if (typeof r.student_answer_1 === "number") a.choices[r.student_answer_1] = (a.choices[r.student_answer_1]||0)+1;
+    });
+  });
+  const bankItems = BANK ? Object.fromEntries(BANK.items.map(i => [i.q_id, i])) : {};
+  const poolAggs = aggs => { const m = {attempts:0, first:0, choices:{}, byStudent:{}};
+    aggs.forEach(a => { m.attempts+=a.attempts; m.first+=a.first;
+      Object.entries(a.choices).forEach(([k,v]) => m.choices[k]=(m.choices[k]||0)+v);
+      Object.entries(a.byStudent).forEach(([stu,v]) => m.byStudent[stu]=Math.max(m.byStudent[stu]||0, v)); });
+    return m; };
+  const dispRows = [];
+  Object.values(qmap).sort((a,b)=> (a.tier-b.tier) || String(a.q_id).localeCompare(String(b.q_id))).forEach(q => {
+    const sigList = Object.keys(q.sigs), nVer = sigList.length;
+    const pooled = MERGE_ALL || MERGE_QIDS.has(q.q_id) || nVer <= 1;
+    if (pooled) dispRows.push({ q, nVer, sig: nVer===1 ? sigList[0] : "merged",
+      label: esc(q.q_id) + (nVer>1 ? ` <span class="muted">(${nVer} versions merged)</span>` : ""),
+      agg: poolAggs(Object.values(q.sigs)), ctl: (nVer>1 && !MERGE_ALL) ? "split" : "" });
+    else sigList.forEach((sig,i) => dispRows.push({ q, nVer, sig,
+      label: `${esc(q.q_id)} <span class="pill">v${i+1} · ${esc(sig.slice(0,4))}</span>`,
+      agg: q.sigs[sig], ctl: i===0 ? "merge" : "" }));
+  });
+  const itemRows = dispRows.map(row => {
+    const it = row.agg; const p = it.attempts ? it.first/it.attempts : 0;
+    const bi = bankItems[row.q.q_id]; let dead = "—";
+    if (bi && (bi.type==="mc4"||bi.type==="scenario_mc")){ const ci = bi.correct_index;
+      const never = (bi.options||[]).map((_,k)=>k).filter(k => k!==ci && !it.choices[k]);
+      dead = never.length ? never.map(k=>String.fromCharCode(65+k)).join(",") : "none"; }
+    const stus = Object.keys(it.byStudent); let disc = "—";
+    if (stus.length >= 5){ const r = pearson(stus.map(s=>it.byStudent[s]), stus.map(s=>stuRate[s])); disc = r==null?"—":r.toFixed(2); }
+    const flag = p>=0.95 ? '<span class="dot a" title="very easy"></span>' : (p<=0.35 ? '<span class="dot r" title="very hard"></span>' : '<span class="dot g"></span>');
+    const ctl = row.ctl==="merge" ? ` <a class="verlink" data-merge="${esc(row.q.q_id)}">merge ${row.nVer} versions</a>`
+              : row.ctl==="split" ? ` <a class="verlink" data-split="${esc(row.q.q_id)}">split ${row.nVer}</a>` : "";
+    return `<tr><td class="lo">${flag} ${row.label}${ctl}</td><td>T${esc(row.q.tier)}</td><td>${it.attempts}</td><td>${Math.round(p*100)}%</td><td>${esc(dead)}</td><td>${esc(disc)}</td></tr>`;
+  }).join("");
+
+  const needCount = {};
+  Object.values(byStudent).forEach(s => s.needs.forEach(lo => needCount[lo] = (needCount[lo]||0)+1));
+  const needRows = Object.entries(needCount).sort((a,b)=>b[1]-a[1]).map(([lo,n]) => `<tr><td class="lo">${esc(lo)}</td><td>${n}</td></tr>`).join("");
+
+  $("dashBody").innerHTML =
+    `<div class="panel"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Class mastery — roster</h2><button class="ghost" id="csvRoster">Export CSV</button></div>
+      <div class="scroll"><table>${rosterHead}<tbody>${rosterRows}</tbody></table></div>
+      <p class="muted" style="margin-top:.4rem"><span class="dot g"></span> mastered · <span class="dot r"></span> needs review · <span class="dot a"></span> in progress · · untouched</p></div>
+     <div class="panel"><h2>Per-objective distribution</h2><div class="scroll"><table class="zebra">
+       <thead><tr><th style="text-align:left">LO</th><th>Mastered</th><th>Needs review</th><th>In progress</th><th>Untouched</th></tr></thead>
+       <tbody>${los.map(lo=>`<tr><td class="lo">${esc(lo)}</td><td>${dist[lo].mastered}</td><td>${dist[lo].needs_review}</td><td>${dist[lo].in_progress}</td><td>${dist[lo].untouched}</td></tr>`).join("")}</tbody></table></div></div>
+     ${needRows ? `<div class="panel"><h2>Most-flagged for review</h2><div class="scroll"><table class="zebra"><thead><tr><th style="text-align:left">LO</th><th>Students flagged</th></tr></thead><tbody>${needRows}</tbody></table></div></div>` : ""}
+     <div class="panel"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Item analysis</h2><div class="row"><label class="muted" style="font-size:.85rem"><input type="checkbox" id="mergeAll"${MERGE_ALL ? " checked" : ""}> Merge all versions</label><button class="ghost" id="csvItems">Export CSV</button></div></div>
+       <p class="muted">Difficulty = first-try-correct rate (green ok · amber ≥95% too easy · red ≤35% too hard). Dead distractors = never-chosen wrong options (needs the bank loaded). Discrimination = point-biserial vs overall score (≥5 students; noisy for small classes). <b>Materially edited questions split into versions</b> by a content signature so different edits don't pool — use a row's “merge/split”, or “Merge all versions”.</p>
+       <div class="scroll"><table class="zebra"><thead><tr><th style="text-align:left">Item</th><th>Tier</th><th>Attempts</th><th>Difficulty</th><th>Dead distractors</th><th>Discrim.</th></tr></thead>
+       <tbody>${itemRows || '<tr><td colspan="6" class="muted">No decoded item traces (exports may be summary-only).</td></tr>'}</tbody></table></div></div>`;
+
+  $("dashBody").querySelectorAll(".strow").forEach(row => row.onclick = () => {
+    const det = row.nextElementSibling;
+    if (det && det.classList.contains("stdetail")){ det.classList.toggle("hide"); row.classList.toggle("open"); }
+  });
+  const ma = $("mergeAll"); if (ma) ma.onchange = () => { MERGE_ALL = ma.checked; renderDashboard(); };
+  $("dashBody").querySelectorAll(".verlink[data-merge]").forEach(el => el.onclick = () => { MERGE_QIDS.add(el.dataset.merge); renderDashboard(); });
+  $("dashBody").querySelectorAll(".verlink[data-split]").forEach(el => el.onclick = () => { MERGE_QIDS.delete(el.dataset.split); renderDashboard(); });
+  const csvR = $("csvRoster"); if (csvR) csvR.onclick = () => downloadCSV("roster.csv",
+    [["student", ...los, "mastered_count", "sessions", "total_minutes"], ...students.map(stu => { const S = byStudent[stu]; const ls = S.latest.lo_state;
+      return [stu, ...los.map(lo=>ls[lo]||"untouched"), los.filter(lo=>(ls[lo]||"")==="mastered").length, S.list.length, Math.round(studentTotalMs(S)/60000)]; })]);
+  const csvI = $("csvItems"); if (csvI) csvI.onclick = () => downloadCSV("item_analysis.csv",
+    [["q_id","version_sig","lo","tier","attempts","difficulty_pct","dead_distractors","discrimination"], ...dispRows.map(row => {
+      const it = row.agg; const p = it.attempts ? Math.round(it.first/it.attempts*100) : 0; const bi = bankItems[row.q.q_id]; let dead = "";
+      if (bi && (bi.type==="mc4"||bi.type==="scenario_mc")){ const ci = bi.correct_index;
+        dead = (bi.options||[]).map((_,k)=>k).filter(k=>k!==ci&&!it.choices[k]).map(k=>String.fromCharCode(65+k)).join(" "); }
+      const stus = Object.keys(it.byStudent); let disc = "";
+      if (stus.length>=5){ const r = pearson(stus.map(s=>it.byStudent[s]), stus.map(s=>stuRate[s])); disc = r==null?"":r.toFixed(3); }
+      return [row.q.q_id, row.sig, row.q.lo, row.q.tier, it.attempts, p, dead, disc]; })]);
+}
+
+/* ============================================================
+   WebCrypto envelope (spec §9). RSA-OAEP-4096 wraps a per-session AES-256-GCM key that encrypts
+   the export's item detail; only the instructor's private key unwraps it. The Config tab generates
+   the keypair; the private key downloads passphrase-wrapped (PBKDF2). The dashboard loads it to
+   decrypt. Same block lives in the student app (it only encrypts).
+   ============================================================ */
+function _abB64(buf){ const u=new Uint8Array(buf); let s=""; for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]); return btoa(s); }
+function _b64U8(b64){ const s=atob(b64); const u=new Uint8Array(s.length); for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i); return u; }
+async function genInstructorKeypair(){
+  const kp=await crypto.subtle.generateKey({name:"RSA-OAEP",modulusLength:4096,publicExponent:new Uint8Array([1,0,1]),hash:"SHA-256"},true,["wrapKey","unwrapKey"]);
+  return { publicKeyB64:_abB64(await crypto.subtle.exportKey("spki",kp.publicKey)), pkcs8:new Uint8Array(await crypto.subtle.exportKey("pkcs8",kp.privateKey)) };
+}
+async function wrapPrivateKey(pkcs8,passphrase){
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(passphrase),"PBKDF2",false,["deriveKey"]);
+  const kek=await crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:210000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["encrypt"]);
+  return { kdf:"PBKDF2-SHA256", iterations:210000, salt:_abB64(salt), iv:_abB64(iv), wrapped_pkcs8:_abB64(await crypto.subtle.encrypt({name:"AES-GCM",iv},kek,pkcs8)) };
+}
+async function unwrapPrivateKey(file,passphrase){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(passphrase),"PBKDF2",false,["deriveKey"]);
+  const kek=await crypto.subtle.deriveKey({name:"PBKDF2",salt:_b64U8(file.salt),iterations:file.iterations,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+  const pkcs8=await crypto.subtle.decrypt({name:"AES-GCM",iv:_b64U8(file.iv)},kek,_b64U8(file.wrapped_pkcs8));
+  return crypto.subtle.importKey("pkcs8",pkcs8,{name:"RSA-OAEP",hash:"SHA-256"},false,["unwrapKey"]);
+}
+async function encryptItemDetail(detailJson,publicKeyB64){
+  const pub=await crypto.subtle.importKey("spki",_b64U8(publicKeyB64),{name:"RSA-OAEP",hash:"SHA-256"},false,["wrapKey"]);
+  const aes=await crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt"]);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},aes,new TextEncoder().encode(detailJson));
+  return { alg:"RSA-OAEP-4096+AES-256-GCM", iv:_abB64(iv), wrapped_key:_abB64(await crypto.subtle.wrapKey("raw",aes,pub,{name:"RSA-OAEP"})), ciphertext:_abB64(ct) };
+}
+async function decryptItemDetail(env,privateKey){
+  const aes=await crypto.subtle.unwrapKey("raw",_b64U8(env.wrapped_key),privateKey,{name:"RSA-OAEP"},{name:"AES-GCM"},false,["decrypt"]);
+  return new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:_b64U8(env.iv)},aes,_b64U8(env.ciphertext)));
+}
+function downloadJSON(name,obj){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ============================================================
+   CONFIG BUILDER — produce a per-class config package (§11)
+   ============================================================ */
+function b64url(str){ return btoa(unescape(encodeURIComponent(str))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function renderConfig(){
+  if (!BANK) return;
+  const ch = BANK.bank_meta.chapter ?? 1;
+  $("cfgForm").innerHTML =
+    fld("Config id (e.g. smith-2026F)", `<input type="text" id="cfgId">`) +
+    fld("Display name", `<input type="text" id="cfgName" placeholder="Prof. Smith — Intro to Entrepreneurship">`) +
+    fld("Course", `<input type="text" id="cfgCourse" value="intro-entrepreneurship">`) +
+    fld("Sections (comma-separated)", `<input type="text" id="cfgSecs" placeholder="001, 003">`) +
+    `<div class="row"><label class="muted"><input type="checkbox" id="cfgAnon"> Anonymize student identity — the export carries a per-device code, not the name (you attribute uploads via Canvas)</label></div>` +
+    `<div class="fld"><label style="font-weight:600"><input type="checkbox" id="cfgGate"> Schedule chapter releases</label>
+       <p class="muted" style="margin:.2rem 0 .5rem">Off: every authored chapter is available immediately (stock). On: students see <b>only</b> the chapters you list — each on/after its date; a listed chapter with no date is available now. The class uses the app's stock chapters unless you deliver an edited bank (Model 1 carries the one bank loaded here).</p>
+       <div id="cfgSched" class="hide"></div>
+       <button class="ghost" id="cfgAddCh" type="button" style="display:none">+ Add chapter</button></div>` +
+    fld("Instructor public key (SPKI — encrypts this class's student exports)", `<textarea id="cfgKey" placeholder="click Generate keypair below, or paste an existing SPKI public key"></textarea>`) +
+    fld("Key passphrase (wraps the downloaded private key)", `<input type="password" id="cfgPass" placeholder="choose a passphrase you will keep">`) +
+    `<div class="row"><button class="ghost" id="cfgGen" type="button">Generate instructor keypair</button> <span id="cfgKeyStat" class="muted"></span></div>`;
+  $("cfgExport1").onclick = exportConfigModel1;
+  $("cfgLink2").onclick = configLink2;
+  $("cfgGen").onclick = genKeypairForConfig;
+  const gate = $("cfgGate"), sched = $("cfgSched"), addBtn = $("cfgAddCh");
+  gate.onchange = () => {
+    const on = gate.checked;
+    sched.classList.toggle("hide", !on);
+    addBtn.style.display = on ? "" : "none";
+    if (on && !sched.children.length) addSchedRow(ch, "");   // seed with the loaded chapter
+  };
+  addBtn.onclick = () => addSchedRow("", "");
+}
+// One editable (chapter, date) row of the release allowlist. Blank date = available now.
+function addSchedRow(ch, date){
+  const row = document.createElement("div");
+  row.className = "row schedrow";
+  row.style.margin = ".25rem 0";
+  row.innerHTML = `<label class="muted" style="margin:0">Chapter <input type="number" min="1" class="schCh" value="${esc(String(ch))}" style="width:4.5rem"></label>` +
+    `<input type="date" class="schDate" value="${esc(String(date || ""))}">` +
+    `<button class="ghost schDel" type="button" title="remove chapter">✕</button>`;
+  row.querySelector(".schDel").onclick = () => row.remove();
+  $("cfgSched").appendChild(row);
+}
+async function genKeypairForConfig(){
+  const cfgId=($("cfgId").value||"").trim();
+  if(!cfgId){ alert("Enter a config id first — the private-key file is named after it."); return; }
+  const pass=$("cfgPass").value||"";
+  if(pass.length<8){ alert("Use a key passphrase of at least 8 characters."); return; }
+  $("cfgKeyStat").textContent="generating 4096-bit keypair…";
+  try{
+    const kp=await genInstructorKeypair();
+    $("cfgKey").value=kp.publicKeyB64;                 // embed the public half in the config
+    const wrapped=await wrapPrivateKey(kp.pkcs8,pass);
+    downloadJSON(cfgId+".privatekey.json", Object.assign({ format:"quizprep-privatekey-v1", cfg_id:cfgId, alg:"RSA-OAEP-4096",
+      note:"Passphrase-wrapped PKCS#8. Load into the console Dashboard (with the passphrase) to decrypt item detail. Keep private; never commit." }, wrapped));
+    $("cfgKeyStat").textContent="✓ public key embedded; private key downloaded as "+cfgId+".privatekey.json — store it and the passphrase safely.";
+  }catch(e){ $("cfgKeyStat").textContent="key generation failed: "+(e&&e.message||e); }
+}
+function buildConfig(){
+  const secs = ($("cfgSecs").value || "").split(",").map(s => s.trim()).filter(Boolean);
+  let rel = null;                                     // no gating → omit the schedule → every authored chapter is available (stock)
+  if ($("cfgGate") && $("cfgGate").checked){
+    rel = {};
+    document.querySelectorAll("#cfgSched .schedrow").forEach(r => {
+      const c = (r.querySelector(".schCh").value || "").trim();
+      if (c) rel[String(parseInt(c, 10))] = (r.querySelector(".schDate").value || "").trim();   // blank date travels as "" = available now
+    });
+  }
+  return { cfg_id:($("cfgId").value||"").trim(), display_name:($("cfgName").value||"").trim(),
+    course:($("cfgCourse").value||"").trim(), release_schedule:rel, sections:secs,
+    anonymize:$("cfgAnon").checked, public_key:($("cfgKey").value||"").trim() || null };
+}
+function exportConfigModel1(){
+  const cfg = buildConfig();
+  if (!cfg.cfg_id){ alert("Enter a config id first."); return; }
+  downloadJSON(`${cfg.cfg_id}.config.json`, { cfg, bank: BANK });
+  const keyNote = cfg.public_key ? '' : ' <b>No public key set</b> — this class’s exports will be unencrypted (dev stub); generate a keypair above to encrypt.';
+  $("cfgOut").innerHTML = `<div class="msg ok">Exported <b>${esc(cfg.cfg_id)}.config.json</b> — drop it in your shared folder for the maintainer. Students launch with <code>?cfg=${esc(cfg.cfg_id)}&amp;sec=…</code>${keyNote}</div>`;
+}
+function configLink2(){
+  const cfg = buildConfig();
+  if (!cfg.cfg_id){ alert("Enter a config id first."); return; }
+  const q = "?cfg=" + b64url(JSON.stringify(cfg)) + (cfg.sections[0] ? "&sec=" + encodeURIComponent(cfg.sections[0]) : "");
+  const full = "https://trostparadox.github.io/quizprep/" + q;
+  $("cfgOut").innerHTML = `<div class="msg ok">Share link (uses the stock bank — no edits carried):<br><textarea readonly style="width:100%;min-height:64px;margin-top:.3rem">${esc(full)}</textarea></div>`;
+}
+
+/* ---------- loading ---------- */
+function tryLoad(text){
+  $("loadErr").classList.add("hide");
+  let obj;
+  try { obj = JSON.parse(text); }
+  catch(e){ return showLoadErr("Not valid JSON: " + e.message); }
+  if (!obj || typeof obj !== "object" || !obj.bank_meta || !Array.isArray(obj.items))
+    return showLoadErr("This doesn't look like a bank (expected bank_meta + items[]).");
+  onBankLoaded(obj);
+}
+function showLoadErr(m){ const e = $("loadErr"); e.textContent = m; e.classList.remove("hide"); }
+
+$("fileIn").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => tryLoad(r.result);
+  r.readAsText(f);
+});
+$("loadPaste").addEventListener("click", () => {
+  const t = $("pasteIn").value.trim();
+  if (!t) return showLoadErr("Paste a bank JSON first.");
+  tryLoad(t);
+});
+
+/* dashboard import — from a file picker or a whole folder (optionally recursive) */
+function filterExportFiles(files, includeSub){
+  return [...files].filter(f => /\.json$/i.test(f.name) && (includeSub || (f.webkitRelativePath || "").split("/").length <= 2));
+}
+function loadExportFiles(files){
+  files = [...files];
+  if (!files.length){ alert("No .json export files found."); return; }
+  let pending = files.length; const parsed = [], names = [];
+  files.forEach((f, idx) => { const r = new FileReader();
+    r.onload = () => { try { parsed[idx] = JSON.parse(r.result); } catch(err){} names[idx] = f.name;
+      if (--pending === 0){
+        const data = [], fns = [];
+        parsed.forEach((d, i) => { if (d !== undefined){ data.push(d); fns.push(names[i]); } });   // Canvas filename → identity
+        const { bad } = importBundles(data, fns);
+        Promise.resolve(PRIVKEY ? decryptLoadedBundles() : 0).then(() => renderDashboard());
+        if (bad) alert(`${bad} file(s) were not valid session exports and were skipped.`); } };
+    r.readAsText(f); });
+}
+$("dashFiles").addEventListener("change", e => { if (e.target.files.length) loadExportFiles(e.target.files); e.target.value = ""; });
+$("dashFolderBtn").addEventListener("click", () => $("dashFolder").click());
+$("dashFolder").addEventListener("change", e => { if (e.target.files.length) loadExportFiles(filterExportFiles(e.target.files, $("dashSubfolders").checked)); e.target.value = ""; });
+$("dashClear").addEventListener("click", () => { DASH.bundles = []; saveDash(); renderDashboard(); });
+$("dashKeyBtn").addEventListener("click", loadPrivateKeyFile);
+$("forgetBtn").addEventListener("click", () => { forgetSaved(); location.reload(); });
+
+/* restore a remembered bank + dashboard + tab on load, so a refresh doesn't start over */
+restoreState();
+</script>
+</body>
+</html>
