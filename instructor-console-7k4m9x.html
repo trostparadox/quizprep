@@ -271,6 +271,10 @@ let BANK = null;                              // live pointer to the ACTIVE chap
 const COURSE = { banks:{}, active:null };     // whole-course set: { <chapter|key>: bank }
 function courseKeys(){ return Object.keys(COURSE.banks); }
 function courseChapters(){ return courseKeys().sort((a,b)=>{ const na=+a, nb=+b; return (isNaN(na)||isNaN(nb)) ? String(a).localeCompare(String(b)) : na-nb; }); }
+function textbookKey(bank){ const s=(bank&&bank.bank_meta&&bank.bank_meta.source)||{}; return (String(s.authors||s.title||"tb").toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,12)||"tb")+(s.edition?String(s.edition).replace(/[^a-z0-9]/gi,"").toLowerCase():""); }
+function sameTextbook(a,b){ return textbookKey(a)===textbookKey(b); }
+function courseTextbooks(){ return new Set(courseKeys().map(k=>textbookKey(COURSE.banks[k]))); }   // distinct source textbooks across the loaded course
+function textbookDisplay(src){ if(!src)return null; const a=src.authors?String(src.authors).replace(/\s+and\s+/g," & "):""; const who=a?a.split(",")[0].trim():(src.title||""); return who+(src.edition?" ("+src.edition+" ed.)":""); }
 function courseItemsById(){ const m = {}; courseKeys().forEach(k => (COURSE.banks[k].items || []).forEach(i => { m[i.q_id] = i; })); return m; }   // union of every chapter's items, keyed by q_id (unique across chapters) — cross-chapter dashboard lookup
 function isForked(bank){ return !!(bank && bank.bank_meta && bank.bank_meta.provenance && bank.bank_meta.provenance.forked_from); }   // a bank the instructor has customized (carries a fork stamp); otherwise canonical
 function provenanceBadge(bank){
@@ -566,11 +570,12 @@ function sourceLine(src){
    RENDER
    ============================================================ */
 function addBankToCourse(bank){
-  let key = (bank.bank_meta && bank.bank_meta.chapter);
-  if (key == null || key === "") key = "x" + (courseKeys().length + 1);   // fallback for a bank with no chapter number
-  key = String(key);
+  const ch = (bank.bank_meta && bank.bank_meta.chapter);
+  let key = (ch == null || ch === "") ? ("x" + (courseKeys().length + 1)) : String(ch);
+  if (COURSE.banks[key] && !sameTextbook(COURSE.banks[key], bank))   // same chapter number, DIFFERENT textbook → composite unit id (no collision)
+    key = textbookKey(bank) + "-" + (ch != null && ch !== "" ? ch : (courseKeys().length + 1));
   const prior = COURSE.banks[key];
-  if (prior) carryReviewState(bank, prior);   // reloading this chapter (e.g. newer canonical) → keep prior review marks
+  if (prior) carryReviewState(bank, prior);   // a true reload of the SAME unit → keep prior review marks
   applyAutoAccept(bank);                        // pref-gated: re-vet questions that changed since approval
   COURSE.banks[key] = bank;
   return key;
@@ -1394,34 +1399,30 @@ function renderConfig(){
     fld("Course", `<input type="text" id="cfgCourse" value="intro-entrepreneurship">`) +
     fld("Sections (comma-separated)", `<input type="text" id="cfgSecs" placeholder="001, 003">`) +
     `<div class="row"><label class="muted"><input type="checkbox" id="cfgAnon"> Anonymize student identity — the export carries a per-device code, not the name (you attribute uploads via Canvas)</label></div>` +
-    `<div class="fld"><label style="font-weight:600"><input type="checkbox" id="cfgGate"> Schedule chapter releases</label>
-       <p class="muted" style="margin:.2rem 0 .5rem">Off: every authored chapter is available immediately (stock). On: students see <b>only</b> the chapters you list — each on/after its date; a listed chapter with no date is available now. The class uses the app's stock chapters unless you deliver an edited bank (Model 1 carries the one bank loaded here).</p>
-       <div id="cfgSched" class="hide"></div>
-       <button class="ghost" id="cfgAddCh" type="button" style="display:none">+ Add chapter</button></div>` +
+    `<div class="fld"><label style="font-weight:600"><input type="checkbox" id="cfgGate"> Schedule releases by date</label>
+       <p class="muted" style="margin:.2rem 0 .5rem">Off: every unit in this course is available immediately. On: students see <b>only</b> the units below — each on/after its date; a unit with no date is available now. (Rows are the units you've loaded.)</p>
+       <div id="cfgSched" class="hide"></div></div>` +
     fld("Instructor public key (SPKI — encrypts this class's student exports)", `<textarea id="cfgKey" placeholder="click Generate keypair below, or paste an existing SPKI public key"></textarea>`) +
     fld("Key passphrase (wraps the downloaded private key)", `<input type="password" id="cfgPass" placeholder="choose a passphrase you will keep">`) +
     `<div class="row"><button class="ghost" id="cfgGen" type="button">Generate instructor keypair</button> <span id="cfgKeyStat" class="muted"></span></div>`;
   $("cfgExport1").onclick = exportConfigModel1;
   $("cfgLink2").onclick = configLink2;
   $("cfgGen").onclick = genKeypairForConfig;
-  const gate = $("cfgGate"), sched = $("cfgSched"), addBtn = $("cfgAddCh");
+  const gate = $("cfgGate"), sched = $("cfgSched");
   gate.onchange = () => {
     const on = gate.checked;
     sched.classList.toggle("hide", !on);
-    addBtn.style.display = on ? "" : "none";
-    if (on && !sched.children.length) addSchedRow(ch, "");   // seed with the loaded chapter
+    if (on && !sched.children.length)                        // one row per loaded unit (keyed by unit id, labelled by title)
+      courseChapters().forEach(id => addSchedRow(id, (COURSE.banks[id].bank_meta.chapter_title) || ("Ch " + id), ""));
   };
-  addBtn.onclick = () => addSchedRow("", "");
 }
 // One editable (chapter, date) row of the release allowlist. Blank date = available now.
-function addSchedRow(ch, date){
+function addSchedRow(unitId, title, date){   // a release row per loaded unit — keyed by unit id, labelled by chapter title
   const row = document.createElement("div");
   row.className = "row schedrow";
   row.style.margin = ".25rem 0";
-  row.innerHTML = `<label class="muted" style="margin:0">Chapter <input type="number" min="1" class="schCh" value="${esc(String(ch))}" style="width:4.5rem"></label>` +
-    `<input type="date" class="schDate" value="${esc(String(date || ""))}">` +
-    `<button class="ghost schDel" type="button" title="remove chapter">✕</button>`;
-  row.querySelector(".schDel").onclick = () => row.remove();
+  row.innerHTML = `<span class="schUnit" data-unit="${esc(String(unitId))}" style="min-width:13rem">${esc(title || String(unitId))}</span>` +
+    `<input type="date" class="schDate" value="${esc(String(date || ""))}">`;
   $("cfgSched").appendChild(row);
 }
 async function genKeypairForConfig(){
@@ -1445,21 +1446,34 @@ function buildConfig(){
   if ($("cfgGate") && $("cfgGate").checked){
     rel = {};
     document.querySelectorAll("#cfgSched .schedrow").forEach(r => {
-      const c = (r.querySelector(".schCh").value || "").trim();
-      if (c) rel[String(parseInt(c, 10))] = (r.querySelector(".schDate").value || "").trim();   // blank date travels as "" = available now
+      const u = r.querySelector(".schUnit").dataset.unit;
+      rel[u] = (r.querySelector(".schDate").value || "").trim();   // key by unit id; blank date travels as "" = available now
     });
   }
   return { cfg_id:($("cfgId").value||"").trim(), display_name:($("cfgName").value||"").trim(),
     course:($("cfgCourse").value||"").trim(), release_schedule:rel, sections:secs,
     anonymize:$("cfgAnon").checked, public_key:($("cfgKey").value||"").trim() || null };
 }
+function buildConfigPackage(){   // multi-textbook course → {cfg, manifest, banks}; single textbook → {cfg, banks (by chapter), bank}
+  const cfg = buildConfig();
+  const keys = courseChapters();
+  const banks = {}; keys.forEach(k => { banks[k] = COURSE.banks[k]; });
+  if (courseTextbooks().size > 1){   // mixes books → a manifest defines the ordered units, keyed by unit id
+    const manifest = keys.map(id => { const m = COURSE.banks[id].bank_meta || {};
+      return { id, title: m.chapter_title || id, textbook: textbookDisplay(m.source), chapter: m.chapter }; });
+    return { cfg, manifest, banks };
+  }
+  return { cfg, banks, bank: BANK };   // single textbook: banks keyed by chapter number, merges into the app's stock
+}
 function exportConfigModel1(){
   if (hardGateBlocks()) return;
-  const cfg = buildConfig();
+  const pkg = buildConfigPackage(); const cfg = pkg.cfg;
   if (!cfg.cfg_id){ alert("Enter a config id first."); return; }
-  downloadJSON(`${cfg.cfg_id}.config.json`, { cfg, bank: BANK });
+  downloadJSON(`${cfg.cfg_id}.config.json`, pkg);
+  const nB = Object.keys(pkg.banks).length;
+  const mt = pkg.manifest ? ` · multi-textbook manifest (${pkg.manifest.length} units)` : "";
   const keyNote = cfg.public_key ? '' : ' <b>No public key set</b> — this class’s exports will be unencrypted (dev stub); generate a keypair above to encrypt.';
-  $("cfgOut").innerHTML = `<div class="msg ok">Exported <b>${esc(cfg.cfg_id)}.config.json</b> — drop it in your shared folder for the maintainer. Students launch with <code>?cfg=${esc(cfg.cfg_id)}&amp;sec=…</code>${keyNote}</div>`;
+  $("cfgOut").innerHTML = `<div class="msg ok">Exported <b>${esc(cfg.cfg_id)}.config.json</b> (${nB} bank${nB > 1 ? "s" : ""}${mt}) — drop it in your shared folder for the maintainer. Students launch with <code>?cfg=${esc(cfg.cfg_id)}&amp;sec=…</code>${keyNote}</div>`;
 }
 function configLink2(){
   if (hardGateBlocks()) return;
