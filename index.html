@@ -358,10 +358,12 @@ function setBank(b){ BANK=b; BANKS[CH]=b; EXCERPTS=(BANK.bank_meta&&BANK.bank_me
 const todayISO=()=>new Date().toISOString().slice(0,10);
 function releaseDate(ch){ return CONFIG&&CONFIG.release_schedule ? (CONFIG.release_schedule[ch]??CONFIG.release_schedule[String(ch)]) : null; }
 function chapterReleased(ch){
-  if(!CONFIG||!CONFIG.release_schedule)return true;   // no config / no schedule → released (stock behavior)
+  const sched=CONFIG&&CONFIG.release_schedule;
+  if(!sched||!Object.keys(sched).length)return true;  // no config / empty schedule → released (stock behavior)
+  if(!(String(ch) in sched))return false;             // a non-empty schedule is an allowlist: a chapter not listed stays locked
   const d=releaseDate(ch);
-  if(!d)return false;                                 // scheduled config but this chapter absent → not released
-  return todayISO()>=d;                               // released on/after its ISO date
+  if(!d)return true;                                  // listed with no date → available now
+  return todayISO()>=d;                               // otherwise released on/after its ISO date
 }
 function decodeCfgParam(v){ try{ return JSON.parse(decodeURIComponent(escape(atob(v.replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } }
 function withTimeout(promise,ms){ return new Promise(res=>{ let done=false;
