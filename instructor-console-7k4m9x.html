@@ -110,6 +110,7 @@
   .chapbar{max-width:1050px;margin:.4rem auto 0;padding:.35rem 1rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
   .chapbar .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:.2rem .7rem;cursor:pointer;font-size:.85rem}
   .chapbar .chip.on{border-color:var(--brand);color:var(--brand);font-weight:600}
+  .chapbar .chip.book{font-weight:600}
   .pbadge{display:inline-block;border-radius:999px;padding:.05rem .5rem;font-size:.72rem;font-weight:600;margin-left:.35rem;vertical-align:middle}
   .pbadge.canon{background:var(--okbg);color:var(--ok)}
   .pbadge.fork{background:var(--warnbg);color:var(--warn)}
@@ -275,6 +276,15 @@ function textbookKey(bank){ const s=(bank&&bank.bank_meta&&bank.bank_meta.source
 function sameTextbook(a,b){ return textbookKey(a)===textbookKey(b); }
 function courseTextbooks(){ return new Set(courseKeys().map(k=>textbookKey(COURSE.banks[k]))); }   // distinct source textbooks across the loaded course
 function textbookDisplay(src){ if(!src)return null; const a=src.authors?String(src.authors).replace(/\s+and\s+/g," & "):""; const who=a?a.split(",")[0].trim():(src.title||""); return who+(src.edition?" ("+src.edition+" ed.)":""); }
+function courseBooks(){                  // distinct textbooks among loaded units, in course order, each with its unit ids
+  const seen = {}, order = [];
+  courseChapters().forEach(k => { const tk = textbookKey(COURSE.banks[k]);
+    if (!seen[tk]){ seen[tk] = { key: tk, label: textbookDisplay((COURSE.banks[k].bank_meta || {}).source) || ("Book " + (order.length + 1)), units: [] }; order.push(seen[tk]); }
+    seen[tk].units.push(k); });
+  return order;
+}
+function activeBookKey(){ return COURSE.active != null && COURSE.banks[COURSE.active] ? textbookKey(COURSE.banks[COURSE.active]) : null; }
+function selectBook(tk){ const b = courseBooks().find(x => x.key === tk); if (b && b.units.length) activateChapter(b.units[0]); }   // selecting a book activates its first chapter
 function courseItemsById(){ const m = {}; courseKeys().forEach(k => (COURSE.banks[k].items || []).forEach(i => { m[i.q_id] = i; })); return m; }   // union of every chapter's items, keyed by q_id (unique across chapters) — cross-chapter dashboard lookup
 function isForked(bank){ return !!(bank && bank.bank_meta && bank.bank_meta.provenance && bank.bank_meta.provenance.forked_from); }   // a bank the instructor has customized (carries a fork stamp); otherwise canonical
 function provenanceBadge(bank){
@@ -613,12 +623,23 @@ function renderChapterBar(){
   const keys = courseChapters();
   if (keys.length <= 1){ bar.classList.add("hide"); bar.innerHTML = ""; return; }
   const issues = crossChapterChecks();
+  const issuePill = issues.length ? ` <span class="pill" style="background:var(--nobg);color:var(--no)" title="${esc(issues.join(" | "))}">⚠ ${issues.length} course issue${issues.length > 1 ? "s" : ""}</span>` : "";
+  const chapChip = k => { const b = COURSE.banks[k]; const t = (b.bank_meta && b.bank_meta.chapter_title) || ("Ch " + k);
+    return `<button class="chip${k === COURSE.active ? " on" : ""}" data-ch="${esc(k)}">${esc(t)}${provenanceBadge(b)}</button>`; };
+  const books = courseBooks();
   bar.classList.remove("hide");
-  bar.innerHTML = `<span class="muted" style="font-size:.85rem">Chapters:</span>` +
-    keys.map(k => { const b = COURSE.banks[k]; const t = (b.bank_meta && b.bank_meta.chapter_title) || ("Ch " + k);
-      return `<button class="chip${k === COURSE.active ? " on" : ""}" data-ch="${esc(k)}">${esc(t)}${provenanceBadge(b)}</button>`; }).join("") +
-    (issues.length ? ` <span class="pill" style="background:var(--nobg);color:var(--no)" title="${esc(issues.join(" | "))}">⚠ ${issues.length} course issue${issues.length > 1 ? "s" : ""}</span>` : "");
-  bar.querySelectorAll(".chip").forEach(btn => btn.onclick = () => activateChapter(btn.dataset.ch));
+  if (books.length >= 2){                // two levels: Books, then the selected book's Chapters
+    const ab = books.find(b => b.key === activeBookKey()) || books[0];
+    bar.innerHTML =
+      `<div class="row" style="flex-wrap:wrap;gap:.4rem"><span class="muted" style="font-size:.85rem">Books:</span>` +
+      books.map(b => `<button class="chip book${b.key === ab.key ? " on" : ""}" data-book="${esc(b.key)}">${esc(b.label)} <span class="muted">(${b.units.length})</span></button>`).join("") + issuePill + `</div>` +
+      `<div class="row" style="flex-wrap:wrap;gap:.4rem;margin-top:.3rem"><span class="muted" style="font-size:.85rem">Chapters:</span>` +
+      ab.units.map(chapChip).join("") + `</div>`;
+  } else {                               // single book: chapters only (as before)
+    bar.innerHTML = `<span class="muted" style="font-size:.85rem">Chapters:</span>` + keys.map(chapChip).join("") + issuePill;
+  }
+  bar.querySelectorAll(".chip[data-ch]").forEach(btn => btn.onclick = () => activateChapter(btn.dataset.ch));
+  bar.querySelectorAll(".chip[data-book]").forEach(btn => btn.onclick = () => selectBook(btn.dataset.book));
 }
 function onBankLoaded(bank){            // single bank (paste / one file / legacy restore)
   const key = addBankToCourse(bank);
