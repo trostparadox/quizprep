@@ -139,9 +139,9 @@
   <section id="tab-load">
     <div class="panel">
       <h2>Load a question bank</h2>
-      <p class="muted">Pick one or several chapter-bank JSON files, a whole course folder, or paste one below. Everything runs in your browser — nothing is uploaded. This tool never touches the live student app. Your loaded banks and imported exports are <b>remembered on this device</b>, so a refresh keeps them. Load more than one chapter and a chapter switcher appears under the header.</p>
+      <p class="muted">Pick one or several chapter-bank JSON files (or a <b>.zip</b> the maintainer emailed you), a whole course folder, or paste one below. Everything runs in your browser — nothing is uploaded. This tool never touches the live student app. Your loaded banks and imported exports are <b>remembered on this device</b>, so a refresh keeps them. Load more than one chapter and a chapter switcher appears under the header.</p>
       <div class="row">
-        <input type="file" id="fileIn" accept=".json,application/json" multiple>
+        <input type="file" id="fileIn" accept=".json,application/json,.zip,application/zip" multiple>
         <button class="ghost" id="folderBtn" type="button">Load a folder…</button>
         <input type="file" id="folderIn" webkitdirectory directory style="display:none">
         <span class="muted">or paste one below and click Load</span>
@@ -1482,20 +1482,54 @@ function tryLoad(text){
 }
 function showLoadErr(m){ const e = $("loadErr"); e.textContent = m; e.classList.remove("hide"); }
 
-function readFilesIntoCourse(fileList){
-  const files = [...fileList].filter(f => /\.json$/i.test(f.name));
-  if (!files.length) return showLoadErr("No .json files found in that selection.");
+async function inflateRaw(bytes){   // DEFLATE decompression via the browser's native DecompressionStream (no library)
+  const ds = new DecompressionStream("deflate-raw");
+  const w = ds.writable.getWriter(); w.write(bytes); w.close();
+  return new TextDecoder().decode(await new Response(ds.readable).arrayBuffer());
+}
+async function readZip(arrayBuffer){   // minimal in-browser zip reader (STORED + DEFLATE entries), no external library
+  const bytes = new Uint8Array(arrayBuffer), dv = new DataView(arrayBuffer);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= 0 && i >= bytes.length - 22 - 65536; i--){ if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; } }
+  if (eocd < 0) throw new Error("not a zip file");
+  const count = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true);
+  const entries = [];
+  for (let n = 0; n < count && p + 46 <= bytes.length; n++){
+    if (dv.getUint32(p, true) !== 0x02014b50) break;   // central directory header
+    const method = dv.getUint16(p + 10, true), compSize = dv.getUint32(p + 20, true);
+    const nameLen = dv.getUint16(p + 28, true), extraLen = dv.getUint16(p + 30, true), commentLen = dv.getUint16(p + 32, true);
+    const localOffset = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(bytes.subarray(p + 46, p + 46 + nameLen));
+    entries.push({ name, method, compSize, localOffset });
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  const out = [];
+  for (const e of entries){
+    if (!/\.json$/i.test(e.name) || /\/$/.test(e.name)) continue;   // .json entries only, skip directory records
+    const lo = e.localOffset;
+    if (dv.getUint32(lo, true) !== 0x04034b50) continue;            // local file header
+    const dataStart = lo + 30 + dv.getUint16(lo + 26, true) + dv.getUint16(lo + 28, true);
+    const comp = bytes.subarray(dataStart, dataStart + e.compSize);
+    if (e.method === 0) out.push({ name: e.name, text: new TextDecoder().decode(comp) });        // STORED
+    else if (e.method === 8) out.push({ name: e.name, text: await inflateRaw(comp) });           // DEFLATE
+  }
+  return out;
+}
+async function readFilesIntoCourse(fileList){
+  const files = [...fileList].filter(f => /\.(json|zip)$/i.test(f.name));
+  if (!files.length) return showLoadErr("No .json or .zip files found in that selection.");
   $("loadErr").classList.add("hide");
-  const banks = []; let pending = files.length, bad = 0;
-  const done = () => { if (--pending > 0) return;
-    if (!banks.length) return showLoadErr("No valid bank files loaded" + (bad ? ` (${bad} unreadable)` : "") + ".");
-    onBanksLoaded(banks);
-    if (bad) $("loadState").append(` · ${bad} file(s) skipped`); };   // append text node so it doesn't clobber the provenance badge
-  files.forEach(f => { const r = new FileReader();
-    r.onload = () => { try { const o = JSON.parse(r.result);
-        if (o && o.bank_meta && Array.isArray(o.items)) banks.push(o); else bad++; } catch(e){ bad++; } done(); };
-    r.onerror = () => { bad++; done(); };
-    r.readAsText(f); });
+  const banks = []; let bad = 0;
+  const take = o => { if (o && o.bank_meta && Array.isArray(o.items)) banks.push(o); else bad++; };
+  for (const f of files){
+    try {
+      if (/\.zip$/i.test(f.name)){ for (const e of await readZip(await f.arrayBuffer())){ try { take(JSON.parse(e.text)); } catch(_){ bad++; } } }
+      else { take(JSON.parse(await f.text())); }
+    } catch(e){ bad++; }
+  }
+  if (!banks.length) return showLoadErr("No valid bank files loaded" + (bad ? ` (${bad} skipped)` : "") + ".");
+  onBanksLoaded(banks);
+  if (bad) $("loadState").append(` · ${bad} file(s) skipped`);
 }
 $("fileIn").addEventListener("change", e => { if (e.target.files.length) readFilesIntoCourse(e.target.files); e.target.value = ""; });
 $("folderIn").addEventListener("change", e => { if (e.target.files.length) readFilesIntoCourse(e.target.files); e.target.value = ""; });
