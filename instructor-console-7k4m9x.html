@@ -631,9 +631,9 @@ function renderChapterBar(){
   if (books.length >= 2){                // two levels: Books, then the selected book's Chapters
     const ab = books.find(b => b.key === activeBookKey()) || books[0];
     bar.innerHTML =
-      `<div class="row" style="flex-wrap:wrap;gap:.4rem"><span class="muted" style="font-size:.85rem">Books:</span>` +
+      `<div class="row" style="flex-wrap:wrap;gap:.4rem;width:100%"><span class="muted" style="font-size:.85rem">Books:</span>` +
       books.map(b => `<button class="chip book${b.key === ab.key ? " on" : ""}" data-book="${esc(b.key)}">${esc(b.label)} <span class="muted">(${b.units.length})</span></button>`).join("") + issuePill + `</div>` +
-      `<div class="row" style="flex-wrap:wrap;gap:.4rem;margin-top:.3rem"><span class="muted" style="font-size:.85rem">Chapters:</span>` +
+      `<div class="row" style="flex-wrap:wrap;gap:.4rem;width:100%;margin-top:.3rem"><span class="muted" style="font-size:.85rem">Chapters:</span>` +
       ab.units.map(chapChip).join("") + `</div>`;
   } else {                               // single book: chapters only (as before)
     bar.innerHTML = `<span class="muted" style="font-size:.85rem">Chapters:</span>` + keys.map(chapChip).join("") + issuePill;
