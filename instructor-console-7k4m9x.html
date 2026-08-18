@@ -107,6 +107,13 @@
   .stcaret{display:inline-block;transition:transform .15s;color:var(--muted)}
   .strow.open .stcaret{transform:rotate(90deg);color:var(--brand)}
   footer{max-width:1050px;margin:0 auto;padding:1rem;color:var(--muted);font-size:.8rem}
+  .chapbar{max-width:1050px;margin:.4rem auto 0;padding:.35rem 1rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+  .chapbar .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:.2rem .7rem;cursor:pointer;font-size:.85rem}
+  .chapbar .chip.on{border-color:var(--brand);color:var(--brand);font-weight:600}
+  .pbadge{display:inline-block;border-radius:999px;padding:.05rem .5rem;font-size:.72rem;font-weight:600;margin-left:.35rem;vertical-align:middle}
+  .pbadge.canon{background:var(--okbg);color:var(--ok)}
+  .pbadge.fork{background:var(--warnbg);color:var(--warn)}
+  .vbadge{font-size:.7rem;font-weight:600;padding:.03rem .4rem;border-radius:999px;margin-left:.3rem;background:var(--warnbg);color:var(--warn)}
 </style>
 </head>
 <body>
@@ -125,16 +132,19 @@
     <button data-tab="dashboard">Dashboard</button>
   </nav>
 </header>
+<div id="chapterBar" class="chapbar hide"></div>
 
 <main>
   <!-- LOAD -->
   <section id="tab-load">
     <div class="panel">
       <h2>Load a question bank</h2>
-      <p class="muted">Pick a bank JSON file, or paste its contents. Everything runs in your browser — nothing is uploaded. This tool never touches the live student app. Your loaded bank and imported exports are <b>remembered on this device</b>, so a refresh keeps them.</p>
+      <p class="muted">Pick one or several chapter-bank JSON files, a whole course folder, or paste one below. Everything runs in your browser — nothing is uploaded. This tool never touches the live student app. Your loaded banks and imported exports are <b>remembered on this device</b>, so a refresh keeps them. Load more than one chapter and a chapter switcher appears under the header.</p>
       <div class="row">
-        <input type="file" id="fileIn" accept=".json,application/json">
-        <span class="muted">or paste below and click Load</span>
+        <input type="file" id="fileIn" accept=".json,application/json" multiple>
+        <button class="ghost" id="folderBtn" type="button">Load a folder…</button>
+        <input type="file" id="folderIn" webkitdirectory directory style="display:none">
+        <span class="muted">or paste one below and click Load</span>
       </div>
       <textarea id="pasteIn" placeholder='{ "bank_meta": { ... }, "items": [ ... ], "question_sets": [ ... ] }'></textarea>
       <div class="row" style="margin-top:.5rem">
@@ -257,27 +267,73 @@ const TOOL_VERSION = "0.2-dev";
 const $ = id => document.getElementById(id);
 document.getElementById("ver").textContent = "console " + TOOL_VERSION;
 
-let BANK = null;   // the loaded bank object
+let BANK = null;                              // live pointer to the ACTIVE chapter's bank (COURSE.banks[COURSE.active])
+const COURSE = { banks:{}, active:null };     // whole-course set: { <chapter|key>: bank }
+function courseKeys(){ return Object.keys(COURSE.banks); }
+function courseChapters(){ return courseKeys().sort((a,b)=>{ const na=+a, nb=+b; return (isNaN(na)||isNaN(nb)) ? String(a).localeCompare(String(b)) : na-nb; }); }
+function courseItemsById(){ const m = {}; courseKeys().forEach(k => (COURSE.banks[k].items || []).forEach(i => { m[i.q_id] = i; })); return m; }   // union of every chapter's items, keyed by q_id (unique across chapters) — cross-chapter dashboard lookup
+function isForked(bank){ return !!(bank && bank.bank_meta && bank.bank_meta.provenance && bank.bank_meta.provenance.forked_from); }   // a bank the instructor has customized (carries a fork stamp); otherwise canonical
+function provenanceBadge(bank){
+  if (isForked(bank)){ const ff = bank.bank_meta.provenance.forked_from || {};
+    return `<span class="pbadge fork" title="Your customized copy — forked from canonical v${esc(String(ff.bank_version || "?"))}. The shared canonical bank is unchanged.">Your copy</span>`; }
+  return `<span class="pbadge canon" title="Canonical shared bank — editing creates your own copy; the shared bank stays unchanged.">Canonical</span>`;
+}
+/* ---- fork at the point of choice: the first edit of a canonical bank makes the instructor's own copy ---- */
+function confirmFork(){
+  return confirm("You're about to customize a canonical bank.\n\nThis makes YOUR OWN copy — you deliver it to your class through a config, and the shared canonical bank stays unchanged.\n\nMake your copy and continue?");
+}
+function forkActiveBank(){
+  const m = BANK.bank_meta;
+  m.provenance = { forked_from: { chapter: m.chapter, bank_version: m.bank_version, source: m.source || null }, forked_at: new Date().toISOString() };
+  saveBank();
+  refreshProvenanceBadges();
+}
+function refreshProvenanceBadges(){    // update the badges without disturbing an open editor form
+  if (COURSE.active != null && BANK){ const s = bankStats(BANK);
+    $("loadState").innerHTML = `Ch ${esc(String(s.chapter ?? "?"))} — ${esc(s.title || "bank")} · v${esc(String(s.bankVersion))} · ${s.total} questions ${provenanceBadge(BANK)}`; }
+  renderChapterBar();
+}
+function ensureForked(){               // gate a mutating action; true = edits may proceed
+  if (isForked(BANK)) return true;
+  if (confirmFork()){ forkActiveBank(); return true; }
+  return false;
+}
+function editGuard(e){                 // capture-phase guard on the editor form containers
+  if (ensureForked()) return;          // already/now the instructor's copy → let the field handler run
+  e.stopImmediatePropagation(); e.preventDefault();
+  if (SEL_ID) renderForm();            // canceled → re-render to revert the typed value
+  else if (SET_ID_SEL) renderSetForm();
+}
 
-/* ---------- local persistence: remember the loaded bank + dashboard across a refresh ---------- */
-const IK = { bank:"quizprep-instructor-bank-v1", dash:"quizprep-instructor-dash-v1", tab:"quizprep-instructor-tab-v1", hidewarn:"quizprep-instructor-hidewarn-v1" };
+/* ---------- local persistence: remember the whole course + dashboard across a refresh ---------- */
+const IK = { bank:"quizprep-instructor-bank-v1", course:"quizprep-instructor-course-v1", dash:"quizprep-instructor-dash-v1", tab:"quizprep-instructor-tab-v1", hidewarn:"quizprep-instructor-hidewarn-v1", flags:"quizprep-instructor-flags-v1", prefs:"quizprep-instructor-prefs-v1" };
 let HIDDEN_WARNS = new Set();
+let FLAGS = [];   // outgoing flags to the maintainer (batched, on-device, non-forking)
+let PREFS = { autoAccept:false, hardGate:false };   // per-instructor vetting prefs (persist across a Forget)
+let AUTO_LOG = [];   // this-session log of auto-accepted (re-vetted) questions
 function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
-function saveBank(){ if (BANK) lsSet(IK.bank, JSON.stringify(BANK)); }
+function saveBank(){ if (courseKeys().length) lsSet(IK.course, JSON.stringify({ banks: COURSE.banks, active: COURSE.active })); }   // persists the whole course; edits to BANK land here (BANK aliases COURSE.banks[active])
 function saveDash(){ lsSet(IK.dash, JSON.stringify((DASH.bundles || []).map(b => b.encrypted ? Object.assign({}, b, { recs:[], decrypted:false }) : b))); }   // never persist decrypted item detail
 function saveHiddenWarns(){ lsSet(IK.hidewarn, JSON.stringify([...HIDDEN_WARNS])); }
-function forgetSaved(){ lsDel(IK.bank); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); HIDDEN_WARNS = new Set(); }
+function forgetSaved(){ lsDel(IK.bank); lsDel(IK.course); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); lsDel(IK.flags); HIDDEN_WARNS = new Set(); FLAGS = []; COURSE.banks = {}; COURSE.active = null; BANK = null; }
+function saveFlags(){ lsSet(IK.flags, JSON.stringify(FLAGS)); }
+function savePrefs(){ lsSet(IK.prefs, JSON.stringify(PREFS)); }
 function restoreState(){
   const hw = lsGet(IK.hidewarn);
   if (hw){ try{ HIDDEN_WARNS = new Set(JSON.parse(hw) || []); }catch(e){} }
-  const b = lsGet(IK.bank);
-  if (b){ try{ onBankLoaded(JSON.parse(b)); }catch(e){ lsDel(IK.bank); } }
+  const fl = lsGet(IK.flags);
+  if (fl){ try{ FLAGS = JSON.parse(fl) || []; }catch(e){} }
+  const pf = lsGet(IK.prefs);
+  if (pf){ try{ PREFS = Object.assign(PREFS, JSON.parse(pf) || {}); }catch(e){} }
+  const c = lsGet(IK.course);
+  if (c){ try{ const o = JSON.parse(c); if (o && o.banks){ COURSE.banks = o.banks; const chs = courseChapters(); if (chs.length) activateChapter(o.active != null && COURSE.banks[o.active] ? o.active : chs[0]); } }catch(e){ lsDel(IK.course); } }
+  else { const b = lsGet(IK.bank); if (b){ try{ onBankLoaded(JSON.parse(b)); lsDel(IK.bank); }catch(e){ lsDel(IK.bank); } } }   // migrate legacy single-bank key
   const d = lsGet(IK.dash);
   if (d){ try{ DASH.bundles = JSON.parse(d) || []; if (DASH.bundles.length) renderDashboard(); }catch(e){ lsDel(IK.dash); } }
   const t = lsGet(IK.tab);
-  if (t && (BANK || t === "load" || t === "dashboard")) showTab(t);   // others need a loaded bank
+  showTab((t && (BANK || t === "load" || t === "dashboard")) ? t : (BANK ? "validate" : "load"));
 }
 
 /* ---------- tabs ---------- */
@@ -509,20 +565,67 @@ function sourceLine(src){
 /* ============================================================
    RENDER
    ============================================================ */
-function onBankLoaded(bank){
-  BANK = bank;
-  saveBank();
-  const s = bankStats(bank);
-  $("loadState").textContent = `Ch ${s.chapter ?? "?"} — ${s.title || "bank"} · v${s.bankVersion} · ${s.total} questions`;
+function addBankToCourse(bank){
+  let key = (bank.bank_meta && bank.bank_meta.chapter);
+  if (key == null || key === "") key = "x" + (courseKeys().length + 1);   // fallback for a bank with no chapter number
+  key = String(key);
+  const prior = COURSE.banks[key];
+  if (prior) carryReviewState(bank, prior);   // reloading this chapter (e.g. newer canonical) → keep prior review marks
+  applyAutoAccept(bank);                        // pref-gated: re-vet questions that changed since approval
+  COURSE.banks[key] = bank;
+  return key;
+}
+function activateChapter(ch){
+  ch = String(ch);
+  if (!COURSE.banks[ch]) return;
+  COURSE.active = ch;
+  BANK = COURSE.banks[ch];               // BANK aliases the active bank; every tab renders against it
+  const s = bankStats(BANK);
+  $("loadState").innerHTML = `Ch ${esc(String(s.chapter ?? "?"))} — ${esc(s.title || "bank")} · v${esc(String(s.bankVersion))} · ${s.total} questions ${provenanceBadge(BANK)}`;
   $("loadSource").textContent = sourceLine(s.source);
   ["validate","health","editor","config"].forEach(t => nav.querySelector(`button[data-tab="${t}"]`).disabled = false);
-  renderValidate(bank);
+  renderChapterBar();
+  renderValidate(BANK);
   renderReview();
   renderHealth(s);
   renderEditor();
   setEditorMode("questions");
   renderConfig();
+}
+function crossChapterChecks(){          // course-level roll-up: things a single-bank view can't see
+  const issues = [], seen = {};
+  courseChapters().forEach(k => {
+    const b = COURSE.banks[k];
+    (b.items || []).map(i => i.q_id)
+      .concat((b.question_sets || []).flatMap(s => (s.questions || []).map(q => q.q_id)))
+      .forEach(id => { if (id == null) return; (seen[id] = seen[id] || []).push(k); });
+  });
+  Object.keys(seen).forEach(id => { if (seen[id].length > 1) issues.push(`duplicate q_id ${id} in chapters ${seen[id].join(", ")}`); });
+  return issues;
+}
+function renderChapterBar(){
+  const bar = $("chapterBar"); if (!bar) return;
+  const keys = courseChapters();
+  if (keys.length <= 1){ bar.classList.add("hide"); bar.innerHTML = ""; return; }
+  const issues = crossChapterChecks();
+  bar.classList.remove("hide");
+  bar.innerHTML = `<span class="muted" style="font-size:.85rem">Chapters:</span>` +
+    keys.map(k => { const b = COURSE.banks[k]; const t = (b.bank_meta && b.bank_meta.chapter_title) || ("Ch " + k);
+      return `<button class="chip${k === COURSE.active ? " on" : ""}" data-ch="${esc(k)}">${esc(t)}${provenanceBadge(b)}</button>`; }).join("") +
+    (issues.length ? ` <span class="pill" style="background:var(--nobg);color:var(--no)" title="${esc(issues.join(" | "))}">⚠ ${issues.length} course issue${issues.length > 1 ? "s" : ""}</span>` : "");
+  bar.querySelectorAll(".chip").forEach(btn => btn.onclick = () => activateChapter(btn.dataset.ch));
+}
+function onBankLoaded(bank){            // single bank (paste / one file / legacy restore)
+  const key = addBankToCourse(bank);
+  activateChapter(key);
   showTab("validate");
+  saveBank();
+}
+function onBanksLoaded(banks){          // several files / a folder
+  banks.forEach(addBankToCourse);
+  activateChapter(courseChapters()[0]);
+  showTab("validate");
+  saveBank();
 }
 
 function renderValidate(bank){
@@ -551,7 +654,7 @@ function renderValidate(bank){
 let REV = { lo:"", tier:"", status:"" };   // review-list filters
 let REV_UNDO = [], REV_REDO = [];          // review-marking history (in-memory, multi-step undo/redo)
 function reviewSnapshot(){ return allReviewQuestions().filter(x => x.q.reviewed).map(x => x.q.q_id); }
-function applyReviewSnapshot(ids){ const set = new Set(ids); allReviewQuestions().forEach(x => x.q.reviewed = set.has(x.q.q_id)); }
+function applyReviewSnapshot(ids){ const set = new Set(ids); allReviewQuestions().forEach(x => markReviewed(x.q, set.has(x.q.q_id))); }
 function pushReviewHistory(){ REV_UNDO.push(reviewSnapshot()); if (REV_UNDO.length > 200) REV_UNDO.shift(); REV_REDO = []; }
 function undoReview(){ if (!REV_UNDO.length) return; REV_REDO.push(reviewSnapshot()); applyReviewSnapshot(REV_UNDO.pop()); saveBank(); renderReview(); }
 function redoReview(){ if (!REV_REDO.length) return; REV_UNDO.push(reviewSnapshot()); applyReviewSnapshot(REV_REDO.pop()); saveBank(); renderReview(); }
@@ -569,24 +672,78 @@ function allReviewQuestions(){
   (BANK.question_sets || []).forEach(s => (s.questions || []).forEach(q => out.push({ q, isPool: true, setId: s.set_id })));
   return out;
 }
+/* ---- three-state vetting: never | vetted | updated-since-vetted ---- */
+function djb2(s){ let h = 5381; for (let i = 0; i < s.length; i++){ h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; } return h.toString(36); }
+function answerSig(q){    // signature over ANSWER-AFFECTING fields only — rationale/probe/anchor/status edits do NOT un-vet
+  return djb2(JSON.stringify({ t: q.type || null, stem: q.stem || "", opts: q.options || null,
+    ci: q.correct_index, co: q.correct_order || null, pc: q.correct != null ? q.correct : null,
+    jo: q.justify_options || null, jc: q.justify_correct }));
+}
+function markReviewed(q, on){ if (on){ q.reviewed = true; q.reviewed_sig = answerSig(q); } else { q.reviewed = false; delete q.reviewed_sig; } }
+function vetState(q){     // never (not reviewed) | vetted (reviewed, unchanged) | stale (reviewed, but changed since)
+  if (!q.reviewed) return "never";
+  return (q.reviewed_sig != null && q.reviewed_sig !== answerSig(q)) ? "stale" : "vetted";
+}
+/* ---- flag to maintainer: batched, on-device, NON-forking (never modifies the bank) ---- */
+function isFlaggedOut(qid){ return FLAGS.some(f => f.q_id === qid); }
+function flagQuestion(qid, note){
+  const b = (BANK && BANK.bank_meta) || {};
+  FLAGS.push({ q_id: qid, chapter: b.chapter, bank_version: b.bank_version,
+    source: (b.source && b.source.title) || null, note: note || "", when: new Date().toISOString() });
+  saveFlags();
+}
+function flagsArtifact(){
+  const lines = FLAGS.map(f => `- ${f.q_id} (ch ${f.chapter} · bank v${f.bank_version}): ${f.note || "(no note)"}`).join("\n");
+  return { subject: `QuizPrep — ${FLAGS.length} flagged question(s)`,
+    body: `Questions flagged for your review:\n\n${lines}\n\n(Sent from the QuizPrep Instructor Console.)` };
+}
+function sendFlags(){ if (!FLAGS.length) return; const a = flagsArtifact();
+  try { location.href = `mailto:trost@okstate.edu?subject=${encodeURIComponent(a.subject)}&body=${encodeURIComponent(a.body)}`; } catch(e){} }
+function downloadFlags(){ if (!FLAGS.length) return;
+  downloadJSON(`quizprep-flags-ch${(BANK && BANK.bank_meta && BANK.bank_meta.chapter) || "x"}.json`, { format:"quizprep-flags-v1", flags: FLAGS }); }
+/* ---- vetting options: carry review marks across canonical versions, auto-accept, hard gate ---- */
+function reviewQuestionsOf(bank){ const out = (bank.items || []).slice(); (bank.question_sets || []).forEach(s => (s.questions || []).forEach(q => out.push(q))); return out; }
+function carryReviewState(newBank, oldBank){    // reloading a chapter (e.g. a newer canonical version) keeps prior review marks by q_id
+  const prev = {}; reviewQuestionsOf(oldBank).forEach(q => { if (q.reviewed) prev[q.q_id] = q.reviewed_sig; });
+  reviewQuestionsOf(newBank).forEach(q => { if (Object.prototype.hasOwnProperty.call(prev, q.q_id)){ q.reviewed = true; q.reviewed_sig = prev[q.q_id]; } });
+}
+function applyAutoAccept(bank){                  // pref on → silently re-vet questions that changed since approval, and log them
+  if (!PREFS.autoAccept) return;
+  reviewQuestionsOf(bank).forEach(q => { if (vetState(q) === "stale"){ q.reviewed_sig = answerSig(q); AUTO_LOG.push({ q_id:q.q_id, chapter:(bank.bank_meta||{}).chapter, when:new Date().toISOString() }); } });
+}
+function neverReviewedCount(bank){ return reviewQuestionsOf(bank).filter(q => !q.reviewed).length; }   // 'never' only — stale (changed-since-vetted) has been reviewed at least once
+function hardGateBlocks(){                        // pre-release check; blocks only on NEVER-reviewed, so a canonical change can't re-lock
+  if (!PREFS.hardGate || !BANK) return false;
+  const n = neverReviewedCount(BANK);
+  if (n > 0){ alert(`Your "require full review before release" setting is on, and ${n} question(s) in this bank have never been reviewed.\n\nReview them first, or turn the setting off in the Review tab. (Questions that changed since you vetted them do NOT block — only never-reviewed ones, so a canonical update can never lock you out.)`); return true; }
+  return false;
+}
 function renderReview(){
   if (!BANK) return;
   const all = allReviewQuestions();
   const flags = flagsByQid();
-  $("reviewProgress").textContent = `${all.filter(x => x.q.reviewed).length} / ${all.length} reviewed`;
+  const nStale0 = all.filter(x => vetState(x.q) === "stale").length;
+  $("reviewProgress").innerHTML = `${all.filter(x => x.q.reviewed).length} / ${all.length} reviewed` + (nStale0 ? ` · <span style="color:var(--warn)">${nStale0} need re-review ⟳</span>` : "");
   const los = BANK.bank_meta.learning_objectives || {};
   $("reviewFilters").innerHTML =
     `<select id="rLO"><option value="">All LOs</option>${Object.keys(los).sort().map(l => `<option${REV.lo === l ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>
      <select id="rTier"><option value="">All tiers</option>${[1,2,3].map(t => `<option${REV.tier == t ? " selected" : ""}>${t}</option>`).join("")}</select>
-     <select id="rStatus"><option value="">All</option><option value="unrev"${REV.status === "unrev" ? " selected" : ""}>Unreviewed</option><option value="rev"${REV.status === "rev" ? " selected" : ""}>Reviewed</option><option value="flag"${REV.status === "flag" ? " selected" : ""}>Flagged</option></select>
+     <select id="rStatus"><option value="">All</option><option value="unrev"${REV.status === "unrev" ? " selected" : ""}>Unreviewed</option><option value="rev"${REV.status === "rev" ? " selected" : ""}>Reviewed</option><option value="stale"${REV.status === "stale" ? " selected" : ""}>Updated since vetted</option><option value="flag"${REV.status === "flag" ? " selected" : ""}>Flagged</option></select>
      <button class="ghost" id="rMark">✓ Mark shown reviewed</button>
      <button class="ghost" id="rUnmark">Unmark shown</button>
      <button class="ghost" id="rUndo" title="Undo the last marking change">↶ Undo</button>
      <button class="ghost" id="rRedo" title="Redo">↷ Redo</button>
+     <button class="ghost" id="rSendFlags"${FLAGS.length ? "" : " disabled"} title="Email your flagged questions to the maintainer">⚑ Email flags (${FLAGS.length})</button>
+     <button class="ghost" id="rDownFlags"${FLAGS.length ? "" : " disabled"} title="Save your flagged questions as a file for the shared folder">⤓ Save flags</button>
+     <label class="muted" style="margin-left:.4rem" title="When on, questions the maintainer improves after you vetted them stay vetted automatically (logged below)."><input type="checkbox" id="prefAuto"${PREFS.autoAccept ? " checked" : ""}> Auto-accept canonical updates</label>
+     <label class="muted" title="When on, building a config is blocked until every question has been reviewed at least once. Questions that merely changed since you vetted them do NOT block."><input type="checkbox" id="prefGate"${PREFS.hardGate ? " checked" : ""}> Require full review before release</label>
      <span class="muted" id="rCount"></span>`;
   const setFilter = (id, key) => $(id).onchange = () => { REV[key] = $(id).value; renderReview(); };
   setFilter("rLO", "lo"); setFilter("rTier", "tier"); setFilter("rStatus", "status");
   $("rUndo").onclick = undoReview; $("rRedo").onclick = redoReview; updateUndoButtons();
+  $("rSendFlags").onclick = sendFlags; $("rDownFlags").onclick = downloadFlags;
+  $("prefAuto").onchange = () => { PREFS.autoAccept = $("prefAuto").checked; savePrefs(); if (PREFS.autoAccept) applyAutoAccept(BANK); saveBank(); renderReview(); };
+  $("prefGate").onchange = () => { PREFS.hardGate = $("prefGate").checked; savePrefs(); };
 
   const shown = all.filter(x => {
     const q = x.q;
@@ -594,14 +751,15 @@ function renderReview(){
     if (REV.tier && String(q.tier) !== REV.tier) return false;
     if (REV.status === "rev" && !q.reviewed) return false;
     if (REV.status === "unrev" && q.reviewed) return false;
+    if (REV.status === "stale" && vetState(q) !== "stale") return false;
     if (REV.status === "flag" && !flags[q.q_id]) return false;
     return true;
   });
   $("rCount").textContent = `${shown.length} shown`;
-  $("rMark").onclick = () => { pushReviewHistory(); shown.forEach(x => x.q.reviewed = true); saveBank(); renderReview(); };
-  $("rUnmark").onclick = () => { pushReviewHistory(); shown.forEach(x => x.q.reviewed = false); saveBank(); renderReview(); };
+  $("rMark").onclick = () => { pushReviewHistory(); shown.forEach(x => markReviewed(x.q, true)); saveBank(); renderReview(); };
+  $("rUnmark").onclick = () => { pushReviewHistory(); shown.forEach(x => markReviewed(x.q, false)); saveBank(); renderReview(); };
 
-  $("reviewList").innerHTML = shown.map(x => {
+  const rows = shown.map(x => {
     const q = x.q, f = flags[q.q_id];
     const badge = f ? (f.errors.length
       ? '<span class="pill" style="background:var(--nobg);color:var(--no)">flag</span>'
@@ -609,19 +767,29 @@ function renderReview(){
     const snip = esc(String(q.stem || "").slice(0, 90));
     return `<div class="rvrow${q.reviewed ? " done" : ""}" data-qid="${esc(q.q_id)}">
         <input type="checkbox" class="rvchk" data-qid="${esc(q.q_id)}"${q.reviewed ? " checked" : ""}>
-        <div><b>${esc(q.q_id)}</b> <span class="pill">T${esc(q.tier)} ${esc(x.isPool ? "mc_pool" : q.type)}</span> <span class="muted">${esc(q.lo)}</span> ${badge}<br><span class="muted">${snip}${String(q.stem || "").length > 90 ? "…" : ""}</span></div>
+        <div><b>${esc(q.q_id)}</b> <span class="pill">T${esc(q.tier)} ${esc(x.isPool ? "mc_pool" : q.type)}</span> <span class="muted">${esc(q.lo)}</span> ${badge}${vetState(q) === "stale" ? '<span class="vbadge" title="You approved this; the canonical question has changed since — re-review.">updated ⟳</span>' : ""}<br><span class="muted">${snip}${String(q.stem || "").length > 90 ? "…" : ""}</span></div>
+        <button class="ghost rvflag" data-qid="${esc(q.q_id)}" title="Flag this question for the maintainer — does not change the bank" style="font-size:.8rem;padding:.05rem .4rem;flex:none">${isFlaggedOut(q.q_id) ? "⚑ flagged" : "⚑"}</button>
         <span class="rvcaret">▸</span>
       </div>
       <div class="rvdetail hide" data-detail="${esc(q.q_id)}"></div>`;
-  }).join("") || '<p class="muted">No questions match the filter.</p>';
+  }).join("");
+  const nUnrev = all.filter(x => !x.q.reviewed).length;
+  const nudge = (!isForked(BANK) && nUnrev > 0)
+    ? `<div class="msg warn" style="margin-bottom:.5rem">This bank ships as <b>draft</b> — ${nUnrev} question${nUnrev > 1 ? "s" : ""} await your review before you release it. <span class="muted">Soft reminder — you can release anyway.</span></div>` : "";
+  const autoNote = AUTO_LOG.length
+    ? `<div class="msg ok" style="margin-bottom:.5rem">${AUTO_LOG.length} question(s) auto-accepted after canonical updates (your "auto-accept" setting is on).</div>` : "";
+  $("reviewList").innerHTML = autoNote + nudge + (rows || '<p class="muted">No questions match the filter.</p>');
 
   $("reviewList").querySelectorAll(".rvchk").forEach(cb => cb.onclick = e => {
     e.stopPropagation();
     const x = all.find(y => y.q.q_id === cb.dataset.qid);
-    if (x){ pushReviewHistory(); x.q.reviewed = cb.checked; saveBank();
-      cb.closest(".rvrow").classList.toggle("done", cb.checked);
-      $("reviewProgress").textContent = `${all.filter(y => y.q.reviewed).length} / ${all.length} reviewed`;
-      updateUndoButtons(); }
+    if (x){ pushReviewHistory(); markReviewed(x.q, cb.checked); saveBank(); renderReview(); }
+  });
+  $("reviewList").querySelectorAll(".rvflag").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();
+    const note = prompt("Flag this question for the maintainer (incorrect / confusing / typo / other).\n\nDescribe the issue:");
+    if (note === null) return;                 // canceled
+    flagQuestion(btn.dataset.qid, note); renderReview();
   });
   $("reviewList").querySelectorAll(".rvrow").forEach(row => row.onclick = () => {
     const qid = row.dataset.qid;
@@ -754,6 +922,7 @@ function renderEditor(){
     `<select id="fLO">${loOpts}</select> <select id="fTier"><option value="">All tiers</option><option>1</option><option>2</option><option>3</option></select> <select id="fType">${typeOpts}</select> <span class="muted" id="edCount"></span>`;
   ["fLO","fTier","fType"].forEach(id => $(id).onchange = renderList);
   $("edAdd").onclick = () => {
+    if (!ensureForked()) return;
     const t = prompt("New item type: mc4, scenario_mc, tf_justify, or rank_order", "mc4");
     if (!t || !["mc4","scenario_mc","tf_justify","rank_order"].includes(t)) return;
     const it = blankItem(t); BANK.items.push(it); SEL_ID = it.q_id; renderList(); renderForm(); reValidate();
@@ -835,6 +1004,7 @@ function renderForm(){
 function wireForm(it){
   const host = $("edForm");
   host.querySelector("#edDel").onclick = () => {
+    if (!ensureForked()) return;
     if (!confirm(`Delete ${it.q_id}?`)) return;
     BANK.items = BANK.items.filter(x => x !== it); SEL_ID = null; renderList(); renderForm(); reValidate();
   };
@@ -1102,7 +1272,7 @@ function renderDashboard(){
       if (typeof r.student_answer_1 === "number") a.choices[r.student_answer_1] = (a.choices[r.student_answer_1]||0)+1;
     });
   });
-  const bankItems = BANK ? Object.fromEntries(BANK.items.map(i => [i.q_id, i])) : {};
+  const bankItems = courseItemsById();   // resolve each session's q_ids across ALL loaded chapters, not just the active one
   const poolAggs = aggs => { const m = {attempts:0, first:0, choices:{}, byStudent:{}};
     aggs.forEach(a => { m.attempts+=a.attempts; m.first+=a.first;
       Object.entries(a.choices).forEach(([k,v]) => m.choices[k]=(m.choices[k]||0)+v);
@@ -1284,6 +1454,7 @@ function buildConfig(){
     anonymize:$("cfgAnon").checked, public_key:($("cfgKey").value||"").trim() || null };
 }
 function exportConfigModel1(){
+  if (hardGateBlocks()) return;
   const cfg = buildConfig();
   if (!cfg.cfg_id){ alert("Enter a config id first."); return; }
   downloadJSON(`${cfg.cfg_id}.config.json`, { cfg, bank: BANK });
@@ -1291,6 +1462,7 @@ function exportConfigModel1(){
   $("cfgOut").innerHTML = `<div class="msg ok">Exported <b>${esc(cfg.cfg_id)}.config.json</b> — drop it in your shared folder for the maintainer. Students launch with <code>?cfg=${esc(cfg.cfg_id)}&amp;sec=…</code>${keyNote}</div>`;
 }
 function configLink2(){
+  if (hardGateBlocks()) return;
   const cfg = buildConfig();
   if (!cfg.cfg_id){ alert("Enter a config id first."); return; }
   const q = "?cfg=" + b64url(JSON.stringify(cfg)) + (cfg.sections[0] ? "&sec=" + encodeURIComponent(cfg.sections[0]) : "");
@@ -1310,12 +1482,25 @@ function tryLoad(text){
 }
 function showLoadErr(m){ const e = $("loadErr"); e.textContent = m; e.classList.remove("hide"); }
 
-$("fileIn").addEventListener("change", e => {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = () => tryLoad(r.result);
-  r.readAsText(f);
-});
+function readFilesIntoCourse(fileList){
+  const files = [...fileList].filter(f => /\.json$/i.test(f.name));
+  if (!files.length) return showLoadErr("No .json files found in that selection.");
+  $("loadErr").classList.add("hide");
+  const banks = []; let pending = files.length, bad = 0;
+  const done = () => { if (--pending > 0) return;
+    if (!banks.length) return showLoadErr("No valid bank files loaded" + (bad ? ` (${bad} unreadable)` : "") + ".");
+    onBanksLoaded(banks);
+    if (bad) $("loadState").append(` · ${bad} file(s) skipped`); };   // append text node so it doesn't clobber the provenance badge
+  files.forEach(f => { const r = new FileReader();
+    r.onload = () => { try { const o = JSON.parse(r.result);
+        if (o && o.bank_meta && Array.isArray(o.items)) banks.push(o); else bad++; } catch(e){ bad++; } done(); };
+    r.onerror = () => { bad++; done(); };
+    r.readAsText(f); });
+}
+$("fileIn").addEventListener("change", e => { if (e.target.files.length) readFilesIntoCourse(e.target.files); e.target.value = ""; });
+$("folderIn").addEventListener("change", e => { if (e.target.files.length) readFilesIntoCourse(e.target.files); e.target.value = ""; });
+$("folderBtn").addEventListener("click", () => $("folderIn").click());
+["edForm","setForm"].forEach(id => { const el = $(id); if (el){ el.addEventListener("input", editGuard, true); el.addEventListener("change", editGuard, true); } });   // fork-guard field edits in both editors
 $("loadPaste").addEventListener("click", () => {
   const t = $("pasteIn").value.trim();
   if (!t) return showLoadErr("Paste a bank JSON first.");
