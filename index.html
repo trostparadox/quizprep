@@ -1232,7 +1232,7 @@ function renderStudyGuide(mode){
       return `<div class="sg-group">${header}${inner}</div>`; }).join('');
   }
   w.innerHTML=`<h2>Study guide${DATA.name?' — '+esc(DATA.name):''}</h2>
-    <p class="muted" style="margin-top:.3rem">Targeted to the questions you missed: the hints you saw (or would have), the objective, and where to read. No answers here — safe to keep.</p>
+    <p class="muted" style="margin-top:.3rem">Targeted to the questions you missed: the hints, the objective, and where to read.</p>
     ${toggle}${body}`;
   w.querySelectorAll('[data-study-mode]').forEach(b=>b.onclick=()=>renderStudyGuide(b.dataset.studyMode));
 }
