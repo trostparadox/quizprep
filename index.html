@@ -58,8 +58,13 @@ h2{font-size:1.25rem;font-weight:600}
 .chap:hover:not(:disabled){border-color:var(--brand)}
 .chap.sel{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
 .chap .cnum{font-family:var(--mono);font-size:.7rem;color:var(--brand)}
+.chap .cbook{display:block;font-family:var(--mono);font-size:.66rem;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:.15rem}
 .chap .ctitle{font-family:var(--disp);font-weight:600;font-size:1.02rem;margin:.15rem 0 .3rem}
 .chap .cmeta{font-size:.78rem;color:var(--ink-soft)}
+.chap .ccta{display:block;margin-top:.5rem;font-size:.78rem;color:var(--ink-soft);line-height:1.35}
+.bookfilter{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.85rem;font-weight:600;margin-bottom:.1rem}
+.bookchip{border:1.5px solid var(--line);border-radius:999px;padding:.25rem .75rem;background:#fff;color:var(--ink-soft);font-weight:600;font-size:.8rem;cursor:pointer}
+.bookchip.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
 .chap:disabled{opacity:.5}
 .setuprow{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1rem;font-size:.92rem}
 .setuprow select,.setuprow input{font-family:var(--body);font-size:.92rem;padding:.4rem .5rem;border:1.5px solid var(--line);border-radius:6px;background:#fff}
@@ -268,6 +273,8 @@ let CHAPTERS = [];              // ordered list of unit ids (strings) — stock:
 let UNITMETA = {};              // {unit-id: {title, chapter, textbook}} — display (flat list + textbook subtitle)
 let MANIFEST_ACTIVE = false;    // true when a multi-textbook manifest config drives the unit list
 function textbookLabel(src){ if(!src)return null; const a=src.authors?String(src.authors).replace(/\s+and\s+/g,' & '):''; const who=a?a.split(',')[0].trim():(src.title||''); return who+(src.edition?' ('+src.edition+' ed.)':''); }
+function firstAuthor(src){ if(!src||!src.authors)return ''; const a=String(src.authors).split(/\s+and\s+|&|,/)[0].trim(); const p=a.split(/\s+/); return p[p.length-1]||''; }   // surname of the first author, for quick per-card ID
+let BOOKFILTER=new Set();       // textbook labels the home is filtered to; empty = show all (book-choice chips)
 function buildUnitsFromBanks(){ // stock / no-manifest: unit id = chapter key, numeric order, meta from bank_meta
   MANIFEST_ACTIVE=false;
   CHAPTERS=Object.keys(BANKS).sort((a,b)=>{ const na=+a,nb=+b; return (isNaN(na)||isNaN(nb))?String(a).localeCompare(String(b)):na-nb; });
@@ -280,8 +287,10 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.13';
+const APP_VERSION='0.14';
 const CHANGELOG=[
+  {v:'0.14', date:'Aug 19, 2026', notes:[
+    'If your class spans more than one book, you can now tap a book at the top of the home screen to show just its chapters (tap again to add or drop books). Each chapter card also shows the author above the chapter number, so it’s quicker to tell the books apart.']},
   {v:'0.13', date:'Aug 19, 2026', notes:[
     'You can now re-download the Canvas file for any past session from your progress report (the “Canvas file” button in the last column). So if you move on before uploading, or need to turn in an earlier session, the file is still there.']},
   {v:'0.12', date:'Aug 19, 2026', notes:[
@@ -1066,29 +1075,36 @@ function renderHome(){
   const demoBanner=DEMO_MODE?`<div style="grid-column:1/-1;padding:.7rem .9rem;border:2px solid var(--brand);border-radius:8px;background:var(--card);font-weight:600;line-height:1.45">👋 You're in the <b>public demo</b>. To practice your own class's quizzes — and have your work count — open the <b>class link your instructor gave you</b>.</div>`:'';
   const banner=demoBanner||(CONFIG&&CONFIG.display_name?`<div style="grid-column:1/-1;padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--card);font-weight:600">${esc(CONFIG.display_name)}${CONFIG.section?` · Section ${esc(CONFIG.section)}`:''}</div>`:'');
   const upcomingTitles={3:'Feasibility Analysis',4:'Developing an Effective Business Model'};   // stock chapters not yet authored
-  const tbs=new Set(CHAPTERS.map(id=>UNITMETA[id]&&UNITMETA[id].textbook).filter(Boolean));
-  const multiTb=tbs.size>1;                               // show the textbook subtitle only when the course mixes books
+  const books=[]; const bseen=new Set();                  // distinct books in course order (filter chips + per-card author tag)
+  CHAPTERS.forEach(id=>{ const tb=UNITMETA[id]&&UNITMETA[id].textbook; if(tb&&!bseen.has(tb)){ bseen.add(tb);
+    books.push({key:tb, label:(firstAuthor(BANKS[id].bank_meta.source)||tb)}); } });
+  const multiTb=books.length>1;                            // book chips + per-card author tag only when the course mixes books
+  const shown=CHAPTERS.filter(id=> !multiTb || BOOKFILTER.size===0 || BOOKFILTER.has(UNITMETA[id]&&UNITMETA[id].textbook));
   let tiles=banner;
-  CHAPTERS.forEach(id=>{                                   // one tile per available unit (flat, in order)
+  if(multiTb){                                             // book choice: tap a book to show only it; tap again to add/drop; all-off (empty) shows every book
+    tiles+=`<div class="bookfilter"><span style="color:var(--ink-soft)">Show:</span>`+books.map(bk=>
+      `<button class="bookchip${(BOOKFILTER.size===0||BOOKFILTER.has(bk.key))?' on':''}" data-book="${esc(bk.key)}">${esc(bk.label)}</button>`).join('')+`</div>`;
+  }
+  shown.forEach(id=>{                                       // one tile per shown unit (flat, in order)
     const b=BANKS[id], meta=UNITMETA[id]||{}, lad=DATA.ladder[id]||{};
     const nLO=Object.keys(b.bank_meta.learning_objectives).length;
     const m=Object.values(lad).filter(x=>x.mastered).length;
     const clab=meta.chapter!=null?('CHAPTER '+meta.chapter):'UNIT';
-    const sub=(multiTb&&meta.textbook)?`<span class="cmeta" style="opacity:.75">${esc(meta.textbook)}</span>`:'';
+    const book=multiTb?`<span class="cbook">${esc(firstAuthor(b.bank_meta.source)||meta.textbook||'')}</span>`:'';   // first author, above the chapter line
     const title=esc(meta.title||b.bank_meta.chapter_title);
     const isSel=(String(id)===String(CH));
     if(chapterReleased(id)){
-      const cta=isSel?`✓ Selected — set your options below`:(m?`${m}/${nLO} LOs mastered · choose →`:'Choose this chapter →');
-      tiles+=`<button class="chap${isSel?' sel':''}" data-ch="${esc(id)}"><span class="cnum">${clab} · ${b.items.length} items</span>
-        <span class="ctitle" style="display:block">${title}</span>${sub}<span class="cmeta">${cta}</span></button>`;
+      const cta=isSel?`✓ Selected — set your options below`:(m?`${m}/${nLO} LOs mastered<br>Choose →`:'Choose this chapter →');
+      tiles+=`<button class="chap${isSel?' sel':''}" data-ch="${esc(id)}">${book}<span class="cnum">${clab} · ${b.items.length} items</span>
+        <span class="ctitle" style="display:block">${title}</span><span class="ccta">${cta}</span></button>`;
     }
     else{ const relD=releaseDate(id);
-      tiles+=`<button class="chap" disabled><span class="cnum">${clab}</span>
-        <span class="ctitle" style="display:block">${title}</span>${sub}<span class="cmeta">${relD?`Releases ${esc(relD)}`:'Not yet released'}</span></button>`; }
+      tiles+=`<button class="chap" disabled>${book}<span class="cnum">${clab}</span>
+        <span class="ctitle" style="display:block">${title}</span><span class="ccta">${relD?`Releases ${esc(relD)}`:'Not yet released'}</span></button>`; }
   });
   if(!MANIFEST_ACTIVE) Object.keys(upcomingTitles).forEach(n=>{ if(!BANKS[n])                  // stock: still-unauthored chapters
     tiles+=`<button class="chap" disabled><span class="cnum">CHAPTER ${n}</span>
-      <span class="ctitle" style="display:block">${esc(upcomingTitles[n])}</span><span class="cmeta">Not yet released</span></button>`; });
+      <span class="ctitle" style="display:block">${esc(upcomingTitles[n])}</span><span class="ccta">Not yet released</span></button>`; });
   $('chapterList').innerHTML=tiles;
   // session config below reflects the active chapter (CH)
   const lad=DATA.ladder[CH]||{};
@@ -1112,6 +1128,10 @@ function renderHome(){
   $('selMx').onchange=updateMx;
   updateMx();
   document.querySelectorAll('.chap[data-ch]').forEach(btn=>btn.onclick=()=>selectChapter(btn.dataset.ch));   // unit id is an opaque string
+  document.querySelectorAll('.bookchip').forEach(btn=>btn.onclick=()=>{   // toggle a book in/out of the filter (empty set = show all)
+    const k=btn.dataset.book; if(BOOKFILTER.has(k))BOOKFILTER.delete(k); else BOOKFILTER.add(k);
+    if(BOOKFILTER.size===books.length)BOOKFILTER.clear();   // all books chosen == no filter (canonical empty)
+    renderHome(); });
   $('btnStart').onclick=()=>{ if(!chapterReleased(CH)){ toast('This chapter is not released yet.'); return; } initSession(readGoal()); show('viewSession'); nextQuestion(); };
   if(DATA.name)$('inpName').value=DATA.name;
 }
