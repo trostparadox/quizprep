@@ -700,10 +700,14 @@ function allReviewQuestions(){
 }
 /* ---- three-state vetting: never | vetted | updated-since-vetted ---- */
 function djb2(s){ let h = 5381; for (let i = 0; i < s.length; i++){ h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; } return h.toString(36); }
-function answerSig(q){    // signature over ANSWER-AFFECTING fields only — rationale/probe/anchor/status edits do NOT un-vet
-  return djb2(JSON.stringify({ t: q.type || null, stem: q.stem || "", opts: q.options || null,
-    ci: q.correct_index, co: q.correct_order || null, pc: q.correct != null ? q.correct : null,
-    jo: q.justify_options || null, jc: q.justify_correct }));
+function answerSig(q){    // signature over ANSWER-AFFECTING fields only — rationale/probe/anchor/status edits (and option REORDERS) do NOT un-vet
+  const opts = q.options || [];                                                                          // order-INSENSITIVE (matches app itemSig):
+  const correctText = (typeof q.correct_index === "number") ? (opts[q.correct_index] != null ? opts[q.correct_index] : "") : "";  // correct by TEXT, not index
+  const correctSeq = Array.isArray(q.correct_order) ? q.correct_order.map(i => opts[i]) : null;          // rank_order answer as text sequence
+  const jSet = Array.isArray(q.justify_options) ? q.justify_options.slice().sort() : null;
+  const jCorrect = Array.isArray(q.justify_options) ? (q.justify_options[q.justify_correct] != null ? q.justify_options[q.justify_correct] : "") : null;
+  return djb2(JSON.stringify({ t: q.type || null, stem: q.stem || "", opts: opts.slice().sort(),        // set of option texts, order-free
+    ct: correctText, cs: correctSeq, pc: q.correct != null ? q.correct : null, jo: jSet, jc: jCorrect }));
 }
 function markReviewed(q, on){ if (on){ q.reviewed = true; q.reviewed_sig = answerSig(q); } else { q.reviewed = false; delete q.reviewed_sig; } }
 function vetState(q){     // never (not reviewed) | vetted (reviewed, unchanged) | stale (reviewed, but changed since)
