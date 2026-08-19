@@ -280,8 +280,10 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.12';
+const APP_VERSION='0.13';
 const CHANGELOG=[
+  {v:'0.13', date:'Aug 19, 2026', notes:[
+    'You can now re-download the Canvas file for any past session from your progress report (the “Canvas file” button in the last column). So if you move on before uploading, or need to turn in an earlier session, the file is still there.']},
   {v:'0.12', date:'Aug 19, 2026', notes:[
     'When your class has more than one chapter, tapping a chapter now selects it and updates the session options and the Start button to match — so you can pick any chapter and set up its session before you begin, not only the first one.']},
   {v:'0.11', date:'Aug 19, 2026', notes:[
@@ -1124,13 +1126,21 @@ function selectChapter(ch){                                 // pick the active c
 function renderReport(){
   const w=$('reportWrap'); w.classList.remove('hidden');
   if(!DATA.sessions.length){w.innerHTML='<p class="muted">No sessions yet — run one and your history shows up here.</p>';return;}
-  const rows=DATA.sessions.slice().reverse().map(s=>
+  const revs=DATA.sessions.slice().reverse();
+  const rows=revs.map((s,i)=>
     `<tr><td>${new Date(s.ended).toLocaleString()}</td><td>Ch ${s.chapter}</td><td>${s.answered}</td>
-     <td>${s.firstCorrect}</td><td>${s.mastered}</td><td>${s.review.length?s.review.join(', '):'—'}</td></tr>`).join('');
+     <td>${s.firstCorrect}</td><td>${s.mastered}</td><td>${s.review.length?s.review.join(', '):'—'}</td>
+     <td>${s.bundle?`<button class="btn quiet sm" data-export-idx="${i}">Canvas file ↓</button>`:'<span class="muted">—</span>'}</td></tr>`).join('');
   const carry=(DATA.carryReview[CH]||[]);
   w.innerHTML=`<h2>Progress report${DATA.name?' — '+esc(DATA.name):''}</h2>
     ${carry.length?`<p style="margin-top:.4rem">Carried into your next session (extra weight): <b>Learning Objective${carry.length>1?'s':''} ${carry.join(', ')}</b></p>`:''}
-    <table class="hist"><tr><th>When</th><th>Chapter</th><th>Answered</th><th>First-try ✓</th><th>Objectives mastered</th><th>Needs review</th></tr>${rows}</table>`;
+    <p class="muted" style="margin-top:.4rem">Need to turn in a past session? Re-download its <b>Canvas file</b> from the last column and upload it to the assignment.</p>
+    <div style="overflow-x:auto"><table class="hist"><tr><th>When</th><th>Chapter</th><th>Answered</th><th>First-try ✓</th><th>Objectives mastered</th><th>Needs review</th><th>Canvas export</th></tr>${rows}</table></div>`;
+  w.querySelectorAll('[data-export-idx]').forEach(btn=>btn.onclick=()=>{
+    const s=revs[+btn.dataset.exportIdx];
+    downloadJSON(s.bundle,`quizprep-ch${s.chapter}-${s.id}.json`);
+    toast('Session export downloaded — upload it to the Canvas assignment');
+  });
 }
 function show(id){['viewHome','viewSession','viewDigest'].forEach(v=>$(v).classList.toggle('hidden',v!==id));
   if(id==='viewHome')$('reportWrap').classList.add('hidden');window.scrollTo(0,0);}
