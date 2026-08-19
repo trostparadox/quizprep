@@ -11,7 +11,8 @@ banks, one of:
   **multi-textbook** course (chapters from more than one book, rendered as one flat ordered list).
 
 **Built by the Instructor Console** (Config tab → "Export config + bank (Model 1)"). The maintainer
-drops the exported file here and pushes; instructors never touch GitHub.
+reconciles the export against the current banks (canonical units refreshed to latest, forked units
+kept as sent) and hosts the result here; instructors never touch GitHub.
 
 **IP:** packages contain only the (publishable, original) banks + the public key — **never course
 source text**, never a private key. Public repo = world-readable; keep it that way.
