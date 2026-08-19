@@ -301,7 +301,7 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 const APP_VERSION='0.15';
 const CHANGELOG=[
   {v:'0.15', date:'Aug 19, 2026', notes:[
-    'New “My study guide”: for each question you missed, it collects the hints you saw — more of them the more you struggled — along with the objective and exactly which chapter section to read (and a short excerpt where available). Sort it by chapter & section or by objective.']},
+    'New “My study guide”: for each question you missed, it collects the key hints — more of them the more you struggled — along with the objective and exactly which chapter section to read (and a short excerpt where available). Sort it by chapter & section or by objective.']},
   {v:'0.14', date:'Aug 19, 2026', notes:[
     'If your class spans more than one book, you can now tap a book at the top of the home screen to show just its chapters (tap again to add or drop books). Each chapter card also shows the author above the chapter number, so it’s quicker to tell the books apart.']},
   {v:'0.13', date:'Aug 19, 2026', notes:[
@@ -648,9 +648,13 @@ function finishNextQuestion(item,lo){
   const perm=(item.type==='mc4'||item.type==='scenario_mc')?shuffle([...item.options.keys()])
             :(item.type==='rank_order')?shuffle([...item.options.keys()]):null;
   const jperm=item.justify_options?shuffle([...item.justify_options.keys()]):null;
+  // Study-guide hints (captured while the item — incl. materialized pools — is in hand): authored items
+  // use the distractor RATIONALES (they read well standalone); pool items' composed rationales name the
+  // answer, so fall back to their probes. Correct option excluded (i===correct_index).
+  const htxt=item.set_id?(item.probes||[]):(item.rationales||[]);
+  const studyHints=htxt.map((t,i)=>(i!==item.correct_index&&t!=null&&t!=='')?{i,text:String(t)}:null).filter(Boolean);
   S.current={item,lo,perm,jperm,attempt:1,rec:{q_id:item.q_id,lo,tier:item.tier,type:item.type,
-    origin:item.origin,set_id:item.set_id,sig,anchor:item.source_anchor||'',   // study-guide payload, captured while the item (incl. materialized pools) is in hand
-    hints:(item.probes||[]).map((p,i)=>(p!=null&&p!=='')?{i,text:String(p)}:null).filter(Boolean),
+    origin:item.origin,set_id:item.set_id,sig,anchor:item.source_anchor||'',hints:studyHints,
     probe_shown:false,student_answer_1:null,student_answer_2:null,
     outcome:null,remediated:false,response_ms:[]}};
   S.phase='answering'; S.tStart=Date.now();
