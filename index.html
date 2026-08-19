@@ -337,8 +337,11 @@ const CHANGELOG=[
 const cmpVer=(a,b)=>{const pa=(a||'').split('.').map(Number),pb=(b||'').split('.').map(Number);
   for(let i=0;i<Math.max(pa.length,pb.length);i++){const d=(pa[i]||0)-(pb[i]||0);if(d)return d>0?1:-1;}return 0;};
 
-/* Remediation excerpts travel in the bank now (bank_meta.excerpts), per spec §10.1 */
+/* Remediation excerpts travel in the bank now (bank_meta.excerpts), per spec §10.1. Each excerpt is
+   either a plain string (legacy) or {text, kind:"quote"|"paraphrase"} (kind is authoring/IP metadata,
+   per-excerpt — quotes get paraphrased before public release). exText reads either shape. */
 let EXCERPTS = (BANK.bank_meta && BANK.bank_meta.excerpts) || {};
+function exText(v){ return typeof v==='string'?v:((v&&v.text)||''); }
 
 /* ================= Storage adapter (window.storage → localStorage fallback) ================= */
 const store = {
@@ -850,7 +853,7 @@ function resolveWrongFinal(revealed){
   st.tier=Math.max(1,st.tier-1); st.consec=0; st.misses++;
   S.current.rec.outcome=revealed?'revealed':'wrong_after_probe';
   S.current.rec.remediated=true;
-  const ex=EXCERPTS[it.source_anchor]||null;
+  const ex=exText(EXCERPTS[it.source_anchor]);
   const correctTxt=(it.type==='rank_order')?'Correct order: '+it.correct_order.map(i=>it.options[i]).join(' → ')
     :'Answer: '+it.options[it.correct_index];
   $('fbArea').innerHTML=
@@ -1207,7 +1210,7 @@ function collectStudy(){   // qualifying trace entries across all sessions (only
 }
 function sgBook(bank){ if(!bank||!bank.bank_meta)return ''; const src=bank.bank_meta.source; return firstAuthor(src)||textbookLabel(src)||''; }
 function sgSection(chapter,anchor,bank){ const book=sgBook(bank);
-  const ex=bank&&bank.bank_meta.excerpts?bank.bank_meta.excerpts[anchor]:null;
+  const ex=exText(bank&&bank.bank_meta.excerpts?bank.bank_meta.excerpts[anchor]:null);
   return `<div class="sg-sec">📖 ${book?esc(book)+' · ':''}${esc(anchor||'')}</div>${ex?`<div class="excerpt">${esc(ex)}</div>`:''}`; }
 function sgObjective(chapter,lo,bank){ const t=bank&&bank.bank_meta.learning_objectives?bank.bank_meta.learning_objectives[lo]:'';
   return `<div class="sg-lo"><b>Objective ${esc(lo)}</b>${t?' — '+esc(t):''}</div>`; }
