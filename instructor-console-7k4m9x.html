@@ -140,10 +140,11 @@
   <section id="tab-load">
     <div class="panel">
       <h2>Load a question bank</h2>
-      <p class="muted">Pick one or several chapter-bank JSON files (or a <b>.zip</b> the maintainer emailed you), a whole course folder, or paste one below. Everything runs in your browser — nothing is uploaded. This tool never touches the live student app. Your loaded banks and imported exports are <b>remembered on this device</b>, so a refresh keeps them. Load more than one chapter and a chapter switcher appears under the header.</p>
+      <p class="muted">With the file picker below, choose <b>one <code>.zip</code> file</b> — the banks package sent to you — <b>or</b> several individual chapter <code>.json</code> files. A <code>.zip</code> is a single file, so select it right here; you do <b>not</b> need to unzip it, and don't use "Load an unzipped folder…" for it (that button is only for a folder you've already extracted). Everything runs in your browser — nothing is uploaded, and this tool never touches the live student app. Loaded banks are <b>remembered on this device</b>. Load more than one chapter and a chapter switcher appears under the header.</p>
       <div class="row">
+        <label class="muted" style="font-size:.85rem">Banks (.zip or .json):</label>
         <input type="file" id="fileIn" accept=".json,application/json,.zip,application/zip" multiple>
-        <button class="ghost" id="folderBtn" type="button">Load a folder…</button>
+        <button class="ghost" id="folderBtn" type="button">Load an unzipped folder…</button>
         <input type="file" id="folderIn" webkitdirectory directory style="display:none">
         <span class="muted">or paste one below and click Load</span>
       </div>
