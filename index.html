@@ -139,6 +139,14 @@ h2{font-size:1.25rem;font-weight:600}
 table.hist{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:.8rem}
 table.hist th,table.hist td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line)}
 table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft)}
+.sg-group{border-top:1px solid var(--line);padding-top:.75rem;margin-top:.75rem}
+.sg-group:first-of-type{border-top:0;padding-top:0;margin-top:.4rem}
+.sg-sec{font-weight:600}
+.sg-lo{font-weight:600;color:var(--brand)}
+#studyWrap .excerpt{border-left:3px solid var(--brand);padding:.35rem 0 .35rem .8rem;margin:.4rem 0;color:var(--ink-soft);font-style:italic;font-size:.9rem}
+.sg-inner{margin:.45rem 0 .2rem;padding-left:.7rem;border-left:2px solid var(--brand-soft)}
+.sg-hints{margin:.3rem 0 .5rem 1.1rem}
+.sg-hints li{margin:.2rem 0;line-height:1.4}
 .footer-note{margin-top:2rem;font-size:.75rem;color:var(--ink-soft);text-align:center}
 .hidden{display:none!important}
 .toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.6rem 1.1rem;border-radius:8px;font-size:.88rem;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s}
@@ -199,6 +207,7 @@ table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;
     </div>
     <div class="btnrow">
       <button class="btn quiet sm" id="btnReport">My progress report</button>
+      <button class="btn quiet sm" id="btnStudy">My study guide</button>
       <button class="btn quiet sm" id="btnExportAll">Export my data (JSON)</button>
       <button class="btn quiet sm" id="btnImport">Import data</button>
       <input type="file" id="fileImport" accept="application/json" multiple class="hidden">
@@ -207,6 +216,7 @@ table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;
     </div>
   </div>
   <div id="reportWrap" class="card hidden" style="margin-top:1rem"></div>
+  <div id="studyWrap" class="card hidden" style="margin-top:1rem"></div>
 </section>
 
 <!-- ============ SESSION ============ -->
@@ -269,6 +279,7 @@ table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;
 /* ================= BANK (injected at build) ================= */
 let BANKS = (/*__BANK__*/null) || {};   // {"<unit-id>": bank, ...} map; empty in the config-only shell — a config populates it at boot
 const EMPTY_BANK={bank_meta:{learning_objectives:{},excerpts:{},chapter:null,chapter_title:''},items:[],question_sets:[]};   // placeholder before a config loads
+const STUDY_OUTCOMES=new Set(['correct_after_probe','wrong_after_probe','revealed','skipped']);   // missed-question outcomes that get a study-guide entry
 let CHAPTERS = [];              // ordered list of unit ids (strings) — stock: numeric order; a manifest config sets its own order
 let UNITMETA = {};              // {unit-id: {title, chapter, textbook}} — display (flat list + textbook subtitle)
 let MANIFEST_ACTIVE = false;    // true when a multi-textbook manifest config drives the unit list
@@ -287,8 +298,10 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.14';
+const APP_VERSION='0.15';
 const CHANGELOG=[
+  {v:'0.15', date:'Aug 19, 2026', notes:[
+    'New “My study guide”: for each question you missed, it collects the hints you saw — more of them the more you struggled — along with the objective and exactly which chapter section to read (and a short excerpt where available). It never shows the questions or answers, so it’s a safe study aid. Sort it by chapter & section or by objective.']},
   {v:'0.14', date:'Aug 19, 2026', notes:[
     'If your class spans more than one book, you can now tap a book at the top of the home screen to show just its chapters (tap again to add or drop books). Each chapter card also shows the author above the chapter number, so it’s quicker to tell the books apart.']},
   {v:'0.13', date:'Aug 19, 2026', notes:[
@@ -636,7 +649,9 @@ function finishNextQuestion(item,lo){
             :(item.type==='rank_order')?shuffle([...item.options.keys()]):null;
   const jperm=item.justify_options?shuffle([...item.justify_options.keys()]):null;
   S.current={item,lo,perm,jperm,attempt:1,rec:{q_id:item.q_id,lo,tier:item.tier,type:item.type,
-    origin:item.origin,set_id:item.set_id,sig,probe_shown:false,student_answer_1:null,student_answer_2:null,
+    origin:item.origin,set_id:item.set_id,sig,anchor:item.source_anchor||'',   // study-guide payload, captured while the item (incl. materialized pools) is in hand
+    hints:(item.probes||[]).map((p,i)=>(p!=null&&p!=='')?{i,text:String(p)}:null).filter(Boolean),
+    probe_shown:false,student_answer_1:null,student_answer_2:null,
     outcome:null,remediated:false,response_ms:[]}};
   S.phase='answering'; S.tStart=Date.now();
   renderQuestion();
@@ -1026,7 +1041,10 @@ async function endSession(){
   DATA.carryReview[CH]=review;
   DATA.sessions.push({id:S.id,chapter:CH,ended:S.ended,answered,firstCorrect,
     mastered:mastered.length,review:review.slice(),
-    trace:S.items.map(r=>({lo:r.lo,tier:r.tier,outcome:r.outcome,follow_up:!!r.follow_up})),
+    trace:S.items.map(r=>{ const e={lo:r.lo,tier:r.tier,outcome:r.outcome,follow_up:!!r.follow_up};
+      if(!r.follow_up&&STUDY_OUTCOMES.has(r.outcome)){ e.q_id=r.q_id; e.anchor=r.anchor||''; e.hints=r.hints||[];
+        e.picks=[r.student_answer_1,r.student_answer_2].filter(x=>typeof x==='number'); }   // study-guide payload for missed questions
+      return e; }),
     bundle});
   DATA.name=$('inpName').value.trim()||DATA.name;
   await store.set(SKEY,DATA);
@@ -1144,7 +1162,7 @@ function selectChapter(ch){                                 // pick the active c
   if(typedName&&$('inpName')) $('inpName').value=typedName;
 }
 function renderReport(){
-  const w=$('reportWrap'); w.classList.remove('hidden');
+  const w=$('reportWrap'); w.classList.remove('hidden'); $('studyWrap').classList.add('hidden');
   if(!DATA.sessions.length){w.innerHTML='<p class="muted">No sessions yet — run one and your history shows up here.</p>';return;}
   const revs=DATA.sessions.slice().reverse();
   const rows=revs.map((s,i)=>
@@ -1162,12 +1180,69 @@ function renderReport(){
     toast('Session export downloaded — upload it to the Canvas assignment');
   });
 }
+/* ===== Study guide (spec §4). For each MISSED question, surface the Socratic hints, the objective,
+   where to read, and the excerpt — but never the question or the answer. Hints escalate with struggle
+   (recovered → the probe for the option they picked; wrong twice → both their picks' probes; gave up /
+   skipped → all distractor probes), keyed off the study payload captured in each session's trace. */
+let studyMode='section';
+function studyHintsFor(e){
+  const hints=e.hints||[];
+  if(e.outcome==='revealed'||e.outcome==='skipped')return hints.map(h=>h.text);
+  const picks=(e.picks||[]).filter(i=>typeof i==='number');
+  const chosen=picks.map(i=>{const h=hints.find(x=>x.i===i);return h?h.text:null;}).filter(Boolean);
+  return chosen.length?chosen:hints.map(h=>h.text);   // fall back to all if a pick can't be matched
+}
+function collectStudy(){   // qualifying trace entries across all sessions (only those with the study payload)
+  const items=[];
+  DATA.sessions.forEach(s=>{ (s.trace||[]).forEach(e=>{
+    if(e.follow_up||!STUDY_OUTCOMES.has(e.outcome))return;
+    if(!e.anchor||!Array.isArray(e.hints)||!e.hints.length)return;
+    const hs=studyHintsFor(e); if(hs.length) items.push({chapter:String(s.chapter),lo:e.lo,anchor:e.anchor,hints:hs});
+  });});
+  return items;
+}
+function sgBook(bank){ if(!bank||!bank.bank_meta)return ''; const src=bank.bank_meta.source; return firstAuthor(src)||textbookLabel(src)||''; }
+function sgSection(chapter,anchor,bank){ const book=sgBook(bank);
+  const ex=bank&&bank.bank_meta.excerpts?bank.bank_meta.excerpts[anchor]:null;
+  return `<div class="sg-sec">📖 ${book?esc(book)+' · ':''}${esc(anchor||'')}</div>${ex?`<div class="excerpt">${esc(ex)}</div>`:''}`; }
+function sgObjective(chapter,lo,bank){ const t=bank&&bank.bank_meta.learning_objectives?bank.bank_meta.learning_objectives[lo]:'';
+  return `<div class="sg-lo"><b>Objective ${esc(lo)}</b>${t?' — '+esc(t):''}</div>`; }
+function renderStudyGuide(mode){
+  studyMode=mode||studyMode||'section';
+  const w=$('studyWrap'); w.classList.remove('hidden'); $('reportWrap').classList.add('hidden');
+  const items=collectStudy();
+  const toggle=`<div class="btnrow" style="margin:.2rem 0 .7rem">
+    <button class="btn quiet sm${studyMode==='section'?' brand':''}" data-study-mode="section">By chapter &amp; section</button>
+    <button class="btn quiet sm${studyMode==='lo'?' brand':''}" data-study-mode="lo">By objective</button></div>`;
+  let body;
+  if(!items.length){ body=`<p class="muted">No study items yet — miss a question or two and a targeted guide shows up here. (Guides are recorded from this version of the app on.)</p>`; }
+  else{
+    const groups=new Map();
+    items.forEach(it=>{ const outerK=studyMode==='section'?it.chapter+'␟'+it.anchor:it.chapter+'␟'+it.lo;
+      const innerK=studyMode==='section'?it.lo:it.anchor;
+      if(!groups.has(outerK))groups.set(outerK,{chapter:it.chapter,anchor:it.anchor,lo:it.lo,inner:new Map()});
+      const g=groups.get(outerK); const ing=g.inner.get(innerK)||{lo:it.lo,anchor:it.anchor,hints:new Set()};
+      it.hints.forEach(h=>ing.hints.add(h)); g.inner.set(innerK,ing); });
+    body=[...groups.values()].map(g=>{ const bank=BANKS[g.chapter];
+      const header=studyMode==='section'?sgSection(g.chapter,g.anchor,bank):sgObjective(g.chapter,g.lo,bank);
+      const inner=[...g.inner.values()].map(ing=>{
+        const sub=studyMode==='section'?sgObjective(g.chapter,ing.lo,bank):sgSection(g.chapter,ing.anchor,bank);
+        return `<div class="sg-inner">${sub}<ul class="sg-hints">${[...ing.hints].map(h=>`<li>${esc(h)}</li>`).join('')}</ul></div>`;
+      }).join('');
+      return `<div class="sg-group">${header}${inner}</div>`; }).join('');
+  }
+  w.innerHTML=`<h2>Study guide${DATA.name?' — '+esc(DATA.name):''}</h2>
+    <p class="muted" style="margin-top:.3rem">Targeted to the questions you missed: the hints you saw (or would have), the objective, and where to read. No answers here — safe to keep.</p>
+    ${toggle}${body}`;
+  w.querySelectorAll('[data-study-mode]').forEach(b=>b.onclick=()=>renderStudyGuide(b.dataset.studyMode));
+}
 function show(id){['viewHome','viewSession','viewDigest'].forEach(v=>$(v).classList.toggle('hidden',v!==id));
-  if(id==='viewHome')$('reportWrap').classList.add('hidden');window.scrollTo(0,0);}
+  if(id==='viewHome'){$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');}window.scrollTo(0,0);}
 
 /* ================= Wiring ================= */
 $('btnEnd').onclick=()=>{ if(S.current&&!S.current.recorded){S.current.rec.outcome=S.current.rec.outcome||'abandoned';recordItem();} endSession(); };
 $('btnReport').onclick=renderReport;
+$('btnStudy').onclick=()=>renderStudyGuide(studyMode);
 $('btnExportAll').onclick=()=>{downloadJSON(DATA,'quizprep-backup.json');toast('Backup downloaded');};
 function sessionRecordFromExport(d){
   let items=null;
@@ -1218,7 +1293,7 @@ $('btnFresh').onclick=async()=>{ if(confirm('Restart the Chapter 1 mastery ladde
   DATA.ladder[CH]={_reset:new Date().toISOString()}; delete DATA.carryReview[CH];
   await store.set(SKEY,DATA); renderHome(); toast('Chapter 1 ladder reset'); }};
 $('btnReset').onclick=async()=>{ if(confirm('Erase all local QuizPrep data on this device? Export a backup first if you want to keep it.')){
-  DATA={name:'',sessions:[],carryReview:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');toast('Data cleared');}};
+  DATA={name:'',sessions:[],carryReview:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');toast('Data cleared');}};
 $('btnExportSession').onclick=()=>{downloadJSON(S.bundle,`quizprep-ch${CH}-${S.id}.json`);toast('Session export downloaded — upload it to the Canvas assignment');};
 $('btnProg').onclick=()=>{clearActive();renderHome();show('viewHome');renderReport();setTimeout(()=>$('reportWrap').scrollIntoView&&$('reportWrap').scrollIntoView(),0);};
 $('btnAgain').onclick=()=>{initSession({type:'count',n:recommendedLen().n});show('viewSession');nextQuestion();};
