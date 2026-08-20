@@ -111,6 +111,7 @@
   .chapbar .chip,#schBookFilter .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:.2rem .7rem;cursor:pointer;font-size:.85rem}
   .chapbar .chip.on,#schBookFilter .chip.on{border-color:var(--brand);color:var(--brand);font-weight:600}
   .chapbar .chip.book{font-weight:600}
+  input.locked,input:disabled{opacity:.55;cursor:not-allowed;background:var(--panel)}
   .pbadge{display:inline-block;border-radius:999px;padding:.05rem .5rem;font-size:.72rem;font-weight:600;margin-left:.35rem;vertical-align:middle}
   .pbadge.canon{background:var(--okbg);color:var(--ok)}
   .pbadge.fork{background:var(--warnbg);color:var(--warn)}
@@ -147,6 +148,11 @@
         <button class="ghost" id="folderBtn" type="button">Load an unzipped folder…</button>
         <input type="file" id="folderIn" webkitdirectory directory style="display:none">
         <span class="muted">or paste one below and click Load</span>
+      </div>
+      <div class="row" style="margin-top:.4rem">
+        <label class="muted" style="font-size:.85rem">Edit an existing config:</label>
+        <input type="file" id="cfgImport" accept=".json,application/json">
+        <span id="cfgImportStat" class="muted" style="font-size:.85rem">load a class config (the <code>&lt;id&gt;.config.json</code>) to change its schedule / settings, then re-export</span>
       </div>
       <textarea id="pasteIn" placeholder='{ "bank_meta": { ... }, "items": [ ... ], "question_sets": [ ... ] }'></textarea>
       <div class="row" style="margin-top:.5rem">
@@ -271,6 +277,7 @@ document.getElementById("ver").textContent = "console " + TOOL_VERSION;
 
 let BANK = null;                              // live pointer to the ACTIVE chapter's bank (COURSE.banks[COURSE.active])
 const COURSE = { banks:{}, active:null };     // whole-course set: { <chapter|key>: bank }
+let EDIT_CFG = null;                           // when set, the Config tab is re-populated from this imported config (edit mode)
 function courseKeys(){ return Object.keys(COURSE.banks); }
 function courseChapters(){ return courseKeys().sort((a,b)=>{ const na=+a, nb=+b; return (isNaN(na)||isNaN(nb)) ? String(a).localeCompare(String(b)) : na-nb; }); }
 function textbookKey(bank){ const s=(bank&&bank.bank_meta&&bank.bank_meta.source)||{}; return (String(s.authors||s.title||"tb").toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,12)||"tb")+(s.edition?String(s.edition).replace(/[^a-z0-9]/gi,"").toLowerCase():""); }
@@ -332,7 +339,7 @@ function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 function saveBank(){ if (courseKeys().length) lsSet(IK.course, JSON.stringify({ banks: COURSE.banks, active: COURSE.active })); }   // persists the whole course; edits to BANK land here (BANK aliases COURSE.banks[active])
 function saveDash(){ lsSet(IK.dash, JSON.stringify((DASH.bundles || []).map(b => b.encrypted ? Object.assign({}, b, { recs:[], decrypted:false }) : b))); }   // never persist decrypted item detail
 function saveHiddenWarns(){ lsSet(IK.hidewarn, JSON.stringify([...HIDDEN_WARNS])); }
-function forgetSaved(){ lsDel(IK.bank); lsDel(IK.course); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); lsDel(IK.flags); HIDDEN_WARNS = new Set(); FLAGS = []; COURSE.banks = {}; COURSE.active = null; BANK = null; }
+function forgetSaved(){ lsDel(IK.bank); lsDel(IK.course); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); lsDel(IK.flags); HIDDEN_WARNS = new Set(); FLAGS = []; COURSE.banks = {}; COURSE.active = null; BANK = null; EDIT_CFG = null; }
 function saveFlags(){ lsSet(IK.flags, JSON.stringify(FLAGS)); }
 function savePrefs(){ lsSet(IK.prefs, JSON.stringify(PREFS)); }
 function restoreState(){
@@ -643,12 +650,14 @@ function renderChapterBar(){
   bar.querySelectorAll(".chip[data-book]").forEach(btn => btn.onclick = () => selectBook(btn.dataset.book));
 }
 function onBankLoaded(bank){            // single bank (paste / one file / legacy restore)
+  EDIT_CFG = null;                      // loading a bank leaves config-edit mode
   const key = addBankToCourse(bank);
   activateChapter(key);
   showTab("validate");
   saveBank();
 }
 function onBanksLoaded(banks){          // several files / a folder
+  EDIT_CFG = null;
   banks.forEach(addBankToCourse);
   activateChapter(courseChapters()[0]);
   showTab("validate");
@@ -1457,6 +1466,51 @@ function renderConfig(){
       sched.querySelectorAll("#schBookFilter [data-schbook]").forEach(btn => btn.onclick = () => filterSchedByBook(btn.dataset.schbook));
     }
   };
+  if (EDIT_CFG) applyEditCfg();                        // edit mode: repopulate this form from the imported config
+}
+// Import an exported/hosted config package to edit its settings + schedule, then re-export. Banks load under
+// the config's OWN unit ids (from pkg.banks keys) so release_schedule matches; the URL-defining fields
+// (cfg id + sections) are locked so the student link can't change out from under the deployed class.
+function importConfigToEdit(pkg){
+  if (!pkg || typeof pkg !== "object" || !pkg.cfg || !pkg.banks || typeof pkg.banks !== "object")
+    return showLoadErr("That file isn't a config package (expected { cfg, banks }). Load a class config JSON here.");
+  const ids = Object.keys(pkg.banks);
+  if (!ids.length) return showLoadErr("This config has no banks to edit.");
+  EDIT_CFG = pkg.cfg;
+  COURSE.banks = {}; COURSE.active = null;
+  ids.forEach(id => { COURSE.banks[id] = pkg.banks[id]; });   // keep the config's own ids
+  const order = (pkg.manifest || []).map(u => u.id).filter(id => COURSE.banks[id]);
+  activateChapter(order[0] || ids[0]);                        // renders every tab incl. renderConfig -> applyEditCfg
+  showTab("config");
+  $("loadErr").classList.add("hide");
+  const enc = ids.some(id => (COURSE.banks[id].items || []).some(it => it && it.enc));
+  const stat = $("cfgImportStat");
+  if (stat) stat.textContent = `Editing "${EDIT_CFG.cfg_id || "config"}" — ${ids.length} unit${ids.length > 1 ? "s" : ""}` +
+    (enc ? " · banks are encrypted (schedule & settings editable; bank content is read-only)" : "");
+}
+function applyEditCfg(){
+  const c = EDIT_CFG; if (!c) return;
+  $("cfgId").value = c.cfg_id || "";
+  $("cfgName").value = c.display_name || "";
+  $("cfgCourse").value = c.course || "";
+  $("cfgSecs").value = (c.sections || []).join(", ");
+  $("cfgAnon").checked = !!c.anonymize;
+  if (c.public_key) $("cfgKey").value = c.public_key;
+  ["cfgId","cfgSecs"].forEach(id => { const el = $(id); if (el){ el.disabled = true; el.classList.add("locked"); } });   // URL parts (?cfg=&sec=) locked
+  const rel = c.release_schedule;
+  if (rel && typeof rel === "object" && Object.keys(rel).length){
+    const gate = $("cfgGate"); gate.checked = true; gate.onchange();
+    document.querySelectorAll("#cfgSched .schedrow").forEach(r => {
+      const u = r.querySelector(".schUnit").dataset.unit;
+      if (u in rel) r.querySelector(".schDate").value = rel[u] || "";
+    });
+  }
+  const form = $("cfgForm");
+  if (form && !$("cfgEditBanner")){
+    form.insertAdjacentHTML("afterbegin",
+      `<div id="cfgEditBanner" class="msg ok" style="margin-bottom:.6rem">Editing config <b>${esc(c.cfg_id || "")}</b> — its <b>id and sections are locked</b> (the student link <code>?cfg=&amp;sec=</code> depends on them). Change the schedule, name, or key below and re-export. <button class="ghost" id="cfgEditNew" type="button" style="margin-left:.5rem">Start a new config instead</button></div>`);
+    $("cfgEditNew").onclick = () => { EDIT_CFG = null; renderConfig(); };
+  }
 }
 // One editable (chapter, date) row of the release allowlist, tagged by book. Blank date = available now.
 // Each row (but the first) has "same day as above" to co-release it with the previous chapter, and every
@@ -1563,6 +1617,7 @@ function tryLoad(text){
   let obj;
   try { obj = JSON.parse(text); }
   catch(e){ return showLoadErr("Not valid JSON: " + e.message); }
+  if (obj && obj.cfg && obj.banks) return importConfigToEdit(obj);   // a config package → edit it, not a bank
   if (!obj || typeof obj !== "object" || !obj.bank_meta || !Array.isArray(obj.items))
     return showLoadErr("This doesn't look like a bank (expected bank_meta + items[]).");
   onBankLoaded(obj);
@@ -1611,13 +1666,17 @@ async function readFilesIntoCourse(fileList){
   for (const f of files){
     try {
       if (/\.zip$/i.test(f.name)){ for (const e of await readZip(await f.arrayBuffer())){ try { take(JSON.parse(e.text)); } catch(_){ bad++; } } }
-      else { take(JSON.parse(await f.text())); }
+      else { const obj = JSON.parse(await f.text());
+             if (obj && obj.cfg && obj.banks){ importConfigToEdit(obj); return; }   // a config package → edit it
+             take(obj); }
     } catch(e){ bad++; }
   }
   if (!banks.length) return showLoadErr("No valid bank files loaded" + (bad ? ` (${bad} skipped)` : "") + ".");
   onBanksLoaded(banks);
   if (bad) $("loadState").append(` · ${bad} file(s) skipped`);
 }
+$("cfgImport").addEventListener("change", async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try { importConfigToEdit(JSON.parse(await f.text())); } catch(err){ showLoadErr("Couldn't read that config: " + err.message); } });
 $("fileIn").addEventListener("change", e => { if (e.target.files.length) readFilesIntoCourse(e.target.files); e.target.value = ""; });
 $("folderIn").addEventListener("change", e => { if (e.target.files.length) readFilesIntoCourse(e.target.files); e.target.value = ""; });
 $("folderBtn").addEventListener("click", () => $("folderIn").click());
