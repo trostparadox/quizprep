@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuizPrep · Entrepreneurship</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFAF6; --card:#FFFFFF; --ink:#1C2A3A; --ink-soft:#4A5A6E; --line:#E3E1D8;
+  --brand:#0E5A4A; --brand-soft:#E4EFEA; --hilite:#F5D34C; --hilite-soft:#FBF0C4;
+  --ok:#2E7D4F; --ok-soft:#E5F2E9; --no:#B3402A; --no-soft:#F8E8E3;
+  --tier1:#8FB6A9; --tier2:#4E8F7C; --tier3:#0E5A4A;
+  --radius:10px; --shadow:0 1px 3px rgba(28,42,58,.08),0 4px 14px rgba(28,42,58,.06);
+  --disp:'Zilla Slab',Georgia,serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+/* staging test-deploy chrome (only on /staging/; hidden by the preview-as-live toggle) */
+#stagingBar{background:#7a3e00;color:#fff;font-size:.86rem;padding:.5rem .9rem;border-bottom:3px solid #f5a623}
+#stagingBar .stInner{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;max-width:900px;margin:0 auto}
+#stagingBar .stTag{font-weight:700;letter-spacing:.05em;background:#f5a623;color:#3a2200;border-radius:4px;padding:.05rem .45rem}
+#stagingBar .stBtn{margin-left:auto;background:transparent;border:1px solid #f5a623;color:#fff;border-radius:6px;padding:.15rem .55rem;cursor:pointer;font-size:.8rem}
+#stagingBar .stChanges{max-width:900px;margin:.4rem auto 0;font-size:.8rem;opacity:.96}
+#stagingBar .stChanges ul{margin:.2rem 0 0;padding-left:1.15rem}
+html.staging body{box-shadow:inset 0 0 0 3px #f5a623}
+#stagingChip{display:none;position:fixed;right:.6rem;bottom:.6rem;z-index:9999;background:#7a3e00;color:#fff;border:1px solid #f5a623;border-radius:99px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.55;min-height:100vh}
+button{font-family:var(--body);cursor:pointer}
+button:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--hilite);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+.topbar{background:var(--ink);color:#F4F2EA;padding:.65rem 1.1rem;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+.topbar .wordmark{font-family:var(--disp);font-weight:700;font-size:1.15rem;letter-spacing:.02em}
+.topbar .wordmark .accent{color:var(--hilite)}
+.topbar .sub{font-size:.78rem;color:#B9C2CE}
+.topbar .spacer{flex:1}
+.topbar .cfg{font-family:var(--mono);font-size:.72rem;color:#8FA0B4}
+.devnote{background:var(--hilite-soft);border-bottom:1px solid var(--line);font-size:.75rem;color:#6A5B18;padding:.35rem 1.1rem}
+
+.shell{max-width:1020px;margin:0 auto;padding:1.2rem 1rem 4rem}
+.grid{display:grid;grid-template-columns:1fr 250px;gap:1.2rem;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.4rem}
+h1,h2,h3{font-family:var(--disp);line-height:1.25}
+h1{font-size:1.7rem;font-weight:700}
+h2{font-size:1.25rem;font-weight:600}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--brand);margin-bottom:.35rem}
+.muted{color:var(--ink-soft);font-size:.92rem}
+
+.btn{border:1.5px solid var(--ink);background:var(--ink);color:#fff;border-radius:8px;padding:.6rem 1.1rem;font-size:.95rem;font-weight:600;transition:transform .06s ease}
+.btn:active{transform:translateY(1px)}
+.btn.secondary{background:transparent;color:var(--ink)}
+.btn.brand{background:var(--brand);border-color:var(--brand)}
+.btn.quiet{border-color:var(--line);background:#fff;color:var(--ink-soft);font-weight:500}
+.btn.sm{padding:.35rem .7rem;font-size:.82rem}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btnrow{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:1rem}
+
+/* Home */
+.home-hero{padding:1.8rem 1.6rem;background:linear-gradient(0deg,var(--card),var(--card)) padding-box}
+.home-hero h1 .hl{background:linear-gradient(transparent 58%,var(--hilite) 58%);padding:0 .1em}
+.chapters{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.8rem;margin-top:1rem}
+.chap{border:1.5px solid var(--line);border-radius:var(--radius);padding:.9rem;text-align:left;background:#fff;transition:border-color .12s,box-shadow .12s}
+.chap:hover:not(:disabled){border-color:var(--brand)}
+.chap.sel{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+.chap .cnum{font-family:var(--mono);font-size:.7rem;color:var(--brand)}
+.chap .cbook{display:block;font-family:var(--mono);font-size:.66rem;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:.15rem}
+.chap .ctitle{font-family:var(--disp);font-weight:600;font-size:1.02rem;margin:.15rem 0 .3rem}
+.chap .cmeta{font-size:.78rem;color:var(--ink-soft)}
+.chap .ccta{display:block;margin-top:.5rem;font-size:.78rem;color:var(--ink-soft);line-height:1.35}
+.bookfilter{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.85rem;font-weight:600;margin-bottom:.1rem}
+.bookchip{border:1.5px solid var(--line);border-radius:999px;padding:.25rem .75rem;background:#fff;color:var(--ink-soft);font-weight:600;font-size:.8rem;cursor:pointer}
+.bookchip.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+.chap:disabled{opacity:.5}
+.setuprow{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1rem;font-size:.92rem}
+.setuprow select,.setuprow input{font-family:var(--body);font-size:.92rem;padding:.4rem .5rem;border:1.5px solid var(--line);border-radius:6px;background:#fff}
+
+/* LO rail — the mastery ladder */
+.rail{position:sticky;top:1rem}
+.rail h3{font-size:.95rem;margin-bottom:.6rem}
+.lo-row{display:flex;align-items:center;gap:.55rem;padding:.42rem .5rem;border-radius:7px;margin-bottom:2px}
+.lo-row.active{background:var(--hilite-soft)}
+.lo-row .lo-id{font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);width:2.1rem}
+.ladder{display:flex;gap:3px}
+.rung{width:11px;height:11px;border-radius:3px;border:1.5px solid var(--line);background:#fff}
+.rung.t1.on{background:var(--tier1);border-color:var(--tier1)}
+.rung.t2.on{background:var(--tier2);border-color:var(--tier2)}
+.rung.t3.on{background:var(--tier3);border-color:var(--tier3)}
+.rung.na{border-style:dashed;opacity:.35}
+.streak{font-family:var(--mono);font-size:.66rem;color:var(--brand);border:1px solid var(--brand);border-radius:99px;padding:0 .35rem;margin-left:.3rem}
+.lo-row .flag{margin-left:auto;font-size:.78rem}
+.lo-row .flag.mastered{color:var(--ok)}
+.lo-row .flag.review{color:var(--no)}
+.legend{font-size:.72rem;color:var(--ink-soft);margin-top:.7rem;line-height:1.7}
+
+/* Session */
+.sess-head{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem;flex-wrap:wrap}
+.progress{flex:1;height:8px;background:#EDEBE1;border-radius:99px;overflow:hidden;min-width:120px}
+.progress i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .25s ease}
+.q-meta{display:flex;gap:.5rem;align-items:center;font-family:var(--mono);font-size:.72rem;color:var(--ink-soft);flex-wrap:wrap}
+.tierpill{border:1px solid var(--line);border-radius:99px;padding:.1rem .55rem}
+.tierpill.t1{background:#F1F6F4}.tierpill.t2{background:#E4EFEA}.tierpill.t3{background:var(--brand);color:#fff;border-color:var(--brand)}
+.stem{font-family:var(--disp);font-size:1.22rem;font-weight:500;margin:.7rem 0 1.1rem;line-height:1.45}
+.opts{display:flex;flex-direction:column;gap:.55rem}
+.opt{display:flex;gap:.7rem;align-items:flex-start;border:1.5px solid var(--line);border-radius:9px;padding:.75rem .85rem;background:#fff;text-align:left;font-size:.97rem;line-height:1.45;transition:border-color .1s}
+.opt:hover:not(:disabled){border-color:var(--ink-soft)}
+.opt.sel{border-color:var(--ink);background:#F6F5F0;box-shadow:inset 0 0 0 1px var(--ink)}
+.opt.correct{border-color:var(--ok);background:var(--ok-soft)}
+.opt.wrong{border-color:var(--no);background:var(--no-soft)}
+.opt .key{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft);border:1px solid var(--line);border-radius:5px;padding:.05rem .4rem;flex-shrink:0;margin-top:.1rem}
+.opt:disabled{cursor:default}
+.subq{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--line)}
+.subq .lbl{font-size:.85rem;font-weight:600;margin-bottom:.5rem}
+
+.rank-list{display:flex;flex-direction:column;gap:.5rem}
+.rank-pick{border:1.5px solid var(--line);border-radius:9px;padding:.7rem .85rem;background:#fff;text-align:left;display:flex;gap:.7rem;font-size:.95rem}
+.rank-pick.picked{opacity:.45;cursor:default}
+.rank-pick .ordkey{font-family:var(--mono);font-size:.8rem;color:var(--brand);min-width:1.4rem;font-weight:600}
+
+.panel{border-radius:9px;padding:1rem 1.1rem;margin-top:1.1rem;font-size:.95rem}
+.panel .plabel{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;display:block}
+.panel.probe{background:var(--hilite-soft);border:1px solid #E8D48A}
+.panel.probe .plabel{color:#8A6D0B}
+.panel.good{background:var(--ok-soft);border:1px solid #BBDCC5}
+.panel.good .plabel{color:var(--ok)}
+.panel.bad{background:var(--no-soft);border:1px solid #E4BBAE}
+.panel.bad .plabel{color:var(--no)}
+.panel.remed{background:#F2F4F7;border:1px solid #D7DDE6}
+.panel.remed .plabel{color:#3D5878}
+.panel.remed .pointer{font-weight:600}
+.panel.remed .excerpt{border-left:3px solid var(--brand);padding:.4rem 0 .4rem .8rem;margin:.6rem 0;color:var(--ink-soft);font-style:italic}
+.rats{margin-top:.7rem;display:none}
+.rats.show{display:block}
+.rats li{margin:.35rem 0 .35rem 1.2rem;font-size:.9rem;color:var(--ink-soft)}
+
+/* Digest & report */
+.stat-row{display:flex;gap:1.4rem;flex-wrap:wrap;margin:.9rem 0}
+.stat{min-width:90px}
+.stat b{font-family:var(--disp);font-size:1.7rem;display:block;line-height:1.1}
+.stat span{font-size:.78rem;color:var(--ink-soft)}
+.readlist{margin-top:.8rem}
+.readlist .ritem{border:1px solid var(--line);border-left:4px solid var(--no);border-radius:8px;padding:.7rem .9rem;margin-bottom:.55rem;background:#fff}
+.readlist .ritem b{font-family:var(--disp)}
+.readlist .ritem .anchor{font-size:.85rem;color:var(--ink-soft)}
+table.hist{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:.8rem}
+table.hist th,table.hist td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line)}
+table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft)}
+.sg-group{border-top:1px solid var(--line);padding-top:.75rem;margin-top:.75rem}
+.sg-group:first-of-type{border-top:0;padding-top:0;margin-top:.4rem}
+.sg-sec{font-weight:600}
+.sg-lo{font-weight:600;color:var(--brand)}
+#studyWrap .excerpt{border-left:3px solid var(--brand);padding:.35rem 0 .35rem .8rem;margin:.4rem 0;color:var(--ink-soft);font-style:italic;font-size:.9rem}
+.sg-inner{margin:.45rem 0 .2rem;padding-left:.7rem;border-left:2px solid var(--brand-soft)}
+.sg-hints{margin:.3rem 0 .5rem 1.1rem}
+.sg-hints li{margin:.2rem 0;line-height:1.4}
+.footer-note{margin-top:2rem;font-size:.75rem;color:var(--ink-soft);text-align:center}
+.hidden{display:none!important}
+.toast{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.6rem 1.1rem;border-radius:8px;font-size:.88rem;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+.verlink{color:var(--brand);cursor:pointer;text-decoration:underline}
+.updatebar{position:fixed;left:50%;bottom:1rem;transform:translateX(-50%);display:none;align-items:center;gap:.8rem;background:var(--ink);color:var(--paper);padding:.55rem .9rem;border-radius:10px;box-shadow:var(--shadow);z-index:60;font-size:.9rem}
+.updatebar.show{display:flex}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;z-index:70;padding:5vh 1rem;overflow:auto}
+.modal.show{display:flex}
+.modal-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.4rem 1.5rem;max-width:560px;width:100%;box-shadow:var(--shadow)}
+.clentry{margin:.4rem 0 1rem}.clentry ul{margin:.3rem 0 0;padding-left:1.1rem}.clentry li{margin:.25rem 0}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="wordmark">Quiz<span class="accent">Prep</span></span>
+  <span class="sub">Entrepreneurship · Barringer &amp; Ireland</span>
+  <span class="spacer"></span>
+  <span class="cfg" id="cfgLabel">cfg: dev-preview</span>
+</header>
+<div class="devnote">Development preview — bank v<span id="dnBank">?</span> (unvetted) · spec v<span id="dnSpec">?</span> · <a id="verLink" class="verlink"></a> · <b>preview storage is per app version: use Export / Import (backups or session exports) to carry progress into a new build</b></div>
+
+<main class="shell">
+
+<!-- ============ HOME ============ -->
+<section id="viewHome">
+  <div class="card home-hero">
+    <div class="eyebrow">Weekly quiz preparation</div>
+    <h1>Practice until the <span class="hl">concepts stick</span>.</h1>
+    <p class="muted" style="margin-top:.5rem;max-width:56ch">Questions adapt from recall to application as you answer. Miss one and you'll get a nudge to reason it out before the answer is revealed — plus exactly which section of the chapter to re-read.</p>
+    <div class="chapters" id="chapterList"></div>
+    <div class="setuprow" style="display:block">
+      <p id="recLine" class="muted" style="margin-bottom:.5rem"></p>
+      <div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center">
+        <label><input type="radio" name="goal" value="rec" checked> <span id="recLabel">Recommended</span></label>
+        <label><input type="radio" name="goal" value="count"> Custom count
+          <select id="selLen">
+            <option>5</option><option>10</option><option selected>15</option><option>20</option><option>25</option><option>30</option>
+          </select>
+        </label>
+        <label><input type="radio" name="goal" value="mastery"> Until I master
+          <select id="selMx"></select> more objective(s)
+        </label>
+        <label style="margin-left:auto">Name / ID
+          <input id="inpName" type="text" placeholder="optional" size="12">
+        </label>
+      </div>
+      <div id="masteryOpts" class="hidden" style="margin-top:.6rem;padding:.7rem .9rem;background:var(--brand-soft);border-radius:8px;font-size:.88rem">
+        <div id="mxEst" style="margin-bottom:.45rem"></div>
+        <label style="display:block;margin-bottom:.2rem"><input type="radio" name="mxmode" value="nearest" checked>
+          <b>Fastest path</b> — target the objectives closest to mastery first</label>
+        <label style="display:block"><input type="radio" name="mxmode" value="spread">
+          <b>Broad practice</b> — mix questions across all unmastered objectives (usually takes longer)</label>
+      </div>
+    </div>
+    <div class="btnrow" style="margin-top:1.1rem">
+      <button class="btn brand" id="btnStart" style="font-size:1.05rem;padding:.7rem 1.5rem">Start Chapter 1 practice →</button>
+    </div>
+    <div class="btnrow">
+      <button class="btn quiet sm" id="btnReport">My progress report</button>
+      <button class="btn quiet sm" id="btnStudy">My study guide</button>
+      <button class="btn quiet sm" id="btnExportAll">Export my data (JSON)</button>
+      <button class="btn quiet sm" id="btnImport">Import data</button>
+      <input type="file" id="fileImport" accept="application/json" multiple class="hidden">
+      <button class="btn quiet sm" id="btnFresh">Restart Ch 1 ladder</button>
+      <button class="btn quiet sm" id="btnReset">Reset all data</button>
+    </div>
+  </div>
+  <div id="reportWrap" class="card hidden" style="margin-top:1rem"></div>
+  <div id="studyWrap" class="card hidden" style="margin-top:1rem"></div>
+</section>
+
+<!-- ============ SESSION ============ -->
+<section id="viewSession" class="hidden">
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="sess-head">
+          <div class="q-meta">
+            <span id="qCount"></span>
+            <span class="tierpill" id="qTier"></span>
+            <span id="qLO"></span>
+          </div>
+          <div class="progress"><i id="progBar" style="width:0%"></i></div>
+          <button class="btn quiet sm" id="btnEnd">End session</button>
+        </div>
+        <div id="qArea"></div>
+        <div id="fbArea"></div>
+        <div class="btnrow" id="actionRow"></div>
+      </div>
+    </div>
+    <aside class="rail card" style="padding:1rem">
+      <h3>Mastery ladder</h3>
+      <div id="loRail"></div>
+      <div class="legend" id="railLegend"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ DIGEST ============ -->
+<section id="viewDigest" class="hidden">
+  <div class="card">
+    <div class="eyebrow">Session complete</div>
+    <h1 id="digestHead">Nice work.</h1>
+    <div class="stat-row" id="digestStats"></div>
+    <div id="digestRead"></div>
+    <h2 style="margin-top:1.2rem">Where you stand</h2>
+    <div id="digestRail" style="max-width:340px;margin-top:.5rem"></div>
+    <div class="legend" id="digestLegend"></div>
+    <div class="btnrow">
+      <button class="btn brand" id="btnExportSession">Export session for Canvas (JSON)</button>
+      <button class="btn secondary" id="btnProg">View full progress report</button>
+      <button class="btn secondary" id="btnAgain">New session</button>
+      <button class="btn quiet" id="btnHome">Home</button>
+    </div>
+    <p class="muted" style="margin-top:1rem;font-size:.8rem">Your export contains a summary you can read plus your detailed responses packaged for your instructor. In this development preview the instructor package is <b>stubbed, not encrypted</b>.</p>
+  </div>
+</section>
+
+</main>
+<div class="toast" id="toast"></div>
+<div class="updatebar" id="updateBar"><span>A newer version is available.</span><button class="btn brand sm" id="btnRefresh">Refresh</button></div>
+<div class="modal" id="clModal"><div class="modal-card">
+  <h2 id="clTitle" style="margin-top:0">What’s new</h2>
+  <div id="clBody"></div>
+  <div class="btnrow" style="margin-top:.6rem"><button class="btn brand" id="clClose">Got it</button></div>
+</div></div>
+
+<script>
+/* ================= BANK (injected at build) ================= */
+let BANKS = (/*__BANK__*/null) || {};   // {"<unit-id>": bank, ...} map; empty in the config-only shell — a config populates it at boot
+const EMPTY_BANK={bank_meta:{learning_objectives:{},excerpts:{},chapter:null,chapter_title:''},items:[],question_sets:[]};   // placeholder before a config loads
+const STUDY_OUTCOMES=new Set(['correct_after_probe','wrong_after_probe','revealed','skipped']);   // missed-question outcomes that get a study-guide entry
+let CHAPTERS = [];              // ordered list of unit ids (strings) — stock: numeric order; a manifest config sets its own order
+let UNITMETA = {};              // {unit-id: {title, chapter, textbook}} — display (flat list + textbook subtitle)
+let MANIFEST_ACTIVE = false;    // true when a multi-textbook manifest config drives the unit list
+function textbookLabel(src){ if(!src)return null; const a=src.authors?String(src.authors).replace(/\s+and\s+/g,' & '):''; const who=a?a.split(',')[0].trim():(src.title||''); return who+(src.edition?' ('+src.edition+' ed.)':''); }
+function firstAuthor(src){ if(!src||!src.authors)return ''; const a=String(src.authors).split(/\s+and\s+|&|,/)[0].trim(); const p=a.split(/\s+/); return p[p.length-1]||''; }   // surname of the first author, for quick per-card ID
+let BOOKFILTER=new Set();       // textbook labels the home is filtered to; empty = show all (book-choice chips)
+function buildUnitsFromBanks(){ // stock / no-manifest: unit id = chapter key, numeric order, meta from bank_meta
+  MANIFEST_ACTIVE=false;
+  CHAPTERS=Object.keys(BANKS).sort((a,b)=>{ const na=+a,nb=+b; return (isNaN(na)||isNaN(nb))?String(a).localeCompare(String(b)):na-nb; });
+  UNITMETA={}; CHAPTERS.forEach(id=>{ const m=(BANKS[id].bank_meta)||{}; UNITMETA[id]={ title:m.chapter_title||('Chapter '+id), chapter:m.chapter, textbook:textbookLabel(m.source) }; });
+}
+buildUnitsFromBanks();
+let CH = CHAPTERS[0];           // active unit id (string) — dynamic; set by selectChapter()
+let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package replaces/merges banks at load (empty until then)
+
+/* ================= App version + changelog =================
+   UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
+   CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
+const APP_VERSION='0.16';
+const CHANGELOG=[
+  {v:'0.16', date:'Aug 20, 2026', notes:[
+    'Your instructor can now fine-tune which questions your class practices. If they’ve set a few questions aside during their review, you simply won’t see those — everything else works exactly the same.']},
+  {v:'0.15', date:'Aug 19, 2026', notes:[
+    'New “My study guide”: for each question you missed, it collects the key hints — more of them the more you struggled — along with the objective and exactly which chapter section to read (and a short excerpt where available). Sort it by chapter & section or by objective.']},
+  {v:'0.14', date:'Aug 19, 2026', notes:[
+    'If your class spans more than one book, you can now tap a book at the top of the home screen to show just its chapters (tap again to add or drop books). Each chapter card also shows the author above the chapter number, so it’s quicker to tell the books apart.']},
+  {v:'0.13', date:'Aug 19, 2026', notes:[
+    'You can now re-download the Canvas file for any past session from your progress report (the “Canvas file” button in the last column). So if you move on before uploading, or need to turn in an earlier session, the file is still there.']},
+  {v:'0.12', date:'Aug 19, 2026', notes:[
+    'When your class has more than one chapter, tapping a chapter now selects it and updates the session options and the Start button to match — so you can pick any chapter and set up its session before you begin, not only the first one.']},
+  {v:'0.11', date:'Aug 19, 2026', notes:[
+    'The app now always loads your class’s material from the link your instructor gives you. If you open it without a class link, you’ll see a public demo plus a reminder to get your class’s link. If you already use your class link, nothing changes in how you practice.']},
+  {v:'0.10', date:'Aug 18, 2026', notes:[
+    'Your course can now include chapters from more than one textbook — they appear as one ordered list on the home screen, with each chapter’s book shown when a course mixes books. If your class uses a single textbook, nothing changes.']},
+  {v:'0.9', date:'Aug 18, 2026', notes:[
+    'The app now carries more than one chapter: pick any released chapter from the home screen and each keeps its own difficulty ladder and mastery. Your progress in one chapter is separate from another. (Chapters your instructor hasn’t released yet still show as locked with their release date.)']},
+  {v:'0.8', date:'Aug 17, 2026', notes:[
+    'When your instructor’s class link turns on anonymous mode, the file you upload identifies you by a random code from this device instead of your name — your instructor still sees who you are through Canvas. Nothing changes in how you practice; without such a link your name is used as before.']},
+  {v:'0.7', date:'Aug 17, 2026', notes:[
+    'When your instructor’s class link includes their security key, the detailed record of your answers is now encrypted inside the file you upload — only your instructor can open it. Your grade summary is unchanged, and nothing changes in how you practice.']},
+  {v:'0.6', date:'Aug 17, 2026', notes:[
+    'Your instructor can now hand you a class link that sets up your display name, your section, and when each chapter unlocks — so a chapter shows up on its release date and your section is recorded on the work you turn in. Without such a link the app works exactly as before.']},
+  {v:'0.5', date:'Aug 17, 2026', notes:[
+    'Your session export now records a small version signature for each question, so if your instructor edits a question mid-semester the analytics can tell the versions apart. No change to how you practice.']},
+  {v:'0.4', date:'Aug 17, 2026', notes:[
+    'Refreshing the page — or closing the tab and coming back later — now resumes your in-progress practice session where you left off, instead of starting over. Your current question is re-asked fresh; every earlier answer in the session is kept.']},
+  {v:'0.3', date:'Aug 17, 2026', notes:[
+    'Mastering an objective now matches how far its questions go: objectives that include application questions still take 2 straight first-try corrects at the top level, while objectives that top out at comprehension take 3 — a comparably strong bar either way. The streak chip shows your target (x/2 or x/3).']},
+  {v:'0.2', date:'Aug 16, 2026', notes:[
+    'New question style on some topics: matched sets where every answer choice is a real concept from the chapter — so you can’t guess by picking the longest or odd-one-out choice; you have to know which idea actually fits.',
+    'Hints and explanations after a wrong answer are now tailored to the specific choice you picked.',
+    'Fixed the follow-up recall check that appears after a missed question.']},
+  {v:'0.1', date:'Aug 16, 2026', notes:[
+    'First release. Adaptive per-objective ladder (recall → comprehension → application), a Socratic nudge before answers are revealed, remediation that points to the exact chapter section, mastery that carries across sessions, and a JSON session export to hand in on Canvas.',
+    'The app now checks for updates while it’s open and offers a one-tap Refresh when a newer version is live; “what’s changed” in the footer opens this history.']}
+];
+const cmpVer=(a,b)=>{const pa=(a||'').split('.').map(Number),pb=(b||'').split('.').map(Number);
+  for(let i=0;i<Math.max(pa.length,pb.length);i++){const d=(pa[i]||0)-(pb[i]||0);if(d)return d>0?1:-1;}return 0;};
+
+/* Remediation excerpts travel in the bank now (bank_meta.excerpts), per spec §10.1. Each excerpt is
+   either a plain string (legacy) or {text, kind:"quote"|"paraphrase"} (kind is authoring/IP metadata,
+   per-excerpt — quotes get paraphrased before public release). exText reads either shape. */
+let EXCERPTS = (BANK.bank_meta && BANK.bank_meta.excerpts) || {};
+function exText(v){ return typeof v==='string'?v:((v&&v.text)||''); }
+
+/* ================= Storage adapter (window.storage → localStorage fallback) ================= */
+const store = {
+  async get(k){ try{ if(window.storage){ const r=await window.storage.get(k); return r?JSON.parse(r.value):null; } }catch(e){ /* missing key */ }
+    try{ const v=localStorage.getItem(k); return v?JSON.parse(v):null; }catch(e){ return null; } },
+  async set(k,v){ const s=JSON.stringify(v);
+    try{ if(window.storage){ await window.storage.set(k,s); return; } }catch(e){}
+    try{ localStorage.setItem(k,s); }catch(e){} },
+  async del(k){ try{ if(window.storage){ await window.storage.delete(k); return; } }catch(e){}
+    try{ localStorage.removeItem(k); }catch(e){} }
+};
+const SKEY='quizprep-v1';
+const LEGEND=`One row per learning objective.<br>Rungs = recall → comprehension → application; a dashed rung means the bank has no questions at that level.<br>Filled rungs show the level you've reached. Mastery also needs a streak of first-try corrects at the top level — <b>2</b> where that level is application, <b>3</b> where the top level is comprehension — the <span class="streak">x/N</span> chip tracks it.<br><span style="color:var(--ok)">✓</span> mastered · <span style="color:var(--no)">⚑</span> needs review`;
+
+/* ================= App state ================= */
+let DATA={ name:'', sessions:[], carryReview:{}, ladder:{} };   // ladder: {"1":{"1.1":{tier,consec,mastered}}}
+let S=null;   // active session
+
+const $=id=>document.getElementById(id);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const uuid=()=>('s'+Date.now().toString(36)+Math.random().toString(36).slice(2,8));
+const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);};
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const optKey=p=>String.fromCharCode(65+p);   // option key letter: A,B,C,D,E,…
+
+/* ================= Engine helpers ================= */
+let LOS=Object.keys(BANK.bank_meta.learning_objectives);
+const itemsByLO=lo=>BANK.items.filter(i=>i.lo===lo);
+const tiersAvail=lo=>[...new Set(itemsByLO(lo).map(i=>i.tier))].sort();
+const maxTier=lo=>Math.max(...tiersAvail(lo));
+const masterK=lo=>maxTier(lo)>=3?2:3;   // first-attempt corrects to master: 2 at an application (Tier-3) top, 3 at a comprehension (Tier-2) top
+
+/* ===== Shared-option pools (mc_pool, spec §1a). Each set's questions are expanded at load
+   into virtual items so the ladder/picker/coverage treat them normally; on selection a pool
+   question is MATERIALIZED into an ordinary 4-option mc4 (distractors sampled uniformly at
+   random, hints composed from option.theme + question.focus), so the answer flow is unchanged. */
+function expandSets(){
+  if(BANK._setsExpanded)return; BANK._setsExpanded=true;
+  BANK.question_sets=BANK.question_sets||[];
+  for(const set of BANK.question_sets){
+    for(const q of (set.questions||[])){
+      BANK.items.push({q_id:q.q_id,lo:q.lo,tier:q.tier,type:'mc_pool',
+        origin:q.origin||'bank',status:q.status||'draft',stem:q.stem,
+        source_anchor:q.source_anchor||set.source_anchor||'',_set:set,_q:q});
+    }
+  }
+}
+expandSets();
+
+/* ===== Config packages (§11.1a). A per-class config may arrive as ?cfg=<id> (model 1: fetch
+   configs/<id>.config.json for its embedded custom bank) or ?cfg=<base64url(cfg)> (model 2:
+   the stock bank, config carried in the URL), with &sec=<section>. It carries a display name, a
+   per-chapter date-gated release schedule, and a section stamp for exports. No ?cfg = stock,
+   unchanged. setBank() lets model 1 swap in its bank before the home renders. */
+let CONFIG=null;
+let DEMO_MODE=false;   // true on a no-?cfg visit (the public demo class) → renderHome shows a prominent 'get your class link' banner
+/* Staging test-deploy: the SAME built file serves live (/quizprep/) and staging (/quizprep/staging/),
+   detecting which by its own path. On staging it reads the live configs (../configs/) so it runs under
+   real class conditions, and renderStagingChrome() wraps it in a distinct banner + "what changed since
+   live" + a preview-as-live toggle. Inert at the live root. */
+const STAGING=(function(){ try{ return /\/staging\//.test(location.pathname||''); }catch(e){ return false; } })();
+const CFG_BASE=STAGING?'../configs/':'configs/';
+const STAGE_PREVIEW_KEY='quizprep-staging-preview-v1';
+function setBank(b){ BANK=b; BANKS[CH]=b; EXCERPTS=(BANK.bank_meta&&BANK.bank_meta.excerpts)||{};
+  LOS=Object.keys(BANK.bank_meta.learning_objectives); expandSets();
+  if(!MANIFEST_ACTIVE){ const m=b.bank_meta||{}; UNITMETA[CH]={ title:m.chapter_title||('Chapter '+CH), chapter:m.chapter, textbook:textbookLabel(m.source) }; } }   // refresh the active unit's display meta on a bank swap (manifest owns its own titles)
+function mergeBanks(map){   // a model-1 config package may carry SEVERAL chapter banks — merge them all into BANKS (one textbook)
+  Object.keys(map).forEach(k=>{ const b=map[k]; if(b&&b.bank_meta){ pruneExcluded(b,String(k)); BANKS[String(k)]=b; } });
+  buildUnitsFromBanks(); CH=CHAPTERS[0]; setBank(BANKS[CH]);   // rebuild units + re-point active + refresh EXCERPTS/LOS/expandSets
+}
+function buildUnitsFromManifest(manifest, banks){   // multi-textbook: a config manifest defines the ordered units + carries their banks
+  BANKS={}; UNITMETA={}; MANIFEST_ACTIVE=true;
+  (manifest||[]).forEach(u=>{ const b=banks&&banks[u.id]; if(b&&b.bank_meta){ pruneExcluded(b,u.id); BANKS[u.id]=b;
+    UNITMETA[u.id]={ title:u.title||b.bank_meta.chapter_title||u.id, chapter:(u.chapter!=null?u.chapter:b.bank_meta.chapter), textbook:u.textbook||textbookLabel(b.bank_meta.source) }; } });
+  CHAPTERS=(manifest||[]).map(u=>u.id).filter(id=>BANKS[id]);   // manifest order
+  CH=CHAPTERS[0]; if(CH) setBank(BANKS[CH]);
+}
+/* Stay-canonical exclusions: a config may carry cfg.exclusions = { "<unit-id>": ["<q_id>", …] } to
+   drop specific questions from THIS class while the unit stays canonical (auto-refreshes each host).
+   Applied as each unit's bank is installed, BEFORE expandSets — so tier/LO availability reflects only
+   what remains (an excluded question never shows as a hidden rung). q_ids are in the clear even on an
+   encrypted bank, so no decryption is needed; an id not present in the bank is simply ignored. */
+function excludedIds(unitId){ const ex=CONFIG&&CONFIG.exclusions; const l=ex&&(ex[unitId]!=null?ex[unitId]:ex[String(unitId)]); return (Array.isArray(l)&&l.length)?new Set(l.map(String)):null; }
+function pruneExcluded(bank,unitId){
+  const drop=excludedIds(unitId); if(!drop||!bank) return bank;
+  if(Array.isArray(bank.items)) bank.items=bank.items.filter(it=>!drop.has(String(it.q_id)));
+  if(Array.isArray(bank.question_sets)) bank.question_sets=bank.question_sets
+    .map(s=>{ if(Array.isArray(s.questions)) s.questions=s.questions.filter(q=>!drop.has(String(q.q_id))); return s; })
+    .filter(s=>Array.isArray(s.questions)&&s.questions.length);
+  return bank;
+}
+const todayISO=()=>new Date().toISOString().slice(0,10);
+function releaseDate(ch){ return CONFIG&&CONFIG.release_schedule ? (CONFIG.release_schedule[ch]??CONFIG.release_schedule[String(ch)]) : null; }
+function chapterReleased(ch){
+  const sched=CONFIG&&CONFIG.release_schedule;
+  if(!sched||!Object.keys(sched).length)return true;  // no config / empty schedule → released (stock behavior)
+  if(!(String(ch) in sched))return false;             // a non-empty schedule is an allowlist: a chapter not listed stays locked
+  const d=releaseDate(ch);
+  if(!d)return true;                                  // listed with no date → available now
+  return todayISO()>=d;                               // otherwise released on/after its ISO date
+}
+function decodeCfgParam(v){ try{ return JSON.parse(decodeURIComponent(escape(atob(v.replace(/-/g,'+').replace(/_/g,'/'))))); }catch(e){ return null; } }
+function withTimeout(promise,ms){ return new Promise(res=>{ let done=false;
+  const t=setTimeout(()=>{ if(!done){done=true;res(null);} },ms);
+  promise.then(v=>{ if(!done){done=true;clearTimeout(t);res(v);} },()=>{ if(!done){done=true;clearTimeout(t);res(null);} }); }); }
+function applyPkgBanks(pkg){   // load whatever banks a config package carries (manifest > multi-bank > legacy single)
+  if(!pkg) return;
+  if(Array.isArray(pkg.manifest)&&pkg.banks) buildUnitsFromManifest(pkg.manifest, pkg.banks);   // Feature 5: multi-textbook manifest
+  else if(pkg.banks&&typeof pkg.banks==='object') mergeBanks(pkg.banks);                        // several banks (one textbook)
+  else if(pkg.bank&&pkg.bank.bank_meta) mergeBanks({[String(pkg.bank.bank_meta.chapter)]:pkg.bank});   // legacy single bank → one-entry map (rebuilds units in the empty shell)
+}
+async function loadConfig(){
+  let p; try{ p=new URLSearchParams(location.search); }catch(e){ p=new URLSearchParams(); }
+  let raw=p.get('cfg');
+  if(!raw){ raw='demo'; DEMO_MODE=true; }   // Pages-only model: every visit loads a config; no ?cfg ⇒ the public demo class
+  const sec=p.get('sec')||null;
+  const inline=decodeCfgParam(raw);
+  if(inline&&inline.cfg_id){ CONFIG=inline; applyPkgBanks(inline); }   // model 2 — config (and, if present, its banks) in the URL
+  else{                                               // model 1 — fetch the maintainer-hosted package (bounded, so a hung network can't hang boot)
+    try{ const r=await withTimeout(fetch(CFG_BASE+encodeURIComponent(raw)+'.config.json'),6000);
+      if(r&&r.ok){ const pkg=await r.json(); if(pkg&&pkg.cfg){ CONFIG=pkg.cfg; applyPkgBanks(pkg); } }
+    }catch(e){}
+  }
+  // Config-only baseline: a config that brings no banks of its own (e.g. a metadata-only model-2
+  // config) rides on the public demo class's content, so it always has chapters to practice.
+  if(!CHAPTERS.length && raw!=='demo'){
+    try{ const r=await withTimeout(fetch(CFG_BASE+'demo.config.json'),6000);
+      if(r&&r.ok){ const pkg=await r.json(); applyPkgBanks(pkg); } }catch(e){}
+  }
+  if(CONFIG){ CONFIG.section=sec; if(CONFIG.display_name){ try{ document.title=CONFIG.display_name+' · QuizPrep'; }catch(e){} } }
+}
+/* ===== Anonymous device code (§11). When a config sets anonymize, the export identifies the
+   student by a random UUIDv4 minted + kept on this device — never the name or a student ID (the
+   app never asks for one). The instructor attributes each upload via Canvas; the maintainer sees
+   only a stable-per-device code. Clearing storage yields a new code (accepted). */
+const DKEY='quizprep-device-v1';
+function newUUID(){
+  try{ return crypto.randomUUID(); }catch(e){
+    const b=crypto.getRandomValues(new Uint8Array(16)); b[6]=(b[6]&0x0f)|0x40; b[8]=(b[8]&0x3f)|0x80;
+    const h=[...b].map(x=>x.toString(16).padStart(2,'0'));
+    return `${h[0]}${h[1]}${h[2]}${h[3]}-${h[4]}${h[5]}-${h[6]}${h[7]}-${h[8]}${h[9]}-${h[10]}${h[11]}${h[12]}${h[13]}${h[14]}${h[15]}`; }
+}
+async function deviceId(){ let id=await store.get(DKEY); if(!id||typeof id!=='string'){ id=newUUID(); await store.set(DKEY,id); } return id; }
+/* ===== Export encryption (spec §9). When the loaded config carries an instructor public key, the
+   item detail is sealed with a per-session AES-256-GCM key wrapped by that RSA-OAEP-4096 public key
+   — only the instructor's private key opens it. No public key ⇒ the dev base64 stub (unencrypted),
+   so stock/no-config use is unchanged. A session never fails to export: any crypto error falls back
+   to a clearly-labelled stub rather than blocking the student. */
+function _abB64(buf){ const u=new Uint8Array(buf); let s=''; for(let i=0;i<u.length;i++)s+=String.fromCharCode(u[i]); return btoa(s); }
+function _b64U8(b64){ const t=atob(b64); const u=new Uint8Array(t.length); for(let i=0;i<t.length;i++)u[i]=t.charCodeAt(i); return u; }
+/* Friction #2 + #3: answer-field encryption with per-question decrypt. Delivered banks carry each
+   item's answer fields (correct_index/rationales/probes/… ; pools: correct id + key_rationale) as an
+   AES-GCM `enc` blob instead of plaintext, so the shipped JSON has no readable answer key (#2). The
+   in-memory bank STAYS encrypted; the app decrypts an item's answer into a working copy only when the
+   question is selected (prepareItem, in nextQuestion), so the full answer set is never decrypted at
+   once — only the current question's answer is ever in the clear (#3). This symmetric key is
+   OBSCURITY, not secrecy — a determined dev-tools reader can extract it. It is the single source of
+   the key: the build's tools/answer_crypto.mjs reads it from here so encrypt (Node webcrypto) and
+   decrypt (below) share one format. */
+const ENC_KEY='lIcrDlm5vaAT/Ss3oFBUM8YM+4JEVUSDGdsc2KnbKIw=';
+let _encKeyP=null;
+function _encKey(){ return _encKeyP||(_encKeyP=crypto.subtle.importKey('raw',_b64U8(ENC_KEY),{name:'AES-GCM'},false,['decrypt'])); }
+async function decryptAnswer(enc){   // enc={iv,ct} (base64) → the parsed answer object
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:_b64U8(enc.iv)},await _encKey(),_b64U8(enc.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+/* #3: decrypt this item's answer fields into a WORKING COPY at selection, leaving the in-memory bank
+   encrypted. Returns the item SYNCHRONOUSLY when nothing needs decrypting (plaintext banks — source,
+   tests, un-encrypted configs — so the engine stays synchronous), or a Promise when an `enc` blob is
+   present. Pool virtual items carry the answer on `_q`, so decrypt that. */
+function prepareItem(item){
+  if(item.type==='mc_pool'){ const q=item._q;
+    if(q&&q.enc) return decryptAnswer(q.enc).then(ans=>Object.assign({},item,{_q:Object.assign({},q,ans)}));
+    return item; }
+  if(item.enc) return decryptAnswer(item.enc).then(ans=>Object.assign({},item,ans));
+  return item;
+}
+async function encryptItemDetail(detailJson,publicKeyB64){
+  const pub=await crypto.subtle.importKey('spki',_b64U8(publicKeyB64),{name:'RSA-OAEP',hash:'SHA-256'},false,['wrapKey']);
+  const aes=await crypto.subtle.generateKey({name:'AES-GCM',length:256},true,['encrypt']);
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},aes,new TextEncoder().encode(detailJson));
+  return { alg:'RSA-OAEP-4096+AES-256-GCM', iv:_abB64(iv), wrapped_key:_abB64(await crypto.subtle.wrapKey('raw',aes,pub,{name:'RSA-OAEP'})), ciphertext:_abB64(ct) };
+}
+const poolProbe=(o,focus)=>`You picked an option about ${o.theme}. This scenario is really about ${focus} — take another look.`;
+const poolRationale=(o,focus,c)=>`‘${o.text}’ is ${o.correction}. It doesn't fit here because this scenario is about ${focus} — which is what makes ‘${c.text}’ the answer.`;
+function materializePool(v){
+  const set=v._set,q=v._q,pool=set.shared_options,N=set.options_per_question||4;
+  const correct=pool.find(o=>o.id===q.correct);
+  const excl=new Set([q.correct,...(q.sample_exclude||[])]);
+  const picked=[correct,...shuffle(pool.filter(o=>!excl.has(o.id))).slice(0,N-1)];
+  const opts=shuffle(picked), ci=opts.indexOf(correct), focus=q.focus||correct.theme;
+  return {q_id:v.q_id,lo:v.lo,tier:v.tier,type:'mc4',origin:v.origin,status:v.status,
+    set_id:set.set_id,stem:v.stem,source_anchor:v.source_anchor,
+    options:opts.map(o=>o.text),correct_index:ci,
+    rationales:opts.map(o=>o.id===q.correct?q.key_rationale:poolRationale(o,focus,correct)),
+    probes:opts.map(o=>o.id===q.correct?null:poolProbe(o,focus))};
+}
+
+/* Response-comparability signature (§ item versioning): a short hash of ONLY the answer-relevant
+   fields, so editing a rationale/probe/anchor keeps it stable, while editing the stem/options/correct
+   answer changes it. Stamped into each export record so the instructor dashboard can group (and
+   optionally merge) responses by question version. Computed from the original item (pool virtual
+   items carry _set/_q) BEFORE materialization, so pool questions get a stable per-question value. */
+function sig53(str){ let h1=0xdeadbeef,h2=0x41c6ce57;
+  for(let i=0;i<str.length;i++){const ch=str.charCodeAt(i);h1=Math.imul(h1^ch,2654435761);h2=Math.imul(h2^ch,1597334677);}
+  h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);
+  h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);
+  return (4294967296*(2097151&h2)+(h1>>>0)).toString(36); }
+function itemSig(it){
+  let parts;
+  if(it.type==='mc_pool'&&it._set&&it._q){
+    const q=it._q,set=it._set;
+    const shared=(set.shared_options||[]).map(o=>[o.id,o.text]).slice().sort();   // correct keyed by id (q.correct), so order-free
+    parts=['pool',q.stem||'',q.focus||'',q.correct||'',JSON.stringify(shared)];
+  } else {
+    const opts=it.options||[];
+    const correctText=(typeof it.correct_index==='number')?(opts[it.correct_index]??''):'';
+    const correctSeq=Array.isArray(it.correct_order)?JSON.stringify(it.correct_order.map(i=>opts[i])):'';  // rank_order answer, by text
+    const jSet=Array.isArray(it.justify_options)?JSON.stringify(it.justify_options.slice().sort()):'';
+    const jCorrect=Array.isArray(it.justify_options)?String(it.justify_options[it.justify_correct]??''):'';
+    parts=[it.type||'',it.stem||'',JSON.stringify(opts.slice().sort()),correctText,correctSeq,jSet,jCorrect];
+  }
+  return sig53(parts.join(''));
+}
+
+function loNeed(st,lo){ // perfect-play first-try corrects to master this LO
+  const mt=maxTier(lo);
+  return Math.max(0,mt-Math.min(st.tier,mt))+Math.max(0,masterK(lo)-st.consec);
+}
+function estRemaining(losMap){ // from a ladder map {lo:{tier,consec,mastered}}
+  let n=0; LOS.forEach(lo=>{const p=losMap[lo]||{tier:1,consec:0,mastered:false};
+    if(!p.mastered)n+=loNeed(p,lo);}); return n;
+}
+function recommendedLen(){
+  const est=estRemaining(DATA.ladder[CH]||{});
+  if(est===0)return {n:10,est,label:'Chapter mastered — 10-question review'};
+  const n=Math.min(15,Math.max(5,est));
+  return {n,est,label:`Recommended: ${n} questions`};
+}
+function estForX(x){ // perfect-play answers to master the X nearest-to-mastery objectives
+  const saved=DATA.ladder[CH]||{};
+  const needs=LOS.map(lo=>{const p=saved[lo]||{tier:1,consec:0,mastered:false};
+      return p.mastered?null:loNeed(p,lo);})
+    .filter(n=>n!==null).sort((a,b)=>a-b);
+  return needs.slice(0,Math.min(x,needs.length)).reduce((s,n)=>s+n,0);
+}
+const HARD_CAP=60;
+function initSession(goal){
+  const carry=(DATA.carryReview[CH]||[]);
+  const saved=(DATA.ladder[CH]||{});
+  const los={};
+  LOS.forEach(lo=>{const p=saved[lo]||{};
+    los[lo]={tier:p.tier||1,consec:p.consec||0,mastered:!!p.mastered,exhausted:false,misses:0,covered:0,
+    needsReview:false,carry:carry.includes(lo),wasMastered:!!p.mastered};});
+  S={id:uuid(),chapter:CH,started:new Date().toISOString(),goal,los,items:[],
+     idx:0,current:null,phase:'answering',usedIds:new Set(),tStart:0,firstMs:0,
+     focus:null,nextCk:(goal.type==='count'?goal.n:null),ckShown:0};
+}
+/* Active-session persistence: snapshot the in-progress session so a page refresh (or
+   coming back later) resumes it instead of dropping to home. Saved only at clean question
+   boundaries (fresh current question); the current question is re-asked from scratch on resume,
+   so all earlier resolved progress is preserved with no double-counting. Sets → arrays because
+   store.set JSON-stringifies. */
+const AKEY='quizprep-active-v1';
+function serializeS(){ return {...S, usedIds:[...S.usedIds], focus:S.focus?[...S.focus]:null}; }
+function saveActive(){ if(!S||S.ended)return;
+  store.set(AKEY,{v:APP_VERSION,bank:BANK.bank_meta.bank_version,chapter:S.chapter,s:serializeS()}); }
+function clearActive(){ store.del(AKEY); }
+function resumeSession(s){
+  S=s; S.usedIds=new Set(s.usedIds||[]); S.focus=s.focus?new Set(s.focus):null;
+  S.phase='answering'; S.tStart=Date.now();
+  if(S.current){ S.current.attempt=1;
+    const r=S.current.rec; if(r){ r.probe_shown=false; r.student_answer_1=null; r.student_answer_2=null; r.outcome=null; r.response_ms=[]; } }
+  SEL={pos:null,jpos:null,rank:[]};
+  show('viewSession'); renderQuestion(); toast('Resumed your in-progress session');
+}
+function readGoal(){
+  const g=document.querySelector('input[name=goal]:checked').value;
+  if(g==='count')return{type:'count',n:+$('selLen').value};
+  if(g==='mastery'){const m=document.querySelector('input[name=mxmode]:checked');
+    return{type:'mastery',x:+$('selMx').value,focus:(m&&m.value)||'nearest'};}
+  return{type:'count',n:recommendedLen().n};
+}
+function newMasteredCount(){return LOS.filter(lo=>S.los[lo].mastered&&!S.los[lo].wasMastered).length;}
+
+function pickLO(){
+  let open=LOS.filter(lo=>!S.los[lo].mastered&&!S.los[lo].exhausted);
+  if(S.focus){const f=open.filter(lo=>S.focus.has(lo)); if(f.length)open=f; else {S.focus=null;}}
+  if(S.goal.type==='mastery'&&S.goal.focus==='nearest'&&!S.focus){
+    const mn=Math.min(...open.map(lo=>loNeed(S.los[lo],lo)));
+    return shuffle(open.filter(lo=>loNeed(S.los[lo],lo)===mn))[0];
+  }
+  if(!open.length)return null;
+  const under=open.filter(lo=>S.los[lo].covered<2);
+  if(under.length){const min=Math.min(...under.map(lo=>S.los[lo].covered));
+    return shuffle(under.filter(lo=>S.los[lo].covered===min))[0];}
+  // weighted: 1 + 2*misses + carry
+  const w=open.map(lo=>({lo,w:1+2*S.los[lo].misses+(S.los[lo].carry?1:0)}));
+  const tot=w.reduce((s,x)=>s+x.w,0); let r=Math.random()*tot;
+  for(const x of w){ r-=x.w; if(r<=0)return x.lo; } return w[w.length-1].lo;
+}
+function pickItem(lo,wantTier){
+  const pool=itemsByLO(lo);
+  const order=[]; for(let t=wantTier;t>=1;t--)order.push(t); for(let t=wantTier+1;t<=3;t++)order.push(t);
+  for(const t of order){
+    const c=pool.filter(i=>i.tier===t&&!S.usedIds.has(i.q_id));
+    if(c.length)return shuffle(c)[0];
+  }
+  return null;
+}
+function effTier(lo){ const t=S.los[lo].tier, av=tiersAvail(lo);
+  let best=av[0]; for(const a of av){ if(a<=t)best=a; } return best; }
+
+function nextQuestion(){
+  if(S.idx>=S.len)return endSession();
+  const lo=pickLO(); if(!lo)return endSession();
+  const st=S.los[lo];
+  const picked=pickItem(lo,st.tier);
+  if(!picked){st.exhausted=true;return nextQuestion();}
+  S.usedIds.add(picked.q_id); st.covered++;
+  const prepared=prepareItem(picked);   // #3: decrypt this item's answer into a working copy (sync for plaintext, Promise for encrypted)
+  return (prepared&&typeof prepared.then==='function') ? prepared.then(it=>finishNextQuestion(it,lo)) : finishNextQuestion(prepared,lo);
+}
+function finishNextQuestion(item,lo){
+  const sig=itemSig(item);   // stable per-question signature, before pool materialization (needs the decrypted answer)
+  if(item.type==='mc_pool')item=materializePool(item);   // sample distractors + compose hints (§1a) → mc4
+  const perm=(item.type==='mc4'||item.type==='scenario_mc')?shuffle([...item.options.keys()])
+            :(item.type==='rank_order')?shuffle([...item.options.keys()]):null;
+  const jperm=item.justify_options?shuffle([...item.justify_options.keys()]):null;
+  // Study-guide hints (captured while the item — incl. materialized pools — is in hand): authored items
+  // use the distractor RATIONALES (they read well standalone); pool items' composed rationales name the
+  // answer, so fall back to their probes. Correct option excluded (i===correct_index).
+  const htxt=item.set_id?(item.probes||[]):(item.rationales||[]);
+  const studyHints=htxt.map((t,i)=>(i!==item.correct_index&&t!=null&&t!=='')?{i,text:String(t)}:null).filter(Boolean);
+  S.current={item,lo,perm,jperm,attempt:1,rec:{q_id:item.q_id,lo,tier:item.tier,type:item.type,
+    origin:item.origin,set_id:item.set_id,sig,anchor:item.source_anchor||'',hints:studyHints,
+    probe_shown:false,student_answer_1:null,student_answer_2:null,
+    outcome:null,remediated:false,response_ms:[]}};
+  S.phase='answering'; S.tStart=Date.now();
+  renderQuestion();
+  saveActive();
+}
+
+/* ================= Rendering ================= */
+function railHTML(){
+  return LOS.map(lo=>{const st=S.los[lo];const av=tiersAvail(lo);
+    const rungs=[1,2,3].map(t=>{
+      const na=!av.includes(t)?' na':'';
+      const on=(st.mastered||st.tier>t||(st.tier===t&&(st.covered>0||st.consec>0)))?' on':'';
+      return `<span class="rung t${t}${na}${on}"></span>`;}).join('');
+    const mt=maxTier(lo);
+    const atTop=!st.mastered&&Math.min(st.tier,3)>=mt;
+    const streak=atTop?`<span class="streak">${st.consec}/${masterK(lo)}</span>`:'';
+    const flag=st.mastered?'<span class="flag mastered">✓</span>':(st.needsReview?'<span class="flag review">⚑</span>':'');
+    const act=S.current&&S.current.lo===lo?' active':'';
+    return `<div class="lo-row${act}"><span class="lo-id">${lo}</span><span class="ladder">${rungs}</span>${streak}${flag}</div>`;
+  }).join('');
+}
+function headMeta(){
+  const tgt=S.goal.type==='mastery'&&!S.nextCk?null:S.nextCk;
+  $('qCount').textContent=tgt?`Q ${S.idx+1} / ${tgt}`:`Q ${S.idx+1} · goal: master ${S.goal.x} objective${S.goal.x>1?'s':''}`;
+  const t=S.current.item.tier;
+  const names={1:'Recall',2:'Comprehension',3:'Application'};
+  const tp=$('qTier'); tp.textContent=`Tier ${t} · ${names[t]}`; tp.className='tierpill t'+t;
+  $('qLO').textContent='Learning Objective '+S.current.lo;
+  const p=(S.goal.type==='mastery'&&!S.nextCk)?(newMasteredCount()/S.goal.x):(S.idx/(S.nextCk||1));
+  $('progBar').style.width=Math.min(100,100*p)+'%';
+  $('loRail').innerHTML=railHTML();
+  if(!$('railLegend').innerHTML)$('railLegend').innerHTML=LEGEND;
+}
+function renderQuestion(){
+  headMeta();
+  const it=S.current.item; const qa=$('qArea'); $('fbArea').innerHTML='';
+  let h=`<div class="stem">${esc(it.stem)}</div>`;
+  if(it.type==='mc4'||it.type==='scenario_mc'){
+    h+='<div class="opts">'+S.current.perm.map((orig,pos)=>
+      `<button class="opt" data-pos="${pos}"><span class="key">${optKey(pos)}</span><span>${esc(it.options[orig])}</span></button>`).join('')+'</div>';
+  } else if(it.type==='tf_justify'){
+    h+='<div class="opts">'+[0,1].map(i=>
+      `<button class="opt" data-pos="${i}"><span class="key">${'TF'[i]}</span><span>${esc(it.options[i])}</span></button>`).join('')+'</div>';
+    if(it.justify_options){
+      h+=`<div class="subq"><div class="lbl">…and why?</div><div class="opts">`+
+        S.current.jperm.map((orig,pos)=>`<button class="opt jopt" data-jpos="${pos}"><span class="key">${pos+1}</span><span>${esc(it.justify_options[orig])}</span></button>`).join('')+'</div></div>';
+    }
+  } else if(it.type==='rank_order'){
+    h+=`<p class="muted" style="margin-bottom:.6rem">Tap the steps in order (first → last).</p><div class="rank-list">`+
+      S.current.perm.map((orig,pos)=>`<button class="rank-pick" data-pos="${pos}"><span class="ordkey" data-ord></span><span>${esc(it.options[orig])}</span></button>`).join('')+
+      `</div><div class="btnrow"><button class="btn quiet sm" id="rankReset">Start over</button></div>`;
+  }
+  qa.innerHTML=h;
+  wireAnswerInputs();
+  $('actionRow').innerHTML=`<button class="btn brand" id="btnSubmit" disabled>Check answer</button>
+    <button class="btn quiet" id="btnSkip">Skip</button>`;
+  $('btnSubmit').onclick=submitAnswer;
+  $('btnSkip').onclick=doSkip;
+}
+let SEL={pos:null,jpos:null,rank:[]};
+function wireAnswerInputs(){
+  SEL={pos:null,jpos:null,rank:[]};
+  const it=S.current.item;
+  document.querySelectorAll('#qArea .opt:not(.jopt)').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#qArea .opt:not(.jopt)').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');SEL.pos=+b.dataset.pos;checkReady();});
+  document.querySelectorAll('#qArea .jopt').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#qArea .jopt').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');SEL.jpos=+b.dataset.jpos;checkReady();});
+  document.querySelectorAll('#qArea .rank-pick').forEach(b=>b.onclick=()=>{
+    if(b.classList.contains('picked'))return;
+    b.classList.add('picked');SEL.rank.push(+b.dataset.pos);
+    b.querySelector('[data-ord]').textContent=SEL.rank.length+'.';checkReady();});
+  const rr=$('rankReset'); if(rr)rr.onclick=()=>{SEL.rank=[];
+    document.querySelectorAll('#qArea .rank-pick').forEach(x=>{x.classList.remove('picked');x.querySelector('[data-ord]').textContent='';});checkReady();};
+  function checkReady(){
+    let ok=false;
+    if(it.type==='rank_order')ok=SEL.rank.length===it.options.length;
+    else if(it.type==='tf_justify'&&it.justify_options&&document.querySelector('#qArea .jopt'))ok=SEL.pos!==null&&SEL.jpos!==null;
+    else ok=SEL.pos!==null;
+    $('btnSubmit').disabled=!ok;
+  }
+}
+function answerIsCorrect(){
+  const it=S.current.item;
+  if(it.type==='mc4'||it.type==='scenario_mc')return S.current.perm[SEL.pos]===it.correct_index;
+  if(it.type==='tf_justify'){
+    const tf=SEL.pos===it.correct_index;
+    if(!it.justify_options||!S.current.jperm)return tf;   // follow-up renders T/F only (no justify) → grade the T/F
+    return tf&&S.current.jperm[SEL.jpos]===it.justify_correct;
+  }
+  if(it.type==='rank_order'){
+    const chosen=SEL.rank.map(p=>S.current.perm[p]);
+    return JSON.stringify(chosen)===JSON.stringify(it.correct_order);
+  }
+  return false;
+}
+function chosenOrigIndex(){ const it=S.current.item;
+  if(it.type==='tf_justify')return SEL.pos;
+  if(it.type==='rank_order')return null;
+  return S.current.perm[SEL.pos]; }
+
+function submitAnswer(){
+  const ms=Date.now()-S.tStart; S.current.rec.response_ms.push(ms);
+  const correct=answerIsCorrect();
+  const it=S.current.item; const st=S.los[S.current.lo];
+  if(S.current.attempt===1){
+    S.current.rec.student_answer_1=serializeAnswer();
+    if(correct){ st.misses=Math.max(0,st.misses); resolveCorrect(true); }
+    else showProbe();
+  } else {
+    S.current.rec.student_answer_2=serializeAnswer();
+    if(correct)resolveCorrect(false); else resolveWrongFinal();
+  }
+}
+function serializeAnswer(){ const it=S.current.item;
+  if(it.type==='rank_order')return SEL.rank.map(p=>S.current.perm[p]);
+  if(it.type==='tf_justify'&&it.justify_options&&S.current.jperm)return{tf:SEL.pos,why:S.current.jperm[SEL.jpos]};
+  return chosenOrigIndex(); }
+
+function showProbe(){
+  S.current.rec.probe_shown=true; S.current.attempt=2; S.phase='probe';
+  const it=S.current.item; const wrongIdx=chosenOrigIndex();
+  let probe='Take another look — which part of the chapter does this question point to?';
+  if(it.probes){
+    if(it.type==='rank_order')probe=it.probes[0]||probe;
+    else if(wrongIdx!==null&&it.probes[wrongIdx])probe=it.probes[wrongIdx];
+    else if(it.type==='tf_justify'&&it.justify_options&&SEL.pos===it.correct_index)
+      probe='Your True/False call is right — re-examine which reason the chapter actually gives.';
+  }
+  $('fbArea').innerHTML=`<div class="panel probe"><span class="plabel">Not quite — think it through</span>${esc(probe)}</div>`;
+  // re-render same question, same order
+  const saveFb=$('fbArea').innerHTML;
+  renderQuestionPreserve(); $('fbArea').innerHTML=saveFb;
+  $('actionRow').innerHTML=`<button class="btn brand" id="btnSubmit" disabled>Check answer</button>
+    <button class="btn quiet" id="btnTell">Just tell me</button>`;
+  $('btnSubmit').onclick=submitAnswer;
+  $('btnTell').onclick=()=>{S.current.rec.student_answer_2='(revealed)';resolveWrongFinal(true);};
+  S.tStart=Date.now();
+}
+function renderQuestionPreserve(){ // identical order (perm/jperm unchanged)
+  const qa=$('qArea'); const it=S.current.item;
+  let h=`<div class="stem">${esc(it.stem)}</div>`;
+  if(it.type==='mc4'||it.type==='scenario_mc'){
+    h+='<div class="opts">'+S.current.perm.map((orig,pos)=>
+      `<button class="opt" data-pos="${pos}"><span class="key">${optKey(pos)}</span><span>${esc(it.options[orig])}</span></button>`).join('')+'</div>';
+  } else if(it.type==='tf_justify'){
+    h+='<div class="opts">'+[0,1].map(i=>
+      `<button class="opt" data-pos="${i}"><span class="key">${'TF'[i]}</span><span>${esc(it.options[i])}</span></button>`).join('')+'</div>';
+    if(it.justify_options){
+      h+=`<div class="subq"><div class="lbl">…and why?</div><div class="opts">`+
+        S.current.jperm.map((orig,pos)=>`<button class="opt jopt" data-jpos="${pos}"><span class="key">${pos+1}</span><span>${esc(it.justify_options[orig])}</span></button>`).join('')+'</div></div>';
+    }
+  } else if(it.type==='rank_order'){
+    h+=`<p class="muted" style="margin-bottom:.6rem">Tap the steps in order (first → last).</p><div class="rank-list">`+
+      S.current.perm.map((orig,pos)=>`<button class="rank-pick" data-pos="${pos}"><span class="ordkey" data-ord></span><span>${esc(it.options[orig])}</span></button>`).join('')+
+      `</div><div class="btnrow"><button class="btn quiet sm" id="rankReset">Start over</button></div>`;
+  }
+  qa.innerHTML=h; wireAnswerInputs();
+}
+function correctRationale(){ const it=S.current.item;
+  if(it.type==='rank_order')return it.rationales.map((r,i)=>`${i+1}. ${r}`).join(' ');
+  return it.rationales[it.correct_index]; }
+
+function resolveCorrect(firstAttempt){
+  const it=S.current.item; const st=S.los[S.current.lo];
+  markOptions();
+  const mt=maxTier(S.current.lo);
+  if(firstAttempt){
+    if(it.tier>=mt){ st.consec++; if(st.consec>=masterK(S.current.lo)){st.mastered=true;} }
+    /* correct at a lower tier neither advances nor breaks the top-tier streak */
+    st.tier=Math.min(st.tier+1,3);
+    S.current.rec.outcome='correct_first';
+  } else { st.consec=0; S.current.rec.outcome='correct_after_probe'; }
+  const mt2=maxTier(S.current.lo);
+  const mast=st.mastered?` <b style="color:var(--ok)">Learning Objective ${S.current.lo} mastered ✓</b>`
+    :(firstAttempt&&it.tier>=mt2?` <b style="color:var(--brand)">Streak ${st.consec}/${masterK(S.current.lo)} toward mastering Learning Objective ${S.current.lo}.</b>`:'');
+  let extra=firstAttempt?'':(`<div style="margin-top:.4rem">Your first choice: ${esc(wrongWhy())}</div>`);
+  $('fbArea').innerHTML=`<div class="panel good"><span class="plabel">Correct</span>${esc(correctRationale())}${extra}${mast}
+    <ul class="rats" id="ratList">${allRats()}</ul></div>`;
+  finishItemControls();
+}
+function wrongWhy(){ const it=S.current.item; const w=S.current.rec.student_answer_1;
+  if(typeof w==='number'&&it.rationales[w])return it.rationales[w]; return 'see rationale above.'; }
+function allRats(){ const it=S.current.item;
+  if(it.type==='rank_order')return it.rationales.map(r=>`<li>${esc(r)}</li>`).join('');
+  return it.options.map((o,i)=>`<li><b>${esc(o.length>60?o.slice(0,60)+'…':o)}</b> — ${esc(it.rationales[i])}</li>`).join(''); }
+
+function resolveWrongFinal(revealed){
+  const it=S.current.item; const st=S.los[S.current.lo];
+  markOptions(true);
+  st.tier=Math.max(1,st.tier-1); st.consec=0; st.misses++;
+  S.current.rec.outcome=revealed?'revealed':'wrong_after_probe';
+  S.current.rec.remediated=true;
+  const ex=exText(EXCERPTS[it.source_anchor]);
+  const correctTxt=(it.type==='rank_order')?'Correct order: '+it.correct_order.map(i=>it.options[i]).join(' → ')
+    :'Answer: '+it.options[it.correct_index];
+  $('fbArea').innerHTML=
+   `<div class="panel bad"><span class="plabel">${revealed?'Answer revealed':'Not this time'}</span><b>${esc(correctTxt)}</b><div style="margin-top:.4rem">${esc(correctRationale())}</div>
+      <ul class="rats" id="ratList">${allRats()}</ul></div>
+    <div class="panel remed"><span class="plabel">Review before your quiz</span>
+      <div class="pointer">📖 ${esc(it.source_anchor)}</div>
+      ${ex?`<div class="excerpt">${esc(ex)}</div>`:''}
+      <div>This is the section your missed question came from — a follow-up check is next.</div>
+    </div>`;
+  // follow-up: fresh T1 same LO
+  const fu=pickFollowUp(S.current.lo,it.q_id);
+  $('actionRow').innerHTML=`<button class="btn quiet sm" id="btnRats">Explain all options</button>
+    <button class="btn brand" id="btnFU">${fu?'Try the follow-up check':'Continue'}</button>`;
+  $('btnRats').onclick=()=>$('ratList').classList.toggle('show');
+  $('btnFU').onclick=()=>{ recordItem(); if(fu)startFollowUp(fu); else {S.los[S.current.lo].needsReview=true;advance();} };
+}
+function pickFollowUp(lo,notId){
+  const c=itemsByLO(lo).filter(i=>i.tier===1&&i.q_id!==notId&&!S.usedIds.has(i.q_id));
+  if(c.length)return shuffle(c)[0];
+  const any=itemsByLO(lo).filter(i=>i.tier===1&&i.q_id!==notId);
+  return any.length?shuffle(any)[0]:null;
+}
+function startFollowUp(item){
+  const prepared=prepareItem(item);   // #3: decrypt the follow-up's answer at selection
+  return (prepared&&typeof prepared.then==='function') ? prepared.then(it=>finishFollowUp(it)) : finishFollowUp(prepared);
+}
+function finishFollowUp(item){
+  if(item.type==='mc_pool')item=materializePool(item);
+  S.usedIds.add(item.q_id);
+  const perm=(item.type==='mc4')?shuffle([...item.options.keys()]):null;
+  S.current={item,lo:S.current.lo,perm,jperm:null,attempt:1,followUp:true,
+    rec:{q_id:item.q_id,lo:S.current.lo,tier:1,type:item.type,origin:item.origin,follow_up:true,
+    probe_shown:false,student_answer_1:null,outcome:null,remediated:false,response_ms:[]}};
+  headMeta();
+  const qa=$('qArea');
+  let h=`<div class="panel remed" style="margin:0 0 .8rem"><span class="plabel">Follow-up check · Learning Objective ${S.current.lo}</span>One more on this concept, back at recall level.</div>
+    <div class="stem">${esc(item.stem)}</div>`;
+  if(item.type==='mc4'){
+    h+='<div class="opts">'+perm.map((orig,pos)=>
+      `<button class="opt" data-pos="${pos}"><span class="key">${optKey(pos)}</span><span>${esc(item.options[orig])}</span></button>`).join('')+'</div>';
+  } else { // tf
+    h+='<div class="opts">'+[0,1].map(i=>
+      `<button class="opt" data-pos="${i}"><span class="key">${'TF'[i]}</span><span>${esc(item.options[i])}</span></button>`).join('')+'</div>';
+  }
+  qa.innerHTML=h; $('fbArea').innerHTML='';
+  wireAnswerInputs();
+  $('actionRow').innerHTML=`<button class="btn brand" id="btnSubmit" disabled>Check answer</button>`;
+  $('btnSubmit').onclick=()=>{
+    S.current.rec.response_ms.push(Date.now()-S.tStart);
+    S.current.rec.student_answer_1=serializeAnswer();
+    const ok=answerIsCorrect(); const st=S.los[S.current.lo];
+    markOptions(!ok);
+    if(ok){ S.current.rec.outcome='followup_correct';
+      $('fbArea').innerHTML=`<div class="panel good"><span class="plabel">Got it</span>${esc(correctRationale())} Back into rotation.</div>`; }
+    else { S.current.rec.outcome='followup_wrong'; st.needsReview=true;
+      $('fbArea').innerHTML=`<div class="panel bad"><span class="plabel">Flagged for review</span>Read <b>${esc(S.current.item.source_anchor)}</b> before your quiz — it's on your end-of-session reading list.</div>`; }
+    recordItem();
+    $('actionRow').innerHTML=`<button class="btn brand" id="btnNext">Next question</button>`;
+    $('btnNext').onclick=advance;
+  };
+  S.tStart=Date.now();
+}
+function markOptions(showWrong){
+  const it=S.current.item;
+  document.querySelectorAll('#qArea .opt,#qArea .rank-pick').forEach(b=>b.disabled=true);
+  if(it.type==='mc4'||it.type==='scenario_mc'){
+    document.querySelectorAll('#qArea .opt').forEach(b=>{
+      const orig=S.current.perm[+b.dataset.pos];
+      if(orig===it.correct_index)b.classList.add('correct');
+      else if(+b.dataset.pos===SEL.pos&&showWrong)b.classList.add('wrong');
+      else if(+b.dataset.pos===SEL.pos&&!showWrong&&orig!==it.correct_index)b.classList.add('wrong');
+    });
+  } else if(it.type==='tf_justify'){
+    document.querySelectorAll('#qArea .opt:not(.jopt)').forEach(b=>{
+      if(+b.dataset.pos===it.correct_index)b.classList.add('correct');
+      else if(+b.dataset.pos===SEL.pos)b.classList.add('wrong');});
+    document.querySelectorAll('#qArea .jopt').forEach(b=>{
+      if(it.justify_options&&S.current.jperm[+b.dataset.jpos]===it.justify_correct)b.classList.add('correct');
+      else if(+b.dataset.jpos===SEL.jpos)b.classList.add('wrong');});
+  }
+}
+function finishItemControls(){
+  recordItem();
+  $('actionRow').innerHTML=`<button class="btn quiet sm" id="btnRats">Explain all options</button>
+    <button class="btn brand" id="btnNext">Next question</button>`;
+  $('btnRats').onclick=()=>$('ratList').classList.toggle('show');
+  $('btnNext').onclick=advance;
+}
+function recordItem(){ if(S.current&&!S.current.recorded){S.items.push(S.current.rec);S.current.recorded=true;} }
+function doSkip(){
+  S.los[S.current.lo].misses++; // weighting only, no tier penalty
+  S.current.rec.outcome='skipped'; S.current.rec.response_ms.push(Date.now()-S.tStart);
+  recordItem(); advance();
+}
+function advance(){
+  S.idx++; $('loRail').innerHTML=railHTML();
+  if(S.idx>=HARD_CAP)return endSession();
+  const openAll=LOS.some(lo=>!S.los[lo].mastered&&!S.los[lo].exhausted);
+  if(!openAll)return endSession();
+  if(S.focus){
+    const done=[...S.focus].every(lo=>S.los[lo].mastered||S.los[lo].exhausted);
+    if(done||(S.nextCk&&S.idx>=S.nextCk))return checkpoint();
+  } else if(S.goal.type==='count'){
+    if(S.nextCk&&S.idx>=S.nextCk)return checkpoint();
+  } else if(S.goal.type==='mastery'){
+    if(newMasteredCount()>=S.goal.x)return checkpoint(true);
+  }
+  nextQuestion();
+}
+function ckOptions(){
+  const close=LOS.filter(lo=>{const st=S.los[lo];
+    return !st.mastered&&!st.exhausted&&Math.min(st.tier,3)>=maxTier(lo);});
+  const weak=LOS.filter(lo=>{const st=S.los[lo];
+    return !st.mastered&&!st.exhausted&&(st.misses>0||st.carry||st.needsReview);});
+  const opts=[];
+  if(close.length){const k=close.reduce((s,lo)=>s+Math.max(1,masterK(lo)-S.los[lo].consec),0);
+    opts.push({id:'close',label:`Finish the close ones — Learning Objective${close.length>1?'s':''} ${close.join(', ')} (~${k} good answers)`,
+      focus:close,add:Math.min(k*2+2,14)});}
+  if(weak.length)opts.push({id:'weak',label:`Drill my weak spots — Learning Objective${weak.length>1?'s':''} ${weak.join(', ')}`,
+      focus:weak,add:6});
+  opts.push({id:'more',label:'Keep going — 5 more, mixed',focus:null,add:5});
+  return opts;
+}
+function checkpoint(goalMet){
+  S.ckShown++;
+  const mNew=newMasteredCount();
+  const head=goalMet?`Goal met — ${mNew} LO${mNew===1?'':'s'} mastered this session.`:
+    `Checkpoint — ${S.idx} questions in.`;
+  const stats=`${S.items.filter(r=>r.outcome==='correct_first'&&!r.follow_up).length} first-try correct · `+
+    `${LOS.filter(lo=>S.los[lo].mastered).length}/${LOS.length} learning objectives mastered so far`;
+  const opts=ckOptions();
+  $('qArea').innerHTML=`<div class="stem" style="margin-top:0">${head}</div>
+    <p class="muted">${stats}</p>
+    <div class="opts" style="margin-top:1rem">`+
+    opts.map((o,i)=>`<button class="opt" data-ck="${i}"><span class="key">${i+1}</span><span>${esc(o.label)}</span></button>`).join('')+
+    `</div>`;
+  $('fbArea').innerHTML='';
+  $('actionRow').innerHTML=`<button class="btn brand" id="btnDigest">Finish — see my digest</button>`;
+  $('btnDigest').onclick=endSession;
+  document.querySelectorAll('[data-ck]').forEach(b=>b.onclick=()=>{
+    const o=opts[+b.dataset.ck];
+    S.focus=o.focus?new Set(o.focus):null;
+    S.nextCk=S.idx+o.add;
+    if(S.goal.type==='mastery'&&!S.focus)S.goal={type:'count',n:S.nextCk};
+    nextQuestion();
+  });
+  window.scrollTo(0,0);
+}
+
+/* ================= Digest / persistence ================= */
+async function endSession(){
+  S.ended=new Date().toISOString();
+  const lo_state={}, review=[];
+  LOS.forEach(lo=>{const st=S.los[lo];
+    lo_state[lo]=st.mastered?'mastered':(st.needsReview?'needs_review':(st.covered>0?'in_progress':'untouched'));
+    if(st.needsReview)review.push(lo);});
+  const anchors=lo=>[...new Set(S.items.filter(r=>r.lo===lo&&['wrong_after_probe','revealed','followup_wrong'].includes(r.outcome))
+      .map(r=>{const it=BANK.items.find(b=>b.q_id===r.q_id);return it?it.source_anchor:null;}).filter(Boolean))];
+  const digest={needs_review:review.map(lo=>({lo,sections:anchors(lo)}))};
+  const firstCorrect=S.items.filter(r=>r.outcome==='correct_first'&&!r.follow_up).length;
+  const answered=S.items.filter(r=>!r.follow_up&&r.outcome!=='skipped').length;
+  const mastered=LOS.filter(lo=>S.los[lo].mastered);
+  const newlyMastered=LOS.filter(lo=>S.los[lo].mastered&&!S.los[lo].wasMastered);
+  const atTop=LOS.filter(lo=>!S.los[lo].mastered&&S.los[lo].tier>=maxTier(lo));
+  const recovered=[...new Set(S.items.filter(r=>['revealed','wrong_after_probe'].includes(r.outcome))
+      .filter(r=>!review.includes(r.lo))
+      .map(r=>{const it=BANK.items.find(b=>b.q_id===r.q_id);return it?it.source_anchor:null;}).filter(Boolean))];
+  // persist ladder
+  DATA.ladder=DATA.ladder||{}; DATA.ladder[CH]=DATA.ladder[CH]||{};
+  LOS.forEach(lo=>{const st=S.los[lo];
+    DATA.ladder[CH][lo]={tier:st.tier,consec:st.consec,mastered:st.mastered};});
+
+  // seal item detail to the instructor's public key when the config carries one; else the dev stub.
+  // Only the encrypt path awaits — the no-config path stays synchronous so the bundle is ready at once.
+  const detail=JSON.stringify(S.items); let enc;
+  if(CONFIG&&CONFIG.public_key){
+    try{ enc=await encryptItemDetail(detail,CONFIG.public_key); enc.key_version=CONFIG.cfg_id||'cfg'; }
+    catch(e){ enc={key_version:CONFIG.cfg_id||'cfg', alg:'DEV-STUB-BASE64 (encryption failed — item detail NOT encrypted)', ciphertext:btoa(unescape(encodeURIComponent(detail)))}; }
+  }else{
+    enc={key_version:'DEV', alg:'DEV-STUB-BASE64 (not encrypted — no instructor public key in this config)', ciphertext:btoa(unescape(encodeURIComponent(detail)))};
+  }
+  // anonymize identity when the config asks: the export carries a device code, never the name
+  const anon=!!(CONFIG&&CONFIG.anonymize);
+  const studentField=anon?(await deviceId()):(DATA.name||'(unnamed)');
+  const bundle={session:{id:S.id,chapter:S.chapter,student:studentField,anon,started_at:S.started,ended_at:S.ended,
+      section:(CONFIG&&CONFIG.section)||null,cfg_id:(CONFIG&&CONFIG.cfg_id)||null,
+      mode:S.goal.type==='mastery'?`mastery-goal(${S.goal.x})`:'untimed',spec_version:BANK.bank_meta.spec_version,bank_version:BANK.bank_meta.bank_version},
+    lo_state,digest,encrypted_items:enc};
+  S.bundle=bundle;
+
+  DATA.carryReview[CH]=review;
+  DATA.sessions.push({id:S.id,chapter:CH,ended:S.ended,answered,firstCorrect,
+    mastered:mastered.length,review:review.slice(),
+    trace:S.items.map(r=>{ const e={lo:r.lo,tier:r.tier,outcome:r.outcome,follow_up:!!r.follow_up};
+      if(!r.follow_up&&STUDY_OUTCOMES.has(r.outcome)){ e.q_id=r.q_id; e.anchor=r.anchor||''; e.hints=r.hints||[];
+        e.picks=[r.student_answer_1,r.student_answer_2].filter(x=>typeof x==='number'); }   // study-guide payload for missed questions
+      return e; }),
+    bundle});
+  DATA.name=$('inpName').value.trim()||DATA.name;
+  await store.set(SKEY,DATA);
+  clearActive();   // session complete — don't resume it on the next load
+
+  // render digest
+  $('digestHead').textContent= review.length? 'Session done — a little reading to do.'
+    : (mastered.length===LOS.length?'Chapter mastered. Go get that quiz.':'Nice work — ladder saved for next time.');
+  $('digestStats').innerHTML=
+    `<div class="stat"><b>${answered}</b><span>questions</span></div>
+     <div class="stat"><b>${firstCorrect}</b><span>right first try</span></div>
+     <div class="stat"><b>${mastered.length}/${LOS.length}</b><span>objectives mastered so far</span></div>
+     <div class="stat"><b>${atTop.length}</b><span>at top tier, closing in</span></div>
+     <div class="stat"><b>${review.length}</b><span>need review</span></div>`;
+  let readHtml='';
+  if(review.length){readHtml+=`<h2 style="margin-top:.5rem">Before your quiz, read:</h2><div class="readlist">`+
+      digest.needs_review.map(r=>`<div class="ritem"><b>Learning Objective ${r.lo}</b> — ${esc(BANK.bank_meta.learning_objectives[r.lo])}
+        ${r.sections.map(s=>`<div class="anchor">📖 ${esc(s)}</div>`).join('')}</div>`).join('')+`</div>`;}
+  if(recovered.length){readHtml+=`<h2 style="margin-top:1rem;font-size:1.05rem">Missed once but recovered — worth a skim:</h2>
+    <div class="readlist">`+recovered.map(s=>`<div class="ritem" style="border-left-color:var(--hilite)"><div class="anchor">📖 ${esc(s)}</div></div>`).join('')+`</div>`;}
+  if(newlyMastered.length){readHtml+=`<p style="margin-top:.8rem">Newly mastered this session: <b style="color:var(--ok)">Learning Objective${newlyMastered.length>1?'s':''} ${newlyMastered.join(', ')}</b></p>`;}
+  if(!readHtml)readHtml=`<p class="muted">Nothing flagged for review this session.</p>`;
+  $('digestRead').innerHTML=readHtml;
+  $('digestRail').innerHTML=railHTML();
+  $('digestLegend').innerHTML=LEGEND;
+  show('viewDigest');
+}
+function downloadJSON(obj,name){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(obj,null,2)],{type:'application/json'}));
+  a.download=name;a.click();URL.revokeObjectURL(a.href);
+}
+
+/* ================= Home / report ================= */
+function renderHome(){
+  const setup=document.querySelector('#viewHome .setuprow');
+  if(!CHAPTERS.length){   // config-only shell: no bank loaded (bad/expired link, offline, or the config fetch failed)
+    if(setup) setup.style.display='none'; $('btnStart').style.display='none';
+    const msg=DEMO_MODE
+      ? `The <b>public demo</b> couldn't be reached right now. Please refresh in a moment.`
+      : `We couldn't load your class's quizzes. Double-check the <b>class link your instructor gave you</b>, reconnect, and refresh.`;
+    $('chapterList').innerHTML=`<div style="grid-column:1/-1;padding:1rem;border:2px solid var(--brand);border-radius:8px;background:var(--card);font-weight:600;line-height:1.5">${msg}</div>`;
+    return;
+  }
+  if(setup) setup.style.display=''; $('btnStart').style.display='';   // restore if a prior render hid them
+  const demoBanner=DEMO_MODE?`<div style="grid-column:1/-1;padding:.7rem .9rem;border:2px solid var(--brand);border-radius:8px;background:var(--card);font-weight:600;line-height:1.45">👋 You're in the <b>public demo</b>. To practice your own class's quizzes — and have your work count — open the <b>class link your instructor gave you</b>.</div>`:'';
+  const banner=demoBanner||(CONFIG&&CONFIG.display_name?`<div style="grid-column:1/-1;padding:.5rem .7rem;border:1px solid var(--line);border-radius:8px;background:var(--card);font-weight:600">${esc(CONFIG.display_name)}${CONFIG.section?` · Section ${esc(CONFIG.section)}`:''}</div>`:'');
+  const upcomingTitles={3:'Feasibility Analysis',4:'Developing an Effective Business Model'};   // stock chapters not yet authored
+  const books=[]; const bseen=new Set();                  // distinct books in course order (filter chips + per-card author tag)
+  CHAPTERS.forEach(id=>{ const tb=UNITMETA[id]&&UNITMETA[id].textbook; if(tb&&!bseen.has(tb)){ bseen.add(tb);
+    books.push({key:tb, label:(firstAuthor(BANKS[id].bank_meta.source)||tb)}); } });
+  const multiTb=books.length>1;                            // book chips + per-card author tag only when the course mixes books
+  const shown=CHAPTERS.filter(id=> !multiTb || BOOKFILTER.size===0 || BOOKFILTER.has(UNITMETA[id]&&UNITMETA[id].textbook));
+  let tiles=banner;
+  if(multiTb){                                             // book choice: tap a book to show only it; tap again to add/drop; all-off (empty) shows every book
+    tiles+=`<div class="bookfilter"><span style="color:var(--ink-soft)">Show:</span>`+books.map(bk=>
+      `<button class="bookchip${(BOOKFILTER.size===0||BOOKFILTER.has(bk.key))?' on':''}" data-book="${esc(bk.key)}">${esc(bk.label)}</button>`).join('')+`</div>`;
+  }
+  shown.forEach(id=>{                                       // one tile per shown unit (flat, in order)
+    const b=BANKS[id], meta=UNITMETA[id]||{}, lad=DATA.ladder[id]||{};
+    const nLO=Object.keys(b.bank_meta.learning_objectives).length;
+    const m=Object.values(lad).filter(x=>x.mastered).length;
+    const clab=meta.chapter!=null?('CHAPTER '+meta.chapter):'UNIT';
+    const book=multiTb?`<span class="cbook">${esc(firstAuthor(b.bank_meta.source)||meta.textbook||'')}</span>`:'';   // first author, above the chapter line
+    const title=esc(meta.title||b.bank_meta.chapter_title);
+    const isSel=(String(id)===String(CH));
+    if(chapterReleased(id)){
+      const cta=isSel?`✓ Selected — set your options below`:(m?`${m}/${nLO} LOs mastered<br>Choose →`:'Choose this chapter →');
+      tiles+=`<button class="chap${isSel?' sel':''}" data-ch="${esc(id)}">${book}<span class="cnum">${clab} · ${b.items.length} items</span>
+        <span class="ctitle" style="display:block">${title}</span><span class="ccta">${cta}</span></button>`;
+    }
+    else{ const relD=releaseDate(id);
+      tiles+=`<button class="chap" disabled>${book}<span class="cnum">${clab}</span>
+        <span class="ctitle" style="display:block">${title}</span><span class="ccta">${relD?`Releases ${esc(relD)}`:'Not yet released'}</span></button>`; }
+  });
+  if(!MANIFEST_ACTIVE) Object.keys(upcomingTitles).forEach(n=>{ if(!BANKS[n])                  // stock: still-unauthored chapters
+    tiles+=`<button class="chap" disabled><span class="cnum">CHAPTER ${n}</span>
+      <span class="ctitle" style="display:block">${esc(upcomingTitles[n])}</span><span class="ccta">Not yet released</span></button>`; });
+  $('chapterList').innerHTML=tiles;
+  // session config below reflects the active chapter (CH)
+  const lad=DATA.ladder[CH]||{};
+  const am=UNITMETA[CH]||{};
+  const chLabel=am.chapter!=null?('Chapter '+am.chapter):(am.title||'this unit');
+  const rec=recommendedLen();
+  $('recLabel').textContent=rec.label;
+  $('recLine').innerHTML= rec.est===0 ? `Every objective in <b>${esc(chLabel)}</b> is mastered — sessions now run as mixed review.`
+    : `Set your session for <b>${esc(chLabel)}</b>: about ${rec.est} more first-try correct answers to master it (ladder saved from your last session).`;
+  const startBtn=$('btnStart'); if(startBtn) startBtn.textContent=`Start ${chLabel} practice →`;
+  refreshDevNote();   // active bank's version now loaded (and updates on chapter switch)
+  const remain=LOS.length-Object.values(lad).filter(x=>x.mastered).length;
+  $('selMx').innerHTML=Array.from({length:Math.max(1,remain)},(_,i)=>`<option>${i+1}</option>`).join('');
+  const updateMx=()=>{
+    const isM=document.querySelector('input[name=goal]:checked').value==='mastery';
+    $('masteryOpts').classList.toggle('hidden',!isM);
+    if(isM){const x=+$('selMx').value;const e=estForX(x);
+      $('mxEst').innerHTML=`Fastest path to <b>${x}</b> more master${x===1?'y':'ies'}: about <b>${e}</b> first-try correct answer${e===1?'':'s'} (more if you miss along the way).`;}
+  };
+  document.querySelectorAll('input[name=goal]').forEach(r=>r.onchange=updateMx);
+  $('selMx').onchange=updateMx;
+  updateMx();
+  document.querySelectorAll('.chap[data-ch]').forEach(btn=>btn.onclick=()=>selectChapter(btn.dataset.ch));   // unit id is an opaque string
+  document.querySelectorAll('.bookchip').forEach(btn=>btn.onclick=()=>{   // toggle a book in/out of the filter (empty set = show all)
+    const k=btn.dataset.book; if(BOOKFILTER.has(k))BOOKFILTER.delete(k); else BOOKFILTER.add(k);
+    if(BOOKFILTER.size===books.length)BOOKFILTER.clear();   // all books chosen == no filter (canonical empty)
+    renderHome(); });
+  $('btnStart').onclick=()=>{ if(!chapterReleased(CH)){ toast('This chapter is not released yet.'); return; } initSession(readGoal()); show('viewSession'); nextQuestion(); };
+  if(DATA.name)$('inpName').value=DATA.name;
+}
+function selectChapter(ch){                                 // pick the active chapter; re-scope the session options to it (Start begins it)
+  if(String(ch)===String(CH)) return;                      // already selected
+  const typedName=$('inpName')?$('inpName').value:'';      // keep an unsaved name across the re-render
+  CH=ch; setBank(BANKS[ch]);
+  if(!(DATA.ladder[CH]&&Object.keys(DATA.ladder[CH]).length)) rebuildLadderFromHistory();
+  renderHome();                                            // options (length/mastery estimate) + Start now reflect the chosen chapter
+  if(typedName&&$('inpName')) $('inpName').value=typedName;
+}
+function renderReport(){
+  const w=$('reportWrap'); w.classList.remove('hidden'); $('studyWrap').classList.add('hidden');
+  if(!DATA.sessions.length){w.innerHTML='<p class="muted">No sessions yet — run one and your history shows up here.</p>';return;}
+  const revs=DATA.sessions.slice().reverse();
+  const rows=revs.map((s,i)=>
+    `<tr><td>${new Date(s.ended).toLocaleString()}</td><td>Ch ${s.chapter}</td><td>${s.answered}</td>
+     <td>${s.firstCorrect}</td><td>${s.mastered}</td><td>${s.review.length?s.review.join(', '):'—'}</td>
+     <td>${s.bundle?`<button class="btn quiet sm" data-export-idx="${i}">Canvas file ↓</button>`:'<span class="muted">—</span>'}</td></tr>`).join('');
+  const carry=(DATA.carryReview[CH]||[]);
+  w.innerHTML=`<h2>Progress report${DATA.name?' — '+esc(DATA.name):''}</h2>
+    ${carry.length?`<p style="margin-top:.4rem">Carried into your next session (extra weight): <b>Learning Objective${carry.length>1?'s':''} ${carry.join(', ')}</b></p>`:''}
+    <p class="muted" style="margin-top:.4rem">Need to turn in a past session? Re-download its <b>Canvas file</b> from the last column and upload it to the assignment.</p>
+    <div style="overflow-x:auto"><table class="hist"><tr><th>When</th><th>Chapter</th><th>Answered</th><th>First-try ✓</th><th>Objectives mastered</th><th>Needs review</th><th>Canvas export</th></tr>${rows}</table></div>`;
+  w.querySelectorAll('[data-export-idx]').forEach(btn=>btn.onclick=()=>{
+    const s=revs[+btn.dataset.exportIdx];
+    downloadJSON(s.bundle,`quizprep-ch${s.chapter}-${s.id}.json`);
+    toast('Session export downloaded — upload it to the Canvas assignment');
+  });
+}
+/* ===== Study guide (spec §4). For each MISSED question, surface the Socratic hints, the objective,
+   where to read, and the excerpt — but never the question or the answer. Hints escalate with struggle
+   (recovered → the probe for the option they picked; wrong twice → both their picks' probes; gave up /
+   skipped → all distractor probes), keyed off the study payload captured in each session's trace. */
+let studyMode='section';
+function studyHintsFor(e){
+  const hints=e.hints||[];
+  if(e.outcome==='revealed'||e.outcome==='skipped')return hints.map(h=>h.text);
+  const picks=(e.picks||[]).filter(i=>typeof i==='number');
+  const chosen=picks.map(i=>{const h=hints.find(x=>x.i===i);return h?h.text:null;}).filter(Boolean);
+  return chosen.length?chosen:hints.map(h=>h.text);   // fall back to all if a pick can't be matched
+}
+function collectStudy(){   // qualifying trace entries across all sessions (only those with the study payload)
+  const items=[];
+  DATA.sessions.forEach(s=>{ (s.trace||[]).forEach(e=>{
+    if(e.follow_up||!STUDY_OUTCOMES.has(e.outcome))return;
+    if(!e.anchor||!Array.isArray(e.hints)||!e.hints.length)return;
+    const hs=studyHintsFor(e); if(hs.length) items.push({chapter:String(s.chapter),lo:e.lo,anchor:e.anchor,hints:hs});
+  });});
+  return items;
+}
+function sgBook(bank){ if(!bank||!bank.bank_meta)return ''; const src=bank.bank_meta.source; return firstAuthor(src)||textbookLabel(src)||''; }
+function sgSection(chapter,anchor,bank){ const book=sgBook(bank);
+  const ex=exText(bank&&bank.bank_meta.excerpts?bank.bank_meta.excerpts[anchor]:null);
+  return `<div class="sg-sec">📖 ${book?esc(book)+' · ':''}${esc(anchor||'')}</div>${ex?`<div class="excerpt">${esc(ex)}</div>`:''}`; }
+function sgObjective(chapter,lo,bank){ const t=bank&&bank.bank_meta.learning_objectives?bank.bank_meta.learning_objectives[lo]:'';
+  return `<div class="sg-lo"><b>Objective ${esc(lo)}</b>${t?' — '+esc(t):''}</div>`; }
+function renderStudyGuide(mode){
+  studyMode=mode||studyMode||'section';
+  const w=$('studyWrap'); w.classList.remove('hidden'); $('reportWrap').classList.add('hidden');
+  const items=collectStudy();
+  const toggle=`<div class="btnrow" style="margin:.2rem 0 .7rem">
+    <button class="btn quiet sm${studyMode==='section'?' brand':''}" data-study-mode="section">By chapter &amp; section</button>
+    <button class="btn quiet sm${studyMode==='lo'?' brand':''}" data-study-mode="lo">By objective</button></div>`;
+  let body;
+  if(!items.length){ body=`<p class="muted">No study items yet — miss a question or two and a targeted guide shows up here. (Guides are recorded from this version of the app on.)</p>`; }
+  else{
+    const groups=new Map();
+    items.forEach(it=>{ const outerK=studyMode==='section'?it.chapter+'␟'+it.anchor:it.chapter+'␟'+it.lo;
+      const innerK=studyMode==='section'?it.lo:it.anchor;
+      if(!groups.has(outerK))groups.set(outerK,{chapter:it.chapter,anchor:it.anchor,lo:it.lo,inner:new Map()});
+      const g=groups.get(outerK); const ing=g.inner.get(innerK)||{lo:it.lo,anchor:it.anchor,hints:new Set()};
+      it.hints.forEach(h=>ing.hints.add(h)); g.inner.set(innerK,ing); });
+    body=[...groups.values()].map(g=>{ const bank=BANKS[g.chapter];
+      const header=studyMode==='section'?sgSection(g.chapter,g.anchor,bank):sgObjective(g.chapter,g.lo,bank);
+      const inner=[...g.inner.values()].map(ing=>{
+        const sub=studyMode==='section'?sgObjective(g.chapter,ing.lo,bank):sgSection(g.chapter,ing.anchor,bank);
+        return `<div class="sg-inner">${sub}<ul class="sg-hints">${[...ing.hints].map(h=>`<li>${esc(h)}</li>`).join('')}</ul></div>`;
+      }).join('');
+      return `<div class="sg-group">${header}${inner}</div>`; }).join('');
+  }
+  w.innerHTML=`<h2>Study guide${DATA.name?' — '+esc(DATA.name):''}</h2>
+    <p class="muted" style="margin-top:.3rem">Targeted to the questions you missed: the hints, the objective, and where to read.</p>
+    ${toggle}${body}`;
+  w.querySelectorAll('[data-study-mode]').forEach(b=>b.onclick=()=>renderStudyGuide(b.dataset.studyMode));
+}
+function show(id){['viewHome','viewSession','viewDigest'].forEach(v=>$(v).classList.toggle('hidden',v!==id));
+  if(id==='viewHome'){$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');}window.scrollTo(0,0);}
+
+/* ================= Wiring ================= */
+$('btnEnd').onclick=()=>{ if(S.current&&!S.current.recorded){S.current.rec.outcome=S.current.rec.outcome||'abandoned';recordItem();} endSession(); };
+$('btnReport').onclick=renderReport;
+$('btnStudy').onclick=()=>renderStudyGuide(studyMode);
+$('btnExportAll').onclick=()=>{downloadJSON(DATA,'quizprep-backup.json');toast('Backup downloaded');};
+function sessionRecordFromExport(d){
+  let items=null;
+  if(d.encrypted_items&&/^DEV-STUB/.test(d.encrypted_items.alg||'')){
+    try{items=JSON.parse(decodeURIComponent(escape(atob(d.encrypted_items.ciphertext))));}catch(e){}
+  }
+  const mains=(items||[]).filter(r=>!r.follow_up);
+  return {
+    id:d.session.id, chapter:d.session.chapter, ended:d.session.ended_at,
+    answered:mains.filter(r=>r.outcome!=='skipped'&&r.outcome!=='abandoned').length,
+    firstCorrect:mains.filter(r=>r.outcome==='correct_first').length,
+    mastered:Object.values(d.lo_state||{}).filter(v=>v==='mastered').length,
+    review:(d.digest&&d.digest.needs_review||[]).map(r=>r.lo),
+    trace:items?items.map(r=>({lo:r.lo,tier:r.tier,outcome:r.outcome,follow_up:!!r.follow_up})):null,
+    bundle:d
+  };
+}
+function rebuildLadderFromHistory(){
+  DATA.ladder=DATA.ladder||{}; DATA.ladder[CH]={};   // clear, then replay everything
+  replayLadder();
+}
+$('btnImport').onclick=()=>$('fileImport').click();
+$('fileImport').onchange=async e=>{
+  const files=[...e.target.files]; if(!files.length)return;
+  let backups=0,sessions=0,dupes=0,bad=0;
+  for(const f of files){
+    let d; try{ d=JSON.parse(await f.text()); }catch(_){ bad++; continue; }
+    if(Array.isArray(d.sessions)){ DATA=normalizeData(d); backups++; }
+    else if(d.session&&d.session.id&&d.encrypted_items){
+      if(DATA.sessions.some(s=>s.id===d.session.id)){ dupes++; continue; }
+      DATA.sessions.push(sessionRecordFromExport(d)); sessions++;
+    } else bad++;
+  }
+  if(backups+sessions>0){
+    DATA.sessions.sort((a,b)=>new Date(a.ended)-new Date(b.ended));
+    rebuildLadderFromHistory();
+    await store.set(SKEY,DATA); renderHome();
+  }
+  const parts=[];
+  if(backups)parts.push(`${backups} backup${backups>1?'s':''}`);
+  if(sessions)parts.push(`${sessions} session export${sessions>1?'s':''}`);
+  if(dupes)parts.push(`${dupes} already present`);
+  if(bad)parts.push(`${bad} unrecognized`);
+  toast(parts.length?('Imported: '+parts.join(', ')+(backups+sessions?' — ladder rebuilt':'')):'No usable files found');
+  e.target.value='';
+};
+$('btnFresh').onclick=async()=>{ if(confirm('Restart the Chapter 1 mastery ladder? Your session history is kept.')){
+  DATA.ladder[CH]={_reset:new Date().toISOString()}; delete DATA.carryReview[CH];
+  await store.set(SKEY,DATA); renderHome(); toast('Chapter 1 ladder reset'); }};
+$('btnReset').onclick=async()=>{ if(confirm('Erase all local QuizPrep data on this device? Export a backup first if you want to keep it.')){
+  DATA={name:'',sessions:[],carryReview:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');toast('Data cleared');}};
+$('btnExportSession').onclick=()=>{downloadJSON(S.bundle,`quizprep-ch${CH}-${S.id}.json`);toast('Session export downloaded — upload it to the Canvas assignment');};
+$('btnProg').onclick=()=>{clearActive();renderHome();show('viewHome');renderReport();setTimeout(()=>$('reportWrap').scrollIntoView&&$('reportWrap').scrollIntoView(),0);};
+$('btnAgain').onclick=()=>{initSession({type:'count',n:recommendedLen().n});show('viewSession');nextQuestion();};
+$('btnHome').onclick=()=>{clearActive();renderHome();show('viewHome');};
+
+function normalizeData(d){
+  d=d&&typeof d==='object'?d:{};
+  d.name=typeof d.name==='string'?d.name:'';
+  d.sessions=Array.isArray(d.sessions)?d.sessions:[];
+  d.carryReview=d.carryReview&&typeof d.carryReview==='object'?d.carryReview:{};
+  d.ladder=d.ladder&&typeof d.ladder==='object'?d.ladder:{};
+  return d;
+}
+function replayLadder(){
+  DATA.ladder=DATA.ladder||{};
+  if(DATA.ladder[CH]&&Object.keys(DATA.ladder[CH]).length)return false;
+  const sess=DATA.sessions.filter(s=>String(s.chapter)===String(CH))
+    .sort((a,b)=>new Date(a.ended)-new Date(b.ended));
+  if(!sess.length)return false;
+  const los={};LOS.forEach(lo=>los[lo]={tier:1,consec:0,mastered:false});
+  let any=false;
+  for(const s of sess){
+    let items=s.trace;
+    if(!items&&s.bundle&&s.bundle.encrypted_items&&/^DEV-STUB/.test(s.bundle.encrypted_items.alg||'')){
+      try{items=JSON.parse(decodeURIComponent(escape(atob(s.bundle.encrypted_items.ciphertext))));}catch(e){}
+    }
+    if(!items)continue;
+    for(const r of items){
+      if(r.follow_up)continue;
+      const st=los[r.lo]; if(!st||st.mastered)continue;
+      const mt=maxTier(r.lo);
+      if(r.outcome==='correct_first'){
+        if(r.tier>=mt){st.consec++;if(st.consec>=masterK(r.lo))st.mastered=true;}
+        st.tier=Math.min(st.tier+1,3); any=true;
+      } else if(r.outcome==='correct_after_probe'){ st.consec=0; any=true;
+      } else if(r.outcome==='wrong_after_probe'||r.outcome==='revealed'){
+        st.tier=Math.max(1,st.tier-1); st.consec=0; any=true;
+      }
+    }
+  }
+  if(!any)return false;
+  DATA.ladder[CH]={};
+  LOS.forEach(lo=>DATA.ladder[CH][lo]={tier:los[lo].tier,consec:los[lo].consec,mastered:los[lo].mastered});
+  return true;
+}
+/* ================= Version: update-checker + changelog ================= */
+function showChangelog(entries,isNew){
+  $('clTitle').textContent=isNew?"What’s new":"Version history";
+  $('clBody').innerHTML=entries.map(c=>`<div class="clentry"><b>v${esc(c.v)}</b> <span class="muted">${esc(c.date||'')}</span>
+    <ul>${c.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul></div>`).join('');
+  $('clModal').classList.add('show');
+}
+function maybeWhatsNew(){   // one-time per version; silent for a brand-new device
+  const seen=localStorage.getItem('quizprep_seen_version');
+  localStorage.setItem('quizprep_seen_version',APP_VERSION);
+  if(seen===null||cmpVer(APP_VERSION,seen)<=0)return;
+  const newer=CHANGELOG.filter(c=>cmpVer(c.v,seen)>0);
+  if(newer.length)showChangelog(newer,true);
+}
+function checkUpdate(){   // poll version.txt; if a newer build is live, offer a refresh
+  fetch('version.txt?_='+Date.now(),{cache:'no-store'}).then(r=>r.ok?r.text():null).then(v=>{
+    if(v==null)return; v=v.trim();
+    if(v&&cmpVer(v,APP_VERSION)>0)$('updateBar').classList.add('show');
+  }).catch(()=>{});
+}
+$('verLink').onclick=()=>showChangelog(CHANGELOG,false);
+$('verLink').textContent='app v'+APP_VERSION+' · what’s changed';
+function refreshDevNote(){   // bank/spec versions in the preview banner reflect the active bank (empty '?' in the config-only shell until one loads)
+  $('dnBank').textContent=(BANK.bank_meta&&BANK.bank_meta.bank_version)||'?';
+  $('dnSpec').textContent=(BANK.bank_meta&&BANK.bank_meta.spec_version)||'?';
+}
+refreshDevNote();
+$('btnRefresh').onclick=()=>location.reload();
+$('clClose').onclick=()=>$('clModal').classList.remove('show');
+$('clModal').onclick=e=>{ if(e.target===$('clModal'))$('clModal').classList.remove('show'); };
+
+/* Staging chrome: a distinct banner + "changes since live" + a toggle to preview the page the way it
+   will look once this build is promoted to live. Reads the live version.txt at ../version.txt. */
+function setStagingPreview(on){
+  try{ localStorage.setItem(STAGE_PREVIEW_KEY,on?'1':'0'); }catch(e){}
+  document.documentElement.classList.toggle('staging',!on);
+  const bar=$('stagingBar'); if(bar)bar.style.display=on?'none':'';
+  const chip=$('stagingChip'); if(chip)chip.style.display=on?'':'none';
+}
+async function renderStagingChrome(){
+  if(!STAGING)return;
+  let preview=false; try{ preview=localStorage.getItem(STAGE_PREVIEW_KEY)==='1'; }catch(e){}
+  let live=null; try{ const r=await withTimeout(fetch('../version.txt?_='+Date.now(),{cache:'no-store'}),6000); if(r&&r.ok)live=(await r.text()).trim(); }catch(e){}
+  let whats;
+  if(live&&cmpVer(APP_VERSION,live)>0){
+    const items=CHANGELOG.filter(c=>cmpVer(c.v,live)>0).flatMap(c=>(c.notes||[]).map(n=>`<li><b>v${esc(c.v)}</b> — ${esc(n)}</li>`)).join('');
+    whats=`<div class="stChanges"><b>Changes since live v${esc(live)}:</b><ul>${items}</ul></div>`;
+  } else if(live){ whats=`<div class="stChanges">In sync with live (v${esc(live)}) — no versioned changes pending.</div>`; }
+  else { whats=`<div class="stChanges">Test build — couldn’t read the live version to compare.</div>`; }
+  let bar=$('stagingBar'); if(!bar){ bar=document.createElement('div'); bar.id='stagingBar'; document.body.insertBefore(bar,document.body.firstChild); }
+  bar.innerHTML=`<div class="stInner"><span class="stTag">🚧 STAGING</span> <span>test build · app v${esc(APP_VERSION)}</span> <button id="stToggle" class="stBtn">Preview as live</button></div>${whats}`;
+  let chip=$('stagingChip'); if(!chip){ chip=document.createElement('button'); chip.id='stagingChip'; chip.textContent='🚧 staging'; chip.title='You are viewing the staging build as it will look live — click to show the staging highlights again'; document.body.appendChild(chip); chip.onclick=()=>setStagingPreview(false); }
+  $('stToggle').onclick=()=>setStagingPreview(true);
+  setStagingPreview(preview);
+}
+
+(async function boot(){
+  await loadConfig();   // resolve a ?cfg= package first (model 1 may swap the bank) — no-op without ?cfg
+  const saved=await store.get(SKEY);
+  DATA=normalizeData(saved||DATA);
+  if(replayLadder()){ await store.set(SKEY,DATA); toast('Progress rebuilt from your earlier sessions'); }
+  renderHome();
+  // resume an in-progress session across a refresh, if one was saved for this chapter/bank
+  const act=await store.get(AKEY);
+  if(act&&BANKS[String(act.chapter)]&&act.bank===BANKS[String(act.chapter)].bank_meta.bank_version&&act.s&&act.s.current&&!act.s.ended){
+    try{ const ac=String(act.chapter); if(ac!==CH){ CH=ac; setBank(BANKS[CH]); } resumeSession(act.s); }catch(e){ clearActive(); }
+  }
+  maybeWhatsNew();
+  checkUpdate(); setInterval(checkUpdate,300000);
+  renderStagingChrome();   // staging-only: distinct banner + what-changed + preview toggle (no-op on the live root)
+})();
+</script>
+</body>
+</html>
