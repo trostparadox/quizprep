@@ -90,6 +90,9 @@
   .rvrow{display:grid;grid-template-columns:auto 1fr auto;gap:.6rem;align-items:start;padding:.5rem .6rem;border:1px solid var(--line);border-radius:8px;margin:.35rem 0 0;cursor:pointer}
   .rvrow:hover{border-color:var(--brand)}
   .rvrow.done{background:var(--okbg);border-color:var(--ok)}
+  .rvrow.excluded{opacity:.5;background:var(--nobg)}
+  .rvbtns{display:flex;gap:.3rem;flex:none;align-items:start}
+  .rvbtns .ghost{font-size:.8rem;padding:.05rem .4rem}
   .rvrow.open{border-color:var(--brand);border-bottom-color:transparent;border-radius:8px 8px 0 0;box-shadow:inset 3px 0 0 var(--brand)}
   .rvchk{width:1.05rem;height:1.05rem;margin-top:.15rem;cursor:pointer;flex:none}
   .rvcaret{color:var(--muted);user-select:none;margin-top:.05rem;transition:transform .15s}
@@ -328,9 +331,10 @@ function editGuard(e){                 // capture-phase guard on the editor form
 }
 
 /* ---------- local persistence: remember the whole course + dashboard across a refresh ---------- */
-const IK = { bank:"quizprep-instructor-bank-v1", course:"quizprep-instructor-course-v1", dash:"quizprep-instructor-dash-v1", tab:"quizprep-instructor-tab-v1", hidewarn:"quizprep-instructor-hidewarn-v1", flags:"quizprep-instructor-flags-v1", prefs:"quizprep-instructor-prefs-v1" };
+const IK = { bank:"quizprep-instructor-bank-v1", course:"quizprep-instructor-course-v1", dash:"quizprep-instructor-dash-v1", tab:"quizprep-instructor-tab-v1", hidewarn:"quizprep-instructor-hidewarn-v1", flags:"quizprep-instructor-flags-v1", prefs:"quizprep-instructor-prefs-v1", excl:"quizprep-instructor-excluded-v1" };
 let HIDDEN_WARNS = new Set();
 let FLAGS = [];   // outgoing flags to the maintainer (batched, on-device, non-forking)
+let EXCLUDED = {};   // stay-canonical exclusions: { "<unit-id>": ["<q_id>", …] } — dropped from THIS class, bank stays canonical
 let PREFS = { autoAccept:false, hardGate:false };   // per-instructor vetting prefs (persist across a Forget)
 let AUTO_LOG = [];   // this-session log of auto-accepted (re-vetted) questions
 function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
@@ -339,14 +343,28 @@ function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
 function saveBank(){ if (courseKeys().length) lsSet(IK.course, JSON.stringify({ banks: COURSE.banks, active: COURSE.active })); }   // persists the whole course; edits to BANK land here (BANK aliases COURSE.banks[active])
 function saveDash(){ lsSet(IK.dash, JSON.stringify((DASH.bundles || []).map(b => b.encrypted ? Object.assign({}, b, { recs:[], decrypted:false }) : b))); }   // never persist decrypted item detail
 function saveHiddenWarns(){ lsSet(IK.hidewarn, JSON.stringify([...HIDDEN_WARNS])); }
-function forgetSaved(){ lsDel(IK.bank); lsDel(IK.course); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); lsDel(IK.flags); HIDDEN_WARNS = new Set(); FLAGS = []; COURSE.banks = {}; COURSE.active = null; BANK = null; EDIT_CFG = null; }
+function forgetSaved(){ lsDel(IK.bank); lsDel(IK.course); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); lsDel(IK.flags); lsDel(IK.excl); HIDDEN_WARNS = new Set(); FLAGS = []; EXCLUDED = {}; COURSE.banks = {}; COURSE.active = null; BANK = null; EDIT_CFG = null; }
 function saveFlags(){ lsSet(IK.flags, JSON.stringify(FLAGS)); }
+/* ---- stay-canonical exclusions: drop specific questions from THIS class, keyed by unit id (COURSE key), NON-forking ---- */
+function saveExcluded(){ lsSet(IK.excl, JSON.stringify(EXCLUDED)); }
+function isExcluded(unitId, qid){ return (EXCLUDED[unitId] || []).indexOf(qid) >= 0; }
+function toggleExcluded(unitId, qid){ const set = new Set(EXCLUDED[unitId] || []); if (set.has(qid)) set.delete(qid); else set.add(qid);
+  if (set.size) EXCLUDED[unitId] = [...set]; else delete EXCLUDED[unitId]; saveExcluded(); }
+function setExcluded(unitId, qid, on){ const set = new Set(EXCLUDED[unitId] || []); on ? set.add(qid) : set.delete(qid);
+  if (set.size) EXCLUDED[unitId] = [...set]; else delete EXCLUDED[unitId]; saveExcluded(); }
+function excludedCount(){ return Object.values(EXCLUDED).reduce((n, a) => n + (a ? a.length : 0), 0); }
+function bankHasQid(bank, qid){    // q_id present as an item or an mc_pool set question
+  if ((bank.items || []).some(it => it.q_id === qid)) return true;
+  return (bank.question_sets || []).some(s => (s.questions || []).some(q => q.q_id === qid));
+}
 function savePrefs(){ lsSet(IK.prefs, JSON.stringify(PREFS)); }
 function restoreState(){
   const hw = lsGet(IK.hidewarn);
   if (hw){ try{ HIDDEN_WARNS = new Set(JSON.parse(hw) || []); }catch(e){} }
   const fl = lsGet(IK.flags);
   if (fl){ try{ FLAGS = JSON.parse(fl) || []; }catch(e){} }
+  const ex = lsGet(IK.excl);
+  if (ex){ try{ EXCLUDED = JSON.parse(ex) || {}; }catch(e){} }
   const pf = lsGet(IK.prefs);
   if (pf){ try{ PREFS = Object.assign(PREFS, JSON.parse(pf) || {}); }catch(e){} }
   const c = lsGet(IK.course);
@@ -760,17 +778,21 @@ function hardGateBlocks(){                        // pre-release check; blocks o
 }
 function renderReview(){
   if (!BANK) return;
+  const uid = COURSE.active;                        // stay-canonical exclusions are keyed by the active unit's id
   const all = allReviewQuestions();
   const flags = flagsByQid();
   const nStale0 = all.filter(x => vetState(x.q) === "stale").length;
-  $("reviewProgress").innerHTML = `${all.filter(x => x.q.reviewed).length} / ${all.length} reviewed` + (nStale0 ? ` · <span style="color:var(--warn)">${nStale0} need re-review ⟳</span>` : "");
+  const nExcl0 = all.filter(x => isExcluded(uid, x.q.q_id)).length;
+  $("reviewProgress").innerHTML = `${all.filter(x => x.q.reviewed).length} / ${all.length} reviewed` + (nStale0 ? ` · <span style="color:var(--warn)">${nStale0} need re-review ⟳</span>` : "") + (nExcl0 ? ` · <span style="color:var(--no)">${nExcl0} excluded ⊘</span>` : "");
   const los = BANK.bank_meta.learning_objectives || {};
   $("reviewFilters").innerHTML =
     `<select id="rLO"><option value="">All LOs</option>${Object.keys(los).sort().map(l => `<option${REV.lo === l ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>
      <select id="rTier"><option value="">All tiers</option>${[1,2,3].map(t => `<option${REV.tier == t ? " selected" : ""}>${t}</option>`).join("")}</select>
-     <select id="rStatus"><option value="">All</option><option value="unrev"${REV.status === "unrev" ? " selected" : ""}>Unreviewed</option><option value="rev"${REV.status === "rev" ? " selected" : ""}>Reviewed</option><option value="stale"${REV.status === "stale" ? " selected" : ""}>Updated since vetted</option><option value="flag"${REV.status === "flag" ? " selected" : ""}>Flagged</option></select>
+     <select id="rStatus"><option value="">All</option><option value="unrev"${REV.status === "unrev" ? " selected" : ""}>Unreviewed</option><option value="rev"${REV.status === "rev" ? " selected" : ""}>Reviewed</option><option value="stale"${REV.status === "stale" ? " selected" : ""}>Updated since vetted</option><option value="flag"${REV.status === "flag" ? " selected" : ""}>Flagged</option><option value="excl"${REV.status === "excl" ? " selected" : ""}>Excluded</option></select>
      <button class="ghost" id="rMark">✓ Mark shown reviewed</button>
      <button class="ghost" id="rUnmark">Unmark shown</button>
+     <button class="ghost" id="rExcl" title="Exclude the shown questions from your class — the bank stays canonical (keeps auto-updating); these questions are dropped from your students' bank">⊘ Exclude shown</button>
+     <button class="ghost" id="rRestore" title="Put the shown questions back into your class's bank">Restore shown</button>
      <button class="ghost" id="rUndo" title="Undo the last marking change">↶ Undo</button>
      <button class="ghost" id="rRedo" title="Redo">↷ Redo</button>
      <button class="ghost" id="rSendFlags"${FLAGS.length ? "" : " disabled"} title="Email your flagged questions to the maintainer">⚑ Email flags (${FLAGS.length})</button>
@@ -793,22 +815,29 @@ function renderReview(){
     if (REV.status === "unrev" && q.reviewed) return false;
     if (REV.status === "stale" && vetState(q) !== "stale") return false;
     if (REV.status === "flag" && !flags[q.q_id]) return false;
+    if (REV.status === "excl" && !isExcluded(uid, q.q_id)) return false;
     return true;
   });
   $("rCount").textContent = `${shown.length} shown`;
   $("rMark").onclick = () => { pushReviewHistory(); shown.forEach(x => markReviewed(x.q, true)); saveBank(); renderReview(); };
   $("rUnmark").onclick = () => { pushReviewHistory(); shown.forEach(x => markReviewed(x.q, false)); saveBank(); renderReview(); };
+  $("rExcl").onclick = () => { shown.forEach(x => setExcluded(uid, x.q.q_id, true)); renderReview(); };       // stay-canonical: drop from THIS class, no fork
+  $("rRestore").onclick = () => { shown.forEach(x => setExcluded(uid, x.q.q_id, false)); renderReview(); };
 
   const rows = shown.map(x => {
-    const q = x.q, f = flags[q.q_id];
+    const q = x.q, f = flags[q.q_id], excl = isExcluded(uid, q.q_id);
     const badge = f ? (f.errors.length
       ? '<span class="pill" style="background:var(--nobg);color:var(--no)">flag</span>'
       : '<span class="pill" style="background:var(--warnbg);color:var(--warn)">flag</span>') : "";
+    const exBadge = excl ? '<span class="pill" style="background:var(--nobg);color:var(--no)">excluded ⊘</span>' : "";
     const snip = esc(String(q.stem || "").slice(0, 90));
-    return `<div class="rvrow${q.reviewed ? " done" : ""}" data-qid="${esc(q.q_id)}">
+    return `<div class="rvrow${q.reviewed ? " done" : ""}${excl ? " excluded" : ""}" data-qid="${esc(q.q_id)}">
         <input type="checkbox" class="rvchk" data-qid="${esc(q.q_id)}"${q.reviewed ? " checked" : ""}>
-        <div><b>${esc(q.q_id)}</b> <span class="pill">T${esc(q.tier)} ${esc(x.isPool ? "mc_pool" : q.type)}</span> <span class="muted">${esc(q.lo)}</span> ${badge}${vetState(q) === "stale" ? '<span class="vbadge" title="You approved this; the canonical question has changed since — re-review.">updated ⟳</span>' : ""}<br><span class="muted">${snip}${String(q.stem || "").length > 90 ? "…" : ""}</span></div>
-        <button class="ghost rvflag" data-qid="${esc(q.q_id)}" title="Flag this question for the maintainer — does not change the bank" style="font-size:.8rem;padding:.05rem .4rem;flex:none">${isFlaggedOut(q.q_id) ? "⚑ flagged" : "⚑"}</button>
+        <div><b>${esc(q.q_id)}</b> <span class="pill">T${esc(q.tier)} ${esc(x.isPool ? "mc_pool" : q.type)}</span> <span class="muted">${esc(q.lo)}</span> ${badge}${exBadge}${vetState(q) === "stale" ? '<span class="vbadge" title="You approved this; the canonical question has changed since — re-review.">updated ⟳</span>' : ""}<br><span class="muted">${snip}${String(q.stem || "").length > 90 ? "…" : ""}</span></div>
+        <span class="rvbtns">
+          <button class="ghost rvexcl" data-qid="${esc(q.q_id)}" title="${excl ? "In your class — click to exclude" : "Exclude from your class"}: stays canonical (auto-updates); dropped from your students' bank. Does not change the shared bank.">${excl ? "⊘ excluded" : "⊘"}</button>
+          <button class="ghost rvflag" data-qid="${esc(q.q_id)}" title="Flag this question for the maintainer — does not change the bank">${isFlaggedOut(q.q_id) ? "⚑ flagged" : "⚑"}</button>
+        </span>
         <span class="rvcaret">▸</span>
       </div>
       <div class="rvdetail hide" data-detail="${esc(q.q_id)}"></div>`;
@@ -830,6 +859,10 @@ function renderReview(){
     const note = prompt("Flag this question for the maintainer (incorrect / confusing / typo / other).\n\nDescribe the issue:");
     if (note === null) return;                 // canceled
     flagQuestion(btn.dataset.qid, note); renderReview();
+  });
+  $("reviewList").querySelectorAll(".rvexcl").forEach(btn => btn.onclick = e => {
+    e.stopPropagation();                       // stay-canonical exclude: drop from THIS class only, never forks the bank
+    toggleExcluded(uid, btn.dataset.qid); renderReview();
   });
   $("reviewList").querySelectorAll(".rvrow").forEach(row => row.onclick = () => {
     const qid = row.dataset.qid;
@@ -1479,6 +1512,10 @@ function importConfigToEdit(pkg){
   EDIT_CFG = pkg.cfg;
   COURSE.banks = {}; COURSE.active = null;
   ids.forEach(id => { COURSE.banks[id] = pkg.banks[id]; });   // keep the config's own ids
+  EXCLUDED = {};                                              // seed exclusions from the imported config so they round-trip on re-export
+  const impEx = pkg.cfg.exclusions;
+  if (impEx && typeof impEx === "object") ids.forEach(id => { if (Array.isArray(impEx[id]) && impEx[id].length) EXCLUDED[id] = impEx[id].slice(); });
+  saveExcluded();
   const order = (pkg.manifest || []).map(u => u.id).filter(id => COURSE.banks[id]);
   activateChapter(order[0] || ids[0]);                        // renders every tab incl. renderConfig -> applyEditCfg
   showTab("config");
@@ -1577,9 +1614,16 @@ function buildConfig(){
       rel[u] = (r.querySelector(".schDate").value || "").trim();   // key by unit id; blank date travels as "" = available now
     });
   }
-  return { cfg_id:($("cfgId").value||"").trim(), display_name:($("cfgName").value||"").trim(),
+  const excl = {};                                    // stay-canonical exclusions: only units in this course, only q_ids that still exist
+  courseChapters().forEach(k => {
+    const ids = (EXCLUDED[k] || []).filter(qid => bankHasQid(COURSE.banks[k], qid));
+    if (ids.length) excl[k] = ids;
+  });
+  const cfg = { cfg_id:($("cfgId").value||"").trim(), display_name:($("cfgName").value||"").trim(),
     course:($("cfgCourse").value||"").trim(), release_schedule:rel, sections:secs,
     anonymize:$("cfgAnon").checked, public_key:($("cfgKey").value||"").trim() || null };
+  if (Object.keys(excl).length) cfg.exclusions = excl;   // omit when empty (the app treats absent as none)
+  return cfg;
 }
 function buildConfigPackage(){   // multi-textbook course → {cfg, manifest, banks}; single textbook → {cfg, banks (by chapter), bank}
   const cfg = buildConfig();
@@ -1599,8 +1643,10 @@ function exportConfigModel1(){
   downloadJSON(`${cfg.cfg_id}.config.json`, pkg);
   const nB = Object.keys(pkg.banks).length;
   const mt = pkg.manifest ? ` · multi-textbook manifest (${pkg.manifest.length} units)` : "";
+  const nEx = cfg.exclusions ? Object.values(cfg.exclusions).reduce((n, a) => n + a.length, 0) : 0;
+  const exNote = nEx ? ` · <b>${nEx} question${nEx > 1 ? "s" : ""} excluded</b> (the bank stays canonical / auto-updating; these are dropped from your class)` : "";
   const keyNote = cfg.public_key ? '' : ' <b>No public key set</b> — this class’s exports will be unencrypted (dev stub); generate a keypair above to encrypt.';
-  $("cfgOut").innerHTML = `<div class="msg ok">Exported <b>${esc(cfg.cfg_id)}.config.json</b> (${nB} bank${nB > 1 ? "s" : ""}${mt}) — drop it in your shared folder for the maintainer. Students launch with <code>?cfg=${esc(cfg.cfg_id)}&amp;sec=…</code>${keyNote}</div>`;
+  $("cfgOut").innerHTML = `<div class="msg ok">Exported <b>${esc(cfg.cfg_id)}.config.json</b> (${nB} bank${nB > 1 ? "s" : ""}${mt}${exNote}) — drop it in your shared folder for the maintainer. Students launch with <code>?cfg=${esc(cfg.cfg_id)}&amp;sec=…</code>${keyNote}</div>`;
 }
 function configLink2(){
   if (hardGateBlocks()) return;

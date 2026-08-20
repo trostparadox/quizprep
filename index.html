@@ -298,8 +298,10 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.15';
+const APP_VERSION='0.16';
 const CHANGELOG=[
+  {v:'0.16', date:'Aug 20, 2026', notes:[
+    'Your instructor can now fine-tune which questions your class practices. If they’ve set a few questions aside during their review, you simply won’t see those — everything else works exactly the same.']},
   {v:'0.15', date:'Aug 19, 2026', notes:[
     'New “My study guide”: for each question you missed, it collects the key hints — more of them the more you struggled — along with the objective and exactly which chapter section to read (and a short excerpt where available). Sort it by chapter & section or by objective.']},
   {v:'0.14', date:'Aug 19, 2026', notes:[
@@ -402,15 +404,29 @@ function setBank(b){ BANK=b; BANKS[CH]=b; EXCERPTS=(BANK.bank_meta&&BANK.bank_me
   LOS=Object.keys(BANK.bank_meta.learning_objectives); expandSets();
   if(!MANIFEST_ACTIVE){ const m=b.bank_meta||{}; UNITMETA[CH]={ title:m.chapter_title||('Chapter '+CH), chapter:m.chapter, textbook:textbookLabel(m.source) }; } }   // refresh the active unit's display meta on a bank swap (manifest owns its own titles)
 function mergeBanks(map){   // a model-1 config package may carry SEVERAL chapter banks — merge them all into BANKS (one textbook)
-  Object.keys(map).forEach(k=>{ const b=map[k]; if(b&&b.bank_meta) BANKS[String(k)]=b; });
+  Object.keys(map).forEach(k=>{ const b=map[k]; if(b&&b.bank_meta){ pruneExcluded(b,String(k)); BANKS[String(k)]=b; } });
   buildUnitsFromBanks(); CH=CHAPTERS[0]; setBank(BANKS[CH]);   // rebuild units + re-point active + refresh EXCERPTS/LOS/expandSets
 }
 function buildUnitsFromManifest(manifest, banks){   // multi-textbook: a config manifest defines the ordered units + carries their banks
   BANKS={}; UNITMETA={}; MANIFEST_ACTIVE=true;
-  (manifest||[]).forEach(u=>{ const b=banks&&banks[u.id]; if(b&&b.bank_meta){ BANKS[u.id]=b;
+  (manifest||[]).forEach(u=>{ const b=banks&&banks[u.id]; if(b&&b.bank_meta){ pruneExcluded(b,u.id); BANKS[u.id]=b;
     UNITMETA[u.id]={ title:u.title||b.bank_meta.chapter_title||u.id, chapter:(u.chapter!=null?u.chapter:b.bank_meta.chapter), textbook:u.textbook||textbookLabel(b.bank_meta.source) }; } });
   CHAPTERS=(manifest||[]).map(u=>u.id).filter(id=>BANKS[id]);   // manifest order
   CH=CHAPTERS[0]; if(CH) setBank(BANKS[CH]);
+}
+/* Stay-canonical exclusions: a config may carry cfg.exclusions = { "<unit-id>": ["<q_id>", …] } to
+   drop specific questions from THIS class while the unit stays canonical (auto-refreshes each host).
+   Applied as each unit's bank is installed, BEFORE expandSets — so tier/LO availability reflects only
+   what remains (an excluded question never shows as a hidden rung). q_ids are in the clear even on an
+   encrypted bank, so no decryption is needed; an id not present in the bank is simply ignored. */
+function excludedIds(unitId){ const ex=CONFIG&&CONFIG.exclusions; const l=ex&&(ex[unitId]!=null?ex[unitId]:ex[String(unitId)]); return (Array.isArray(l)&&l.length)?new Set(l.map(String)):null; }
+function pruneExcluded(bank,unitId){
+  const drop=excludedIds(unitId); if(!drop||!bank) return bank;
+  if(Array.isArray(bank.items)) bank.items=bank.items.filter(it=>!drop.has(String(it.q_id)));
+  if(Array.isArray(bank.question_sets)) bank.question_sets=bank.question_sets
+    .map(s=>{ if(Array.isArray(s.questions)) s.questions=s.questions.filter(q=>!drop.has(String(q.q_id))); return s; })
+    .filter(s=>Array.isArray(s.questions)&&s.questions.length);
+  return bank;
 }
 const todayISO=()=>new Date().toISOString().slice(0,10);
 function releaseDate(ch){ return CONFIG&&CONFIG.release_schedule ? (CONFIG.release_schedule[ch]??CONFIG.release_schedule[String(ch)]) : null; }
