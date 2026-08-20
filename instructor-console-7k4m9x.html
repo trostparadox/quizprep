@@ -108,8 +108,8 @@
   .strow.open .stcaret{transform:rotate(90deg);color:var(--brand)}
   footer{max-width:1050px;margin:0 auto;padding:1rem;color:var(--muted);font-size:.8rem}
   .chapbar{max-width:1050px;margin:.4rem auto 0;padding:.35rem 1rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
-  .chapbar .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:.2rem .7rem;cursor:pointer;font-size:.85rem}
-  .chapbar .chip.on{border-color:var(--brand);color:var(--brand);font-weight:600}
+  .chapbar .chip,#schBookFilter .chip{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:999px;padding:.2rem .7rem;cursor:pointer;font-size:.85rem}
+  .chapbar .chip.on,#schBookFilter .chip.on{border-color:var(--brand);color:var(--brand);font-weight:600}
   .chapbar .chip.book{font-weight:600}
   .pbadge{display:inline-block;border-radius:999px;padding:.05rem .5rem;font-size:.72rem;font-weight:600;margin-left:.35rem;vertical-align:middle}
   .pbadge.canon{background:var(--okbg);color:var(--ok)}
@@ -221,7 +221,7 @@
   <section id="tab-config" class="hide">
     <div class="panel">
       <h2>Config package builder</h2>
-      <p class="muted">Build the config a colleague deploys to a class. <b>Model 1</b> (default, for edited banks) exports one file (config + this bank) to hand off via your shared folder — students launch with <code>?cfg=&lt;id&gt;&amp;sec=…</code>. <b>Model 2</b> makes a share link that carries the config in the URL and uses the stock bank (no edits). Use <b>Schedule chapter releases</b> below to drip-release chapters across the term — <b>Auto-fill</b> the dates from a start date and an interval (e.g. every 7 days), tick <b>"same day as above"</b> to co-release chapters together, and adjust any single date by hand; leave it off and every authored chapter is available at once.</p>
+      <p class="muted">Build the config a colleague deploys to a class. <b>Model 1</b> (default, for edited banks) exports one file (config + this bank) to hand off via your shared folder — students launch with <code>?cfg=&lt;id&gt;&amp;sec=…</code>. <b>Model 2</b> makes a share link that carries the config in the URL and uses the stock bank (no edits). Use <b>Schedule chapter releases</b> below to drip-release chapters across the term — <b>Auto-fill</b> the dates from a start date and an interval (e.g. every 7 days); for a course that mixes books, <b>filter to one book</b> and fill it on its own chapter order. Tick <b>"same day as above"</b> to co-release chapters, <b>"skip auto-fill"</b> to leave a chapter off the cascade, and adjust any single date by hand; leave it off and every authored chapter is available at once.</p>
       <div id="cfgForm"></div>
       <div class="row" style="margin-top:.6rem">
         <button class="act" id="cfgExport1">Export config + bank (Model 1)</button>
@@ -1438,47 +1438,64 @@ function renderConfig(){
   gate.onchange = () => {
     const on = gate.checked;
     sched.classList.toggle("hide", !on);
-    if (on && !sched.children.length){                       // auto-fill bar + one row per loaded unit (keyed by unit id)
+    if (on && !sched.children.length){                       // auto-fill bar (+ book filter) + one row per loaded unit
       sched.insertAdjacentHTML("beforeend",
         `<div class="row" id="dripBar" style="margin:.15rem 0 .55rem;gap:.5rem;align-items:center;flex-wrap:wrap">
            <span class="muted">Auto-fill dates:</span>
            <label class="muted" style="font-size:.85rem">first chapter on <input type="date" id="dripStart"></label>
            <label class="muted" style="font-size:.85rem">then every <input type="number" id="dripEvery" value="7" min="0" style="width:3.5rem"> days</label>
            <button class="ghost" id="dripFill" type="button">Fill dates</button></div>`);
+      const books = courseBooks();
+      if (books.length > 1)                                  // multi-textbook: schedule one book at a time (assignments follow each book's own order)
+        sched.insertAdjacentHTML("beforeend",
+          `<div class="row" id="schBookFilter" style="margin:0 0 .5rem;gap:.4rem;flex-wrap:wrap;align-items:center">
+             <span class="muted" style="font-size:.85rem">Show:</span>
+             <button class="chip on" type="button" data-schbook="">All books</button>` +
+          books.map(b => `<button class="chip" type="button" data-schbook="${esc(b.key)}">${esc(b.label)} <span class="muted">(${b.units.length})</span></button>`).join("") + `</div>`);
       courseChapters().forEach((id, i) => addSchedRow(id, (COURSE.banks[id].bank_meta.chapter_title) || ("Ch " + id), "", i === 0));
       $("dripFill").onclick = dripFillDates;
+      sched.querySelectorAll("#schBookFilter [data-schbook]").forEach(btn => btn.onclick = () => filterSchedByBook(btn.dataset.schbook));
     }
   };
 }
-// One editable (chapter, date) row of the release allowlist. Blank date = available now. Every row but
-// the first gets a "same day as above" checkbox — check it to co-release that chapter with the one before
-// it when you Auto-fill (adjacent chapters can also just be given the same date by hand).
-function addSchedRow(unitId, title, date, isFirst){   // a release row per loaded unit — keyed by unit id, labelled by chapter title
+// One editable (chapter, date) row of the release allowlist, tagged by book. Blank date = available now.
+// Each row (but the first) has "same day as above" to co-release it with the previous chapter, and every
+// row has "skip auto-fill" to leave it out of the Auto-fill cascade (set its date by hand or leave blank).
+function addSchedRow(unitId, title, date, isFirst){
   const row = document.createElement("div");
   row.className = "row schedrow";
   row.style.margin = ".25rem 0";
+  row.dataset.book = (COURSE.banks[unitId] ? textbookKey(COURSE.banks[unitId]) : "");
   row.innerHTML = `<span class="schUnit" data-unit="${esc(String(unitId))}" style="min-width:13rem">${esc(title || String(unitId))}</span>` +
     `<input type="date" class="schDate" value="${esc(String(date || ""))}">` +
-    (isFirst ? "" : `<label class="muted" style="font-size:.85rem"><input type="checkbox" class="schCo"> same day as above</label>`);
+    (isFirst ? "" : `<label class="muted" style="font-size:.8rem"><input type="checkbox" class="schCo"> same day as above</label>`) +
+    `<label class="muted" style="font-size:.8rem"><input type="checkbox" class="schSkip"> skip auto-fill</label>`;
   $("cfgSched").appendChild(row);
+}
+// View filter (multi-textbook): show only one book's rows. Hidden rows still SHIP in the schedule — this
+// only scopes what you see and what Auto-fill touches, so you can date each book on its own chapter order.
+function filterSchedByBook(bookKey){
+  document.querySelectorAll("#schBookFilter [data-schbook]").forEach(b => b.classList.toggle("on", b.dataset.schbook === bookKey));
+  document.querySelectorAll("#cfgSched .schedrow").forEach(r => r.classList.toggle("hide", !!bookKey && r.dataset.book !== bookKey));
 }
 function addDaysISO(iso, n){   // yyyy-mm-dd + n days → yyyy-mm-dd (local time; handles month/year rollover)
   const d = new Date(iso + "T00:00:00"); d.setDate(d.getDate() + (n || 0));
   const p = x => String(x).padStart(2, "0");
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
-// Cascade release dates from a start date at a fixed interval; a "same day as above" chapter takes the
-// previous chapter's date and doesn't advance the interval (so co-released chapters share one date).
+// Cascade release dates from a start date at a fixed interval, across the VISIBLE rows only (so a book
+// filter scopes the fill). "same day as above" co-releases a chapter with the previous scheduled one (no
+// interval advance); "skip auto-fill" leaves that chapter's date untouched and consumes no slot.
 function dripFillDates(){
   const start = ($("dripStart").value || "").trim();
   if (!start){ alert("Pick the first chapter's release date."); return; }
   const every = Math.max(0, parseInt($("dripEvery").value, 10) || 0);
-  const rows = [...document.querySelectorAll("#cfgSched .schedrow")];
-  let d = start;
-  rows.forEach((r, i) => {
-    const co = i > 0 && r.querySelector(".schCo") && r.querySelector(".schCo").checked;
-    if (co){ r.querySelector(".schDate").value = rows[i - 1].querySelector(".schDate").value; }
-    else { r.querySelector(".schDate").value = d; d = addDaysISO(d, every); }
+  const rows = [...document.querySelectorAll("#cfgSched .schedrow")].filter(r => !r.classList.contains("hide"));
+  let d = start, prev = null;
+  rows.forEach(r => {
+    if (r.querySelector(".schSkip") && r.querySelector(".schSkip").checked) return;                 // skip auto-fill
+    if (prev != null && r.querySelector(".schCo") && r.querySelector(".schCo").checked){ r.querySelector(".schDate").value = prev; return; }  // same day as above
+    r.querySelector(".schDate").value = d; prev = d; d = addDaysISO(d, every);
   });
 }
 async function genKeypairForConfig(){
