@@ -31,8 +31,12 @@
   html.staging body{box-shadow:inset 0 0 0 3px #f5a623}
   #stagingChip{display:none;position:fixed;right:.6rem;bottom:.6rem;z-index:9999;background:#7a3e00;color:#fff;border:1px solid #f5a623;border-radius:99px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;box-shadow:0 2px 8px rgba(0,0,0,.25)}
   #stagingBar .stHint{font-size:.78rem;opacity:.92}
+  #stagingBar .stCmd{margin:.5rem 0 0}
+  #stagingBar .stCmd label{display:block;font-size:.78rem;opacity:.92;margin-bottom:.2rem}
+  #stagingBar #stCmd{width:100%;min-height:3.2rem;font:inherit;font-size:.85rem;padding:.4rem .5rem;border-radius:6px;border:1px solid #f5a623;background:#fff8e1;color:#3a2200;resize:vertical}
   html.stediting,html.stediting *{cursor:text}
   html.stediting #stagingBar,html.stediting #stagingBar *{cursor:default}
+  html.stediting #stagingBar #stCmd{cursor:text}
   .st-editing{outline:2px solid #f5a623!important;background:#fff8e1;color:#111}
   .st-edited{outline:1px dashed #f5a623}
   header{background:var(--panel);border-bottom:1px solid var(--line);padding:.7rem 1rem;
@@ -326,8 +330,10 @@ const STAGING = (function(){ try{ return /\/staging\//.test(location.pathname ||
 const STAGE_PREVIEW_KEY = "quizprep-staging-preview-v1";
 /* ---- Staging copy editor (staging only): toggle edit mode, click any text to change it; edits
    persist on this device and export as a JSON diff (where / was / now) to hand to the maintainer. ---- */
-const STEDIT_APP = "instructor", STEDIT_KEY = "quizprep-staging-edits-instructor";
+const STEDIT_APP = "instructor", STEDIT_KEY = "quizprep-staging-edits-instructor", STCMD_KEY = "quizprep-staging-commands-instructor";
 let STEDITS = {}, STEDITING = false, STCUR = null, STLISTEN = false;
+function stLoadCmd(){ try{ return localStorage.getItem(STCMD_KEY) || ""; }catch(e){ return ""; } }
+function stSaveCmd(v){ try{ localStorage.setItem(STCMD_KEY, v); }catch(e){} }
 function stLoadEdits(){ try{ STEDITS = JSON.parse(localStorage.getItem(STEDIT_KEY)) || {}; }catch(e){ STEDITS = {}; } }
 function stSaveEdits(){ try{ localStorage.setItem(STEDIT_KEY, JSON.stringify(STEDITS)); }catch(e){} }
 function stChanged(p){ return !!(STEDITS[p] && STEDITS[p].now !== STEDITS[p].was); }
@@ -343,11 +349,14 @@ function stClickToEdit(e){ if (!STEDITING) return; const t = e.target; if (!t ||
   t.contentEditable = "true"; t.classList.add("st-editing"); STCUR = t; t.focus();
   t.addEventListener("blur", function h(){ t.removeEventListener("blur", h); t.contentEditable = "false"; t.classList.remove("st-editing"); if (STCUR === t) STCUR = null; stCommit(t); }); }
 function stToggleEdit(on){ STEDITING = !!on; document.documentElement.classList.toggle("stediting", STEDITING); const b = $("stEditBtn"); if (b) b.textContent = "Edit text: " + (STEDITING ? "ON" : "off"); const h = $("stHint"); if (h) h.textContent = STEDITING ? "Click any text to change it; click away to save." : ""; if (!STEDITING && STCUR) STCUR.blur(); }
-function stExport(){ const edits = Object.keys(STEDITS).filter(stChanged).map(p => ({ where: p, was: STEDITS[p].was, now: STEDITS[p].now }));
-  const payload = { format: "quizprep-staging-edits-v1", app: STEDIT_APP, console_version: TOOL_VERSION, generated: new Date().toISOString(), count: edits.length, edits };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
+function stPayload(){ const edits = Object.keys(STEDITS).filter(stChanged).map(p => ({ where: p, was: STEDITS[p].was, now: STEDITS[p].now }));
+  const commands = (($("stCmd") && $("stCmd").value) || stLoadCmd()).trim();
+  return { format: "quizprep-staging-edits-v1", app: STEDIT_APP, console_version: TOOL_VERSION, generated: new Date().toISOString(), commands, edit_count: edits.length, edits }; }
+function stExport(){ const p = stPayload(); const h = $("stHint");
+  if (!p.edit_count && !p.commands){ if (h) h.textContent = "Nothing to export yet — make a text edit or write a change request."; return; }
+  const blob = new Blob([JSON.stringify(p, null, 2)], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
   a.href = url; a.download = "quizprep-" + STEDIT_APP + "-staging-edits.json"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  const h = $("stHint"); if (h) h.textContent = edits.length + " edit" + (edits.length === 1 ? "" : "s") + " exported."; }
+  if (h) h.textContent = "Exported " + p.edit_count + " text edit" + (p.edit_count === 1 ? "" : "s") + (p.commands ? " + your change requests." : "."); }
 function stMountEditor(){ stLoadEdits(); stApplySaved(); if (!STLISTEN){ document.addEventListener("click", stClickToEdit, true); STLISTEN = true; } }
 function setStagingPreview(on){
   try{ localStorage.setItem(STAGE_PREVIEW_KEY, on ? "1" : "0"); }catch(e){}
@@ -364,14 +373,17 @@ function renderStagingChrome(){
   if (!bar){ bar = document.createElement("div"); bar.id = "stagingBar"; document.body.insertBefore(bar, document.body.firstChild); }
   bar.innerHTML = `<div class="stInner"><span class="stTag">🚧 STAGING</span> <span>test console · ${esc(TOOL_VERSION)}</span>
     <button id="stEditBtn" class="stBtn">Edit text: off</button>
-    <button id="stExportBtn" class="stBtn">⭳ Export edits (<span id="stCount">0</span>)</button>
+    <button id="stExportBtn" class="stBtn">⭳ Export edits + notes (<span id="stCount">0</span>)</button>
     <button id="stToggle" class="stBtn">Preview as live</button>
-    <span class="stHint" id="stHint"></span></div>`;
+    <span class="stHint" id="stHint"></span></div>
+    <div class="stCmd"><label for="stCmd">Change requests for the maintainer — anything to fix or reword (exports with your in-text edits):</label>
+    <textarea id="stCmd" placeholder="e.g. Add a “duplicate this class config” button. Explain the encryption key in one line on the Config tab."></textarea></div>`;
   let chip = $("stagingChip");
   if (!chip){ chip = document.createElement("button"); chip.id = "stagingChip"; chip.textContent = "🚧 staging"; chip.onclick = () => setStagingPreview(false); document.body.appendChild(chip); }
   $("stToggle").onclick = () => setStagingPreview(true);
   $("stEditBtn").onclick = () => stToggleEdit(!STEDITING);
   $("stExportBtn").onclick = stExport;
+  const ta = $("stCmd"); if (ta){ ta.value = stLoadCmd(); ta.oninput = () => stSaveCmd(ta.value); }
   stUpdateCount();
   setStagingPreview(preview);
 }

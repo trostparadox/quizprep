@@ -27,8 +27,12 @@ html{font-size:16px}
 html.staging body{box-shadow:inset 0 0 0 3px #f5a623}
 #stagingChip{display:none;position:fixed;right:.6rem;bottom:.6rem;z-index:9999;background:#7a3e00;color:#fff;border:1px solid #f5a623;border-radius:99px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 #stagingBar .stHint{font-size:.78rem;opacity:.92}
+#stagingBar .stCmd{margin:.5rem auto 0;max-width:900px}
+#stagingBar .stCmd label{display:block;font-size:.78rem;opacity:.92;margin-bottom:.2rem}
+#stagingBar #stCmd{width:100%;min-height:3.2rem;font:inherit;font-size:.85rem;padding:.4rem .5rem;border-radius:6px;border:1px solid #f5a623;background:#fff8e1;color:#3a2200;resize:vertical}
 html.stediting,html.stediting *{cursor:text}
 html.stediting #stagingBar,html.stediting #stagingBar *{cursor:default}
+html.stediting #stagingBar #stCmd{cursor:text}
 .st-editing{outline:2px solid #f5a623!important;background:#fff8e1}
 .st-edited{outline:1px dashed #f5a623}
 body{background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.55;min-height:100vh}
@@ -1483,8 +1487,10 @@ $('aboutModal').onclick=e=>{ if(e.target===$('aboutModal'))$('aboutModal').class
    will look once this build is promoted to live. Reads the live version.txt at ../version.txt. */
 /* ---- Staging copy editor (staging only): toggle edit mode, click any text to change it; edits
    persist on this device and export as a JSON diff (where / was / now) to hand to the maintainer. ---- */
-const STEDIT_APP='student', STEDIT_KEY='quizprep-staging-edits-student';
+const STEDIT_APP='student', STEDIT_KEY='quizprep-staging-edits-student', STCMD_KEY='quizprep-staging-commands-student';
 let STEDITS={}, STEDITING=false, STCUR=null, STLISTEN=false;
+function stLoadCmd(){ try{ return localStorage.getItem(STCMD_KEY)||''; }catch(e){ return ''; } }
+function stSaveCmd(v){ try{ localStorage.setItem(STCMD_KEY,v); }catch(e){} }
 function stLoadEdits(){ try{ STEDITS=JSON.parse(localStorage.getItem(STEDIT_KEY))||{}; }catch(e){ STEDITS={}; } }
 function stSaveEdits(){ try{ localStorage.setItem(STEDIT_KEY,JSON.stringify(STEDITS)); }catch(e){} }
 function stChanged(p){ return !!(STEDITS[p]&&STEDITS[p].now!==STEDITS[p].was); }
@@ -1500,11 +1506,14 @@ function stClickToEdit(e){ if(!STEDITING)return; const t=e.target; if(!t||(t.clo
   t.contentEditable='true'; t.classList.add('st-editing'); STCUR=t; t.focus();
   t.addEventListener('blur',function h(){ t.removeEventListener('blur',h); t.contentEditable='false'; t.classList.remove('st-editing'); if(STCUR===t)STCUR=null; stCommit(t); }); }
 function stToggleEdit(on){ STEDITING=!!on; document.documentElement.classList.toggle('stediting',STEDITING); const b=$('stEditBtn'); if(b)b.textContent='Edit text: '+(STEDITING?'ON':'off'); const h=$('stHint'); if(h)h.textContent=STEDITING?'Click any text to change it; click away to save.':''; if(!STEDITING&&STCUR)STCUR.blur(); }
-function stExport(){ const edits=Object.keys(STEDITS).filter(stChanged).map(p=>({where:p,was:STEDITS[p].was,now:STEDITS[p].now}));
-  const payload={format:'quizprep-staging-edits-v1',app:STEDIT_APP,app_version:APP_VERSION,generated:new Date().toISOString(),count:edits.length,edits};
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+function stPayload(){ const edits=Object.keys(STEDITS).filter(stChanged).map(p=>({where:p,was:STEDITS[p].was,now:STEDITS[p].now}));
+  const commands=(($('stCmd')&&$('stCmd').value)||stLoadCmd()).trim();
+  return {format:'quizprep-staging-edits-v1',app:STEDIT_APP,app_version:APP_VERSION,generated:new Date().toISOString(),commands,edit_count:edits.length,edits}; }
+function stExport(){ const p=stPayload();
+  if(!p.edit_count&&!p.commands){ if(typeof toast==='function')toast('Nothing to export yet — make a text edit or write a change request'); return; }
+  const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), a=document.createElement('a');
   a.href=url; a.download='quizprep-'+STEDIT_APP+'-staging-edits.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
-  if(typeof toast==='function')toast(edits.length+' text edit'+(edits.length===1?'':'s')+' exported'); }
+  if(typeof toast==='function')toast('Exported '+p.edit_count+' text edit'+(p.edit_count===1?'':'s')+(p.commands?' + your change requests':'')); }
 function stMountEditor(){ stLoadEdits(); stApplySaved(); if(!STLISTEN){ document.addEventListener('click',stClickToEdit,true); STLISTEN=true; } }
 function setStagingPreview(on){
   try{ localStorage.setItem(STAGE_PREVIEW_KEY,on?'1':'0'); }catch(e){}
@@ -1527,13 +1536,16 @@ async function renderStagingChrome(){
   let bar=$('stagingBar'); if(!bar){ bar=document.createElement('div'); bar.id='stagingBar'; document.body.insertBefore(bar,document.body.firstChild); }
   bar.innerHTML=`<div class="stInner"><span class="stTag">🚧 STAGING</span> <span>test build · app v${esc(APP_VERSION)}</span>
     <button id="stEditBtn" class="stBtn">Edit text: off</button>
-    <button id="stExportBtn" class="stBtn">⭳ Export edits (<span id="stCount">0</span>)</button>
+    <button id="stExportBtn" class="stBtn">⭳ Export edits + notes (<span id="stCount">0</span>)</button>
     <button id="stToggle" class="stBtn">Preview as live</button>
-    <span class="stHint" id="stHint"></span></div>${whats}`;
+    <span class="stHint" id="stHint"></span></div>
+    <div class="stCmd"><label for="stCmd">Change requests for the maintainer — anything to fix or reword (exports with your in-text edits):</label>
+    <textarea id="stCmd" placeholder="e.g. Rename the “Start” button to “Begin practice”. Shorten the FAQ answer about privacy. Add a “skip this question” option."></textarea></div>${whats}`;
   let chip=$('stagingChip'); if(!chip){ chip=document.createElement('button'); chip.id='stagingChip'; chip.textContent='🚧 staging'; chip.title='You are viewing the staging build as it will look live — click to show the staging highlights again'; document.body.appendChild(chip); chip.onclick=()=>setStagingPreview(false); }
   $('stToggle').onclick=()=>setStagingPreview(true);
   $('stEditBtn').onclick=()=>stToggleEdit(!STEDITING);
   $('stExportBtn').onclick=stExport;
+  const ta=$('stCmd'); if(ta){ ta.value=stLoadCmd(); ta.oninput=()=>stSaveCmd(ta.value); }
   stUpdateCount();
   setStagingPreview(preview);
 }
