@@ -345,7 +345,8 @@ const APP_VERSION='0.17';
 const CHANGELOG=[
   {v:'0.17', date:'Aug 20, 2026', notes:[
     'New “About & FAQ” link in the top bar — a quick explainer of how QuizPrep works and answers to common questions.',
-    'You can now keep a practice run from counting toward mastery: in your progress report, untick “Counts” on any session. It stays in your history, but its results no longer affect which objectives show as mastered — handy for a run you rushed or didn’t take seriously.']},
+    'You can now keep a practice run from counting toward mastery: in your progress report, untick “Counts” on any session. It stays in your history, but its results no longer affect which objectives show as mastered — handy for a run you rushed or didn’t take seriously.',
+    '“Restart ladder” now works the same way in one tap — it unchecks all your sessions for that chapter, so you can see exactly what it did and re-check any of them.']},
   {v:'0.16', date:'Aug 20, 2026', notes:[
     'Your instructor can now fine-tune which questions your class practices. If they’ve set a few questions aside during their review, you simply won’t see those — everything else works exactly the same.']},
   {v:'0.15', date:'Aug 19, 2026', notes:[
@@ -1350,15 +1351,12 @@ function rebuildLadderFromHistory(){
   DATA.ladder=DATA.ladder||{}; DATA.ladder[CH]={};   // clear, then replay everything
   replayLadder();
 }
-function rebuildLadderForChapter(ch){   // recompute ONE chapter's mastery ladder from its non-excluded history, in that chapter's own bank context
+function rebuildLadderForChapter(ch){   // recompute ONE chapter's mastery ladder from its counted (non-excluded) history, in that chapter's own bank context
   ch=String(ch);
   if(!(BANKS[ch]&&BANKS[ch].bank_meta))return;
   const prevCH=CH, prevBank=BANK;
   if(ch!==CH){ CH=ch; setBank(BANKS[ch]); }              // scope LOS / maxTier / masterK to this chapter
-  const reset=DATA.ladder[ch]&&DATA.ladder[ch]._reset;   // preserve a prior "restart ladder"
-  DATA.ladder[ch]={};
-  replayLadder({force:true, since:reset||null});
-  if(reset && !Object.keys(DATA.ladder[ch]).length) DATA.ladder[ch]={_reset:reset};   // nothing counts after the reset → keep the reset sentinel
+  DATA.ladder[ch]={}; replayLadder();                    // clear, then replay this chapter's counted sessions
   if(ch!==prevCH){ CH=prevCH; setBank(prevBank); }       // restore the active chapter
 }
 $('btnImport').onclick=()=>$('fileImport').click();
@@ -1386,9 +1384,15 @@ $('fileImport').onchange=async e=>{
   toast(parts.length?('Imported: '+parts.join(', ')+(backups+sessions?' — ladder rebuilt':'')):'No usable files found');
   e.target.value='';
 };
-$('btnFresh').onclick=async()=>{ if(confirm('Restart the Chapter 1 mastery ladder? Your session history is kept.')){
-  DATA.ladder[CH]={_reset:new Date().toISOString()}; delete DATA.carryReview[CH];
-  await store.set(SKEY,DATA); renderHome(); toast('Chapter 1 ladder reset'); }};
+$('btnFresh').onclick=async()=>{   // Restart ladder = untick every session for this chapter (kept in history, no longer counted); nothing else
+  const sess=DATA.sessions.filter(s=>String(s.chapter)===String(CH));
+  const label=(UNITMETA[CH]&&UNITMETA[CH].title)||('Chapter '+CH);
+  if(!sess.length){ toast('No sessions yet for '+label); return; }
+  if(confirm(`Restart the ${label} mastery ladder?\n\nThis unchecks all ${sess.length} of your ${label} session${sess.length>1?'s':''} so they no longer count toward mastery. They stay in your history — you can re-check any of them in your progress report.`)){
+    sess.forEach(s=>s.noMastery=true);
+    rebuildLadderForChapter(CH);
+    await store.set(SKEY,DATA); renderHome(); if(!$('reportWrap').classList.contains('hidden'))renderReport();
+    toast(`${label} ladder reset — ${sess.length} session${sess.length>1?'s':''} unchecked`); }};
 $('btnReset').onclick=async()=>{ if(confirm('Erase all local QuizPrep data on this device? Export a backup first if you want to keep it.')){
   DATA={name:'',sessions:[],carryReview:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');toast('Data cleared');}};
 $('btnExportSession').onclick=()=>{downloadJSON(S.bundle,`quizprep-ch${CH}-${S.id}.json`);toast('Session export downloaded — upload it to the Canvas assignment');};
@@ -1404,12 +1408,10 @@ function normalizeData(d){
   d.ladder=d.ladder&&typeof d.ladder==='object'?d.ladder:{};
   return d;
 }
-function replayLadder(opts){
-  opts=opts||{};
+function replayLadder(){
   DATA.ladder=DATA.ladder||{};
-  if(!opts.force && DATA.ladder[CH]&&Object.keys(DATA.ladder[CH]).length)return false;   // force: recompute even if a ladder is present (used when a session's mastery-counting toggles)
-  const since=opts.since?new Date(opts.since):null;
-  const sess=DATA.sessions.filter(s=>String(s.chapter)===String(CH)&&!s.noMastery&&(!since||new Date(s.ended)>=since))   // noMastery sessions stay in history but don't count toward mastery
+  if(DATA.ladder[CH]&&Object.keys(DATA.ladder[CH]).length)return false;
+  const sess=DATA.sessions.filter(s=>String(s.chapter)===String(CH)&&!s.noMastery)   // noMastery sessions stay in history but don't count toward mastery
     .sort((a,b)=>new Date(a.ended)-new Date(b.ended));
   if(!sess.length)return false;
   const los={};LOS.forEach(lo=>los[lo]={tier:1,consec:0,mastered:false});
