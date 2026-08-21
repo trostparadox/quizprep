@@ -381,6 +381,13 @@ function stExport(){ const p = stPayload(); const h = $("stHint");
     a.href = url; a.download = "quizprep-" + STEDIT_APP + "-staging-edits.json"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); }catch(e){}
   stShowExport(text);
   if (h) h.textContent = "Exported " + p.edit_count + " text edit" + (p.edit_count === 1 ? "" : "s") + (p.commands ? " + your change requests." : "."); }
+function stClearEdits(){   // wipe the recorded in-text edits (e.g. after the maintainer has applied a batch); leaves the change-requests box alone
+  const n = stCount(); const h = $("stHint");
+  if (n === 0){ STEDITS = {}; stSaveEdits(); stUpdateCount(); if (h) h.textContent = "No edits to clear."; return; }
+  if (!confirm("Clear all " + n + " recorded text edit" + (n === 1 ? "" : "s") + "? This wipes the list so your next export is clean. The page keeps its current text until you reload.")) return;
+  STEDITS = {}; stSaveEdits();
+  document.querySelectorAll(".st-edited").forEach(el => el.classList.remove("st-edited"));
+  stUpdateCount(); if (h) h.textContent = "Cleared — 0 edits recorded."; }
 function stMountEditor(){ stLoadEdits(); stApplySaved(); if (!STLISTEN){ document.addEventListener("click", stClickToEdit, true); STLISTEN = true; } }
 function setStagingPreview(on){
   try{ localStorage.setItem(STAGE_PREVIEW_KEY, on ? "1" : "0"); }catch(e){}
@@ -398,6 +405,7 @@ function renderStagingChrome(){
   bar.innerHTML = `<div class="stInner"><span class="stTag">🚧 STAGING</span> <span>test console · ${esc(TOOL_VERSION)}</span>
     <button id="stEditBtn" class="stBtn">Edit text: off</button>
     <button id="stExportBtn" class="stBtn">⭳ Export edits + notes (<span id="stCount">0</span>)</button>
+    <button id="stClearBtn" class="stBtn">Clear edits</button>
     <button id="stToggle" class="stBtn">Preview as live</button>
     <span class="stHint" id="stHint"></span></div>
     <div class="stCmd"><label for="stCmd">Change requests for the maintainer — anything to fix or reword (exports with your in-text edits):</label>
@@ -407,6 +415,7 @@ function renderStagingChrome(){
   $("stToggle").onclick = () => setStagingPreview(true);
   $("stEditBtn").onclick = () => stToggleEdit(!STEDITING);
   $("stExportBtn").onclick = stExport;
+  $("stClearBtn").onclick = stClearEdits;
   const ta = $("stCmd"); if (ta){ ta.value = stLoadCmd(); ta.oninput = () => stSaveCmd(ta.value); }
   stUpdateCount();
   setStagingPreview(preview);
