@@ -33,6 +33,11 @@ html.staging body{box-shadow:inset 0 0 0 3px #f5a623}
 html.stediting,html.stediting *{cursor:text}
 html.stediting #stagingBar,html.stediting #stagingBar *{cursor:default}
 html.stediting #stagingBar #stCmd{cursor:text}
+#stExportModal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:1rem}
+#stExportModal .stExpCard{background:#fff;color:#111;max-width:640px;width:100%;border-radius:10px;padding:1rem 1.1rem;box-shadow:0 10px 34px rgba(0,0,0,.4)}
+#stExportModal textarea{width:100%;min-height:220px;font-family:monospace;font-size:.78rem;margin:.4rem 0;padding:.5rem;border:1px solid #ccc;border-radius:6px}
+#stExportModal .stExpRow{display:flex;gap:.5rem;justify-content:flex-end}
+#stExportModal button{padding:.4rem .85rem;border-radius:6px;border:1px solid #999;background:#f3f3f3;cursor:pointer;font-size:.85rem}
 .st-editing{outline:2px solid #f5a623!important;background:#fff8e1}
 .st-edited{outline:1px dashed #f5a623}
 body{background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.55;min-height:100vh}
@@ -1509,10 +1514,29 @@ function stToggleEdit(on){ STEDITING=!!on; document.documentElement.classList.to
 function stPayload(){ const edits=Object.keys(STEDITS).filter(stChanged).map(p=>({where:p,was:STEDITS[p].was,now:STEDITS[p].now}));
   const commands=(($('stCmd')&&$('stCmd').value)||stLoadCmd()).trim();
   return {format:'quizprep-staging-edits-v1',app:STEDIT_APP,app_version:APP_VERSION,generated:new Date().toISOString(),commands,edit_count:edits.length,edits}; }
+function stShowExport(text){   // show the export in a copyable box — reliable even where a file download won't save (iOS Safari)
+  let m=$('stExportModal');
+  if(!m){ m=document.createElement('div'); m.id='stExportModal';
+    m.innerHTML='<div class="stExpCard"><h3 style="margin:.1rem 0 .4rem">Your edits + notes</h3>'
+      +'<p style="margin:.2rem 0 .5rem;font-size:.88rem">A file may also have downloaded. If you can’t find it (on iPhone/iPad the download often doesn’t save), just <b>copy the text below</b> and paste it to your maintainer.</p>'
+      +'<textarea id="stExpText" readonly></textarea>'
+      +'<div class="stExpRow"><button id="stExpCopy">Copy to clipboard</button><button id="stExpClose">Close</button></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener('click',e=>{ if(e.target===m)m.style.display='none'; }); }
+  const ta=m.querySelector('#stExpText'); ta.value=text; m.style.display='flex';
+  try{ ta.focus(); ta.select(); }catch(e){}
+  m.querySelector('#stExpClose').onclick=()=>{ m.style.display='none'; };
+  m.querySelector('#stExpCopy').onclick=()=>{
+    try{ ta.focus(); ta.select(); }catch(e){}
+    let done=false; try{ done=document.execCommand('copy'); }catch(e){}
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(()=>{},()=>{}); done=true; }
+    const b=m.querySelector('#stExpCopy'); if(b){ b.textContent=done?'Copied ✓':'Select all + copy manually'; setTimeout(()=>{ if(b)b.textContent='Copy to clipboard'; },1800); } }; }
 function stExport(){ const p=stPayload();
   if(!p.edit_count&&!p.commands){ if(typeof toast==='function')toast('Nothing to export yet — make a text edit or write a change request'); return; }
-  const blob=new Blob([JSON.stringify(p,null,2)],{type:'application/json'}), url=URL.createObjectURL(blob), a=document.createElement('a');
-  a.href=url; a.download='quizprep-'+STEDIT_APP+'-staging-edits.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1000);
+  const text=JSON.stringify(p,null,2);
+  try{ const blob=new Blob([text],{type:'application/json'}), url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url; a.download='quizprep-'+STEDIT_APP+'-staging-edits.json'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),2000); }catch(e){}
+  stShowExport(text);
   if(typeof toast==='function')toast('Exported '+p.edit_count+' text edit'+(p.edit_count===1?'':'s')+(p.commands?' + your change requests':'')); }
 function stMountEditor(){ stLoadEdits(); stApplySaved(); if(!STLISTEN){ document.addEventListener('click',stClickToEdit,true); STLISTEN=true; } }
 function setStagingPreview(on){
