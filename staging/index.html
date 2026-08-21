@@ -148,6 +148,7 @@ h2{font-size:1.25rem;font-weight:600}
 table.hist{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:.8rem}
 table.hist th,table.hist td{text-align:left;padding:.45rem .5rem;border-bottom:1px solid var(--line)}
 table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-soft)}
+table.hist tr.exrow td{opacity:.5}table.hist tr.exrow td:has(.cntchk){opacity:1}
 .sg-group{border-top:1px solid var(--line);padding-top:.75rem;margin-top:.75rem}
 .sg-group:first-of-type{border-top:0;padding-top:0;margin-top:.4rem}
 .sg-sec{font-weight:600}
@@ -167,6 +168,16 @@ table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;
 .modal.show{display:flex}
 .modal-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:1.4rem 1.5rem;max-width:560px;width:100%;box-shadow:var(--shadow)}
 .clentry{margin:.4rem 0 1rem}.clentry ul{margin:.3rem 0 0;padding-left:1.1rem}.clentry li{margin:.25rem 0}
+.modal-card.wide{max-width:640px}
+#aboutModal p{margin:.5rem 0;color:var(--ink-soft)}
+.faqh{margin:1.1rem 0 .35rem;font-size:1.02rem}
+.faq{border:1px solid var(--line);border-radius:8px;margin:.35rem 0;padding:0 .7rem;background:var(--paper)}
+.faq summary{cursor:pointer;padding:.5rem 0;font-weight:600;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:'▸ ';color:var(--brand)}
+.faq[open] summary::before{content:'▾ '}
+.faq[open] summary{border-bottom:1px solid var(--line)}
+.faq .fa{padding:.5rem 0;color:var(--ink-soft)}
 </style>
 </head>
 <body>
@@ -174,6 +185,7 @@ table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;
   <span class="wordmark">Quiz<span class="accent">Prep</span></span>
   <span class="sub">Entrepreneurship · Barringer &amp; Ireland</span>
   <span class="spacer"></span>
+  <a class="verlink" id="aboutLink" style="white-space:nowrap;margin-right:.8rem">About &amp; FAQ</a>
   <span class="cfg" id="cfgLabel">cfg: dev-preview</span>
 </header>
 <div class="devnote">Development preview — bank v<span id="dnBank">?</span> (unvetted) · spec v<span id="dnSpec">?</span> · <a id="verLink" class="verlink"></a> · <b>preview storage is per app version: use Export / Import (backups or session exports) to carry progress into a new build</b></div>
@@ -283,6 +295,28 @@ table.hist th{font-family:var(--mono);font-size:.68rem;text-transform:uppercase;
   <div id="clBody"></div>
   <div class="btnrow" style="margin-top:.6rem"><button class="btn brand" id="clClose">Got it</button></div>
 </div></div>
+<div class="modal" id="aboutModal"><div class="modal-card wide">
+  <h2 style="margin-top:0">About QuizPrep</h2>
+  <p>QuizPrep helps you get ready for your quizzes by practicing the way that actually builds understanding — one learning objective at a time, with questions that adjust to how you’re doing. Answer well and the questions step up from recalling facts to applying them; miss one and you get a hint and a pointer to exactly what to re-read. There’s nothing to install and no account to create.</p>
+  <p>You practice, see where you stand, and upload your session to Canvas when you’re done. Your progress is saved right here in your browser, and only the file you choose to upload ever leaves your device. It’s a study tool — a place to find and close the gaps before they count.</p>
+  <h3 class="faqh">Frequently asked questions</h3>
+  <details class="faq"><summary>Do I need an account, or to install anything?</summary><div class="fa">No. Open the link from your instructor and start — everything runs in your browser.</div></details>
+  <details class="faq"><summary>Do I have to enter my name?</summary><div class="fa">Once, so your instructor can match your practice to you. If your class uses anonymous mode, the app uses a random code from this device instead, and your instructor still identifies you through Canvas.</div></details>
+  <details class="faq"><summary>Who can see my answers?</summary><div class="fa">By default, only you — until you upload a session file to Canvas. Nothing is sent anywhere automatically, and no server stores your work.</div></details>
+  <details class="faq"><summary>Why do the questions get harder or easier?</summary><div class="fa">Each objective has a ladder: recall, then understanding, then applying it to a new situation. First-try correct answers move you up; a miss steps you back down, so you spend your time where you need it.</div></details>
+  <details class="faq"><summary>What happens when I get one wrong?</summary><div class="fa">You get a nudge toward your mistake and a chance to try again. If you’re still stuck, you’ll see the exact chapter section to re-read (often with a short recap), and sometimes an easier follow-up to rebuild.</div></details>
+  <details class="faq"><summary>What does “mastered” mean?</summary><div class="fa">You’ve mastered an objective when you answer correctly on the first try several times in a row at its hardest available level — two in a row for an application-level objective, three for one that tops out at understanding. Mastery sticks across sessions on this device.</div></details>
+  <details class="faq"><summary>How long is a session?</summary><div class="fa">As long or short as you choose — a set number of questions, or “keep going until I master these objectives.” The app estimates the length and caps it so it never drags on.</div></details>
+  <details class="faq"><summary>Can I stop and come back?</summary><div class="fa">Yes. Your progress saves automatically, and an unfinished session picks up right where you left off when you reopen the link.</div></details>
+  <details class="faq"><summary>How do I turn my practice in?</summary><div class="fa">Download your session file at the end and upload it to the Canvas assignment your instructor set up. You can re-download any past session from your progress report if you forget.</div></details>
+  <details class="faq"><summary>Why is a chapter greyed out?</summary><div class="fa">Your instructor releases chapters on a schedule; a locked chapter shows the date it opens.</div></details>
+  <details class="faq"><summary>Can I keep a bad practice run from counting?</summary><div class="fa">Yes. In your progress report, untick “counts toward mastery” on any session. It stays in your history, but its results no longer affect which objectives show as mastered.</div></details>
+  <details class="faq"><summary>Will I lose my progress?</summary><div class="fa">Only if you clear this site’s browser data, or switch to a different device or browser — progress is saved per device.</div></details>
+  <details class="faq"><summary>There’s a “refresh” bar at the top — what is it?</summary><div class="fa">A newer version is available; tap it to update. Nothing you’ve done is lost.</div></details>
+  <details class="faq"><summary>Is this graded? Are the answers hidden securely?</summary><div class="fa">It’s practice. What you turn in shows that you practiced — it isn’t a secured exam, so treat it as a study tool, not a test.</div></details>
+  <details class="faq"><summary>A question looks wrong to me — what do I do?</summary><div class="fa">Tell your instructor. They can review it and, if needed, pass it along to be fixed.</div></details>
+  <div class="btnrow" style="margin-top:.9rem"><button class="btn brand" id="aboutClose">Close</button></div>
+</div></div>
 
 <script>
 /* ================= BANK (injected at build) ================= */
@@ -307,8 +341,11 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.16';
+const APP_VERSION='0.17';
 const CHANGELOG=[
+  {v:'0.17', date:'Aug 20, 2026', notes:[
+    'New “About & FAQ” link in the top bar — a quick explainer of how QuizPrep works and answers to common questions.',
+    'You can now keep a practice run from counting toward mastery: in your progress report, untick “Counts” on any session. It stays in your history, but its results no longer affect which objectives show as mastered — handy for a run you rushed or didn’t take seriously.']},
   {v:'0.16', date:'Aug 20, 2026', notes:[
     'Your instructor can now fine-tune which questions your class practices. If they’ve set a few questions aside during their review, you simply won’t see those — everything else works exactly the same.']},
   {v:'0.15', date:'Aug 19, 2026', notes:[
@@ -1205,14 +1242,24 @@ function renderReport(){
   if(!DATA.sessions.length){w.innerHTML='<p class="muted">No sessions yet — run one and your history shows up here.</p>';return;}
   const revs=DATA.sessions.slice().reverse();
   const rows=revs.map((s,i)=>
-    `<tr><td>${new Date(s.ended).toLocaleString()}</td><td>Ch ${s.chapter}</td><td>${s.answered}</td>
+    `<tr${s.noMastery?' class="exrow"':''}><td>${new Date(s.ended).toLocaleString()}</td><td>Ch ${s.chapter}</td><td>${s.answered}</td>
      <td>${s.firstCorrect}</td><td>${s.mastered}</td><td>${s.review.length?s.review.join(', '):'—'}</td>
+     <td style="text-align:center"><input type="checkbox" class="cntchk" data-count-idx="${i}"${s.noMastery?'':' checked'} title="Untick to keep this session in your history but stop counting it toward mastery"></td>
      <td>${s.bundle?`<button class="btn quiet sm" data-export-idx="${i}">Canvas file ↓</button>`:'<span class="muted">—</span>'}</td></tr>`).join('');
   const carry=(DATA.carryReview[CH]||[]);
   w.innerHTML=`<h2>Progress report${DATA.name?' — '+esc(DATA.name):''}</h2>
     ${carry.length?`<p style="margin-top:.4rem">Carried into your next session (extra weight): <b>Learning Objective${carry.length>1?'s':''} ${carry.join(', ')}</b></p>`:''}
-    <p class="muted" style="margin-top:.4rem">Need to turn in a past session? Re-download its <b>Canvas file</b> from the last column and upload it to the assignment.</p>
-    <div style="overflow-x:auto"><table class="hist"><tr><th>When</th><th>Chapter</th><th>Answered</th><th>First-try ✓</th><th>Objectives mastered</th><th>Needs review</th><th>Canvas export</th></tr>${rows}</table></div>`;
+    <p class="muted" style="margin-top:.4rem">Untick <b>Counts</b> to keep a session in your history but stop it counting toward mastery. Need to turn one in? Re-download its <b>Canvas file</b> and upload it to the assignment.</p>
+    <div style="overflow-x:auto"><table class="hist"><tr><th>When</th><th>Chapter</th><th>Answered</th><th>First-try ✓</th><th>Objectives mastered</th><th>Needs review</th><th>Counts</th><th>Canvas export</th></tr>${rows}</table></div>`;
+  w.querySelectorAll('[data-count-idx]').forEach(chk=>chk.onchange=async()=>{
+    const s=revs[+chk.dataset.countIdx];
+    if(chk.checked) delete s.noMastery; else s.noMastery=true;   // keep the session in history either way; only its mastery-counting changes
+    rebuildLadderForChapter(s.chapter);                          // recompute that chapter's mastery from its remaining counted sessions
+    await store.set(SKEY,DATA);
+    renderHome(); renderReport();
+    setTimeout(()=>$('reportWrap').scrollIntoView&&$('reportWrap').scrollIntoView(),0);
+    toast(s.noMastery?'This session no longer counts toward mastery':'This session counts toward mastery again');
+  });
   w.querySelectorAll('[data-export-idx]').forEach(btn=>btn.onclick=()=>{
     const s=revs[+btn.dataset.exportIdx];
     downloadJSON(s.bundle,`quizprep-ch${s.chapter}-${s.id}.json`);
@@ -1303,6 +1350,17 @@ function rebuildLadderFromHistory(){
   DATA.ladder=DATA.ladder||{}; DATA.ladder[CH]={};   // clear, then replay everything
   replayLadder();
 }
+function rebuildLadderForChapter(ch){   // recompute ONE chapter's mastery ladder from its non-excluded history, in that chapter's own bank context
+  ch=String(ch);
+  if(!(BANKS[ch]&&BANKS[ch].bank_meta))return;
+  const prevCH=CH, prevBank=BANK;
+  if(ch!==CH){ CH=ch; setBank(BANKS[ch]); }              // scope LOS / maxTier / masterK to this chapter
+  const reset=DATA.ladder[ch]&&DATA.ladder[ch]._reset;   // preserve a prior "restart ladder"
+  DATA.ladder[ch]={};
+  replayLadder({force:true, since:reset||null});
+  if(reset && !Object.keys(DATA.ladder[ch]).length) DATA.ladder[ch]={_reset:reset};   // nothing counts after the reset → keep the reset sentinel
+  if(ch!==prevCH){ CH=prevCH; setBank(prevBank); }       // restore the active chapter
+}
 $('btnImport').onclick=()=>$('fileImport').click();
 $('fileImport').onchange=async e=>{
   const files=[...e.target.files]; if(!files.length)return;
@@ -1346,10 +1404,12 @@ function normalizeData(d){
   d.ladder=d.ladder&&typeof d.ladder==='object'?d.ladder:{};
   return d;
 }
-function replayLadder(){
+function replayLadder(opts){
+  opts=opts||{};
   DATA.ladder=DATA.ladder||{};
-  if(DATA.ladder[CH]&&Object.keys(DATA.ladder[CH]).length)return false;
-  const sess=DATA.sessions.filter(s=>String(s.chapter)===String(CH))
+  if(!opts.force && DATA.ladder[CH]&&Object.keys(DATA.ladder[CH]).length)return false;   // force: recompute even if a ladder is present (used when a session's mastery-counting toggles)
+  const since=opts.since?new Date(opts.since):null;
+  const sess=DATA.sessions.filter(s=>String(s.chapter)===String(CH)&&!s.noMastery&&(!since||new Date(s.ended)>=since))   // noMastery sessions stay in history but don't count toward mastery
     .sort((a,b)=>new Date(a.ended)-new Date(b.ended));
   if(!sess.length)return false;
   const los={};LOS.forEach(lo=>los[lo]={tier:1,consec:0,mastered:false});
@@ -1408,6 +1468,9 @@ refreshDevNote();
 $('btnRefresh').onclick=()=>location.reload();
 $('clClose').onclick=()=>$('clModal').classList.remove('show');
 $('clModal').onclick=e=>{ if(e.target===$('clModal'))$('clModal').classList.remove('show'); };
+$('aboutLink').onclick=()=>$('aboutModal').classList.add('show');
+$('aboutClose').onclick=()=>$('aboutModal').classList.remove('show');
+$('aboutModal').onclick=e=>{ if(e.target===$('aboutModal'))$('aboutModal').classList.remove('show'); };
 
 /* Staging chrome: a distinct banner + "changes since live" + a toggle to preview the page the way it
    will look once this build is promoted to live. Reads the live version.txt at ../version.txt. */
