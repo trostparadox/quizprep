@@ -1619,6 +1619,20 @@ function renderConfig(){
   $("cfgExport1").onclick = exportConfigModel1;
   $("cfgLink2").onclick = configLink2;
   $("cfgGen").onclick = genKeypairForConfig;
+  $("cfgAnon").onchange = () => {   // turning anonymization OFF is a deliberate, warned choice (FERPA)
+    if ($("cfgAnon").checked) return;   // turning it ON needs no warning
+    const ok = confirm(
+      "Turn OFF anonymization for this class?\n\n" +
+      "With it off, each student's NAME is written inside every file they upload. Those files then " +
+      "are identifiable student records — so the moment you share them (with the maintainer, a co-instructor, " +
+      "a shared drive, or for research) it becomes YOUR responsibility to handle and protect them in a " +
+      "FERPA-compliant way, and to take whatever additional steps that requires.\n\n" +
+      "Recommended: leave anonymization ON. You still get a fully named roster from the Canvas download " +
+      "filenames, but the names never leave your hands inside the files.\n\n" +
+      "Turn anonymization OFF anyway?"
+    );
+    if (!ok) $("cfgAnon").checked = true;   // canceled → keep it on
+  };
   const gate = $("cfgGate"), sched = $("cfgSched");
   gate.onchange = () => {
     const on = gate.checked;
