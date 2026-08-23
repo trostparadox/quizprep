@@ -429,6 +429,21 @@ function courseChapters(){ return courseKeys().sort((a,b)=>{ const na=+a, nb=+b;
 function textbookKey(bank){ const s=(bank&&bank.bank_meta&&bank.bank_meta.source)||{}; return (String(s.authors||s.title||"tb").toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,12)||"tb")+(s.edition?String(s.edition).replace(/[^a-z0-9]/gi,"").toLowerCase():""); }
 function sameTextbook(a,b){ return textbookKey(a)===textbookKey(b); }
 function courseTextbooks(){ return new Set(courseKeys().map(k=>textbookKey(COURSE.banks[k]))); }   // distinct source textbooks across the loaded course
+// ---- Multi-bank-per-chapter (sets) --------------------------------------------------------------
+// A chapter can hold more than one bank (e.g. the primary bank + a Quizlet-derived study-guide set).
+// Each set is its own unit; the unit id is <base>~<set_id>. The primary set has no suffix.
+function bankSetId(bank){ const s=(bank&&bank.bank_meta&&bank.bank_meta.set_id); return s?String(s).toLowerCase().replace(/[^a-z0-9]+/g,"").slice(0,16):""; }
+function bankSetLabel(bank){ return (bank&&bank.bank_meta&&bank.bank_meta.set_label)||""; }
+function unitBase(k){ const i=String(k).indexOf("~"); return i<0?String(k):String(k).slice(0,i); }
+function chapterSets(k){ const base=unitBase(k); return courseChapters().filter(x=>unitBase(x)===base); }   // sibling units sharing a chapter (incl. self), in course order
+function unitSetLabel(k){                       // "" when the chapter has a single bank; else this set's display label
+  const sibs=chapterSets(k); if(sibs.length<=1) return "";
+  const sl=bankSetLabel(COURSE.banks[k]); if(sl) return sl;
+  return "Set "+(sibs.indexOf(k)+1);           // unlabeled → position among siblings (primary first)
+}
+function hasMultiSet(){ const n={}; courseKeys().forEach(k=>{ const b=unitBase(k); n[b]=(n[b]||0)+1; }); return Object.values(n).some(c=>c>1); }
+function bankQidSet(b){ const s=new Set(); ((b&&b.items)||[]).forEach(i=>{if(i&&i.q_id)s.add(i.q_id);}); ((b&&b.question_sets)||[]).forEach(x=>((x.questions)||[]).forEach(q=>{if(q&&q.q_id)s.add(q.q_id);})); return s; }
+function looksLikeReload(a,b){ const A=bankQidSet(a),B=bankQidSet(b); if(!A.size&&!B.size)return true; let inter=0; A.forEach(id=>{if(B.has(id))inter++;}); const uni=A.size+B.size-inter; return uni>0&&inter/uni>=0.5; }
 function textbookDisplay(src){ if(!src)return null; const a=src.authors?String(src.authors).replace(/\s+and\s+/g," & "):""; const who=a?a.split(",")[0].trim():(src.title||""); return who+(src.edition?" ("+src.edition+" ed.)":""); }
 function courseBooks(){                  // distinct textbooks among loaded units, in course order, each with its unit ids
   const seen = {}, order = [];
@@ -750,9 +765,19 @@ function sourceLine(src){
    ============================================================ */
 function addBankToCourse(bank){
   const ch = (bank.bank_meta && bank.bank_meta.chapter);
-  let key = (ch == null || ch === "") ? ("x" + (courseKeys().length + 1)) : String(ch);
-  if (COURSE.banks[key] && !sameTextbook(COURSE.banks[key], bank))   // same chapter number, DIFFERENT textbook → composite unit id (no collision)
-    key = textbookKey(bank) + "-" + (ch != null && ch !== "" ? ch : (courseKeys().length + 1));
+  const sid = bankSetId(bank);
+  let base = (ch == null || ch === "") ? ("x" + (courseKeys().length + 1)) : String(ch);
+  if (COURSE.banks[base] && !sameTextbook(COURSE.banks[base], bank))   // same chapter number, DIFFERENT textbook → composite base (no collision)
+    base = textbookKey(bank) + "-" + (ch != null && ch !== "" ? ch : (courseKeys().length + 1));
+  let key = sid ? base + "~" + sid : base;
+  if (!sid && COURSE.banks[key] && sameTextbook(COURSE.banks[key], bank) && !looksLikeReload(bank, COURSE.banks[key])){
+    // a SECOND, different bank for this chapter that didn't declare a set_id → give it its own set rather than replacing the first
+    const n = chapterSets(base).length + 1, auto = "s" + n;
+    bank.bank_meta = bank.bank_meta || {};
+    bank.bank_meta.set_id = auto;
+    if (!bank.bank_meta.set_label) bank.bank_meta.set_label = "Set " + n;
+    key = base + "~" + auto;
+  }
   const prior = COURSE.banks[key];
   if (prior) carryReviewState(bank, prior);   // a true reload of the SAME unit → keep prior review marks
   applyAutoAccept(bank);                        // pref-gated: re-vet questions that changed since approval
@@ -765,7 +790,8 @@ function activateChapter(ch){
   COURSE.active = ch;
   BANK = COURSE.banks[ch];               // BANK aliases the active bank; every tab renders against it
   const s = bankStats(BANK);
-  $("loadState").innerHTML = `Ch ${esc(String(s.chapter ?? "?"))} — ${esc(s.title || "bank")} · v${esc(String(s.bankVersion))} · ${s.total} questions ${provenanceBadge(BANK)}`;
+  const asl = unitSetLabel(ch);
+  $("loadState").innerHTML = `Ch ${esc(String(s.chapter ?? "?"))}${asl ? " · " + esc(asl) : ""} — ${esc(s.title || "bank")} · v${esc(String(s.bankVersion))} · ${s.total} questions ${provenanceBadge(BANK)}`;
   $("loadSource").textContent = sourceLine(s.source);
   ["validate","health","editor","config"].forEach(t => nav.querySelector(`button[data-tab="${t}"]`).disabled = false);
   renderChapterBar();
@@ -794,7 +820,8 @@ function renderChapterBar(){
   const issues = crossChapterChecks();
   const issuePill = issues.length ? ` <span class="pill" style="background:var(--nobg);color:var(--no)" title="${esc(issues.join(" | "))}">⚠ ${issues.length} course issue${issues.length > 1 ? "s" : ""}</span>` : "";
   const chapChip = k => { const b = COURSE.banks[k]; const t = (b.bank_meta && b.bank_meta.chapter_title) || ("Ch " + k);
-    return `<button class="chip${k === COURSE.active ? " on" : ""}" data-ch="${esc(k)}">${esc(t)}${provenanceBadge(b)}</button>`; };
+    const sl = unitSetLabel(k);
+    return `<button class="chip${k === COURSE.active ? " on" : ""}" data-ch="${esc(k)}">${esc(t)}${sl ? ` · <span class="muted">${esc(sl)}</span>` : ""}${provenanceBadge(b)}</button>`; };
   const books = courseBooks();
   bar.classList.remove("hide");
   if (books.length >= 2){                // two levels: Books, then the selected book's Chapters
@@ -1651,7 +1678,8 @@ function renderConfig(){
              <span class="muted" style="font-size:.85rem">Show:</span>
              <button class="chip on" type="button" data-schbook="">All books</button>` +
           books.map(b => `<button class="chip" type="button" data-schbook="${esc(b.key)}">${esc(b.label)} <span class="muted">(${b.units.length})</span></button>`).join("") + `</div>`);
-      courseChapters().forEach((id, i) => addSchedRow(id, (COURSE.banks[id].bank_meta.chapter_title) || ("Ch " + id), "", i === 0));
+      courseChapters().forEach((id, i) => { const sl = unitSetLabel(id);
+        addSchedRow(id, ((COURSE.banks[id].bank_meta.chapter_title) || ("Ch " + id)) + (sl ? " · " + sl : ""), "", i === 0); });
       $("dripFill").onclick = dripFillDates;
       sched.querySelectorAll("#schBookFilter [data-schbook]").forEach(btn => btn.onclick = () => filterSchedByBook(btn.dataset.schbook));
     }
@@ -1782,16 +1810,19 @@ function buildConfig(){
   if (Object.keys(excl).length) cfg.exclusions = excl;   // omit when empty (the app treats absent as none)
   return cfg;
 }
-function buildConfigPackage(){   // multi-textbook course → {cfg, manifest, banks}; single textbook → {cfg, banks (by chapter), bank}
+function buildConfigPackage(){   // manifest when the course mixes textbooks OR any chapter has more than one bank (sets); else single-textbook stock
   const cfg = buildConfig();
   const keys = courseChapters();
   const banks = {}; keys.forEach(k => { banks[k] = COURSE.banks[k]; });
-  if (courseTextbooks().size > 1){   // mixes books → a manifest defines the ordered units, keyed by unit id
-    const manifest = keys.map(id => { const m = COURSE.banks[id].bank_meta || {};
-      return { id, title: m.chapter_title || id, textbook: textbookDisplay(m.source), chapter: m.chapter }; });
+  if (courseTextbooks().size > 1 || hasMultiSet()){   // a manifest defines the ordered units, keyed by unit id, with set-labeled titles
+    const manifest = keys.map(id => { const m = COURSE.banks[id].bank_meta || {}, sl = unitSetLabel(id);
+      const u = { id, title: (m.chapter_title || id) + (sl ? " · " + sl : ""), textbook: textbookDisplay(m.source), chapter: m.chapter };
+      if (bankSetId(COURSE.banks[id])) u.set_id = bankSetId(COURSE.banks[id]);
+      if (sl) u.set_label = sl;
+      return u; });
     return { cfg, manifest, banks };
   }
-  return { cfg, banks, bank: BANK };   // single textbook: banks keyed by chapter number, merges into the app's stock
+  return { cfg, banks, bank: BANK };   // single textbook, one bank per chapter: banks keyed by chapter number, merges into the app's stock
 }
 function exportConfigModel1(){
   if (hardGateBlocks()) return;
@@ -1799,7 +1830,7 @@ function exportConfigModel1(){
   if (!cfg.cfg_id){ alert("Enter a config id first."); return; }
   downloadJSON(`${cfg.cfg_id}.config.json`, pkg);
   const nB = Object.keys(pkg.banks).length;
-  const mt = pkg.manifest ? ` · multi-textbook manifest (${pkg.manifest.length} units)` : "";
+  const mt = pkg.manifest ? ` · manifest (${pkg.manifest.length} units${hasMultiSet() ? ", some chapters have multiple sets" : ""})` : "";
   const nEx = cfg.exclusions ? Object.values(cfg.exclusions).reduce((n, a) => n + a.length, 0) : 0;
   const exNote = nEx ? ` · <b>${nEx} question${nEx > 1 ? "s" : ""} excluded</b> (the bank stays canonical / auto-updating; these are dropped from your class)` : "";
   const keyNote = cfg.public_key ? '' : ' <b>No public key set</b> — this class’s exports will be unencrypted (dev stub); generate a keypair above to encrypt.';
