@@ -24,6 +24,26 @@
   *{box-sizing:border-box}
   body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg);color:var(--ink)}
+  #stagingBar{background:#7a3e00;color:#fff;font-size:.85rem;padding:.5rem .9rem;border-bottom:3px solid #f5a623}
+  #stagingBar .stInner{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+  #stagingBar .stTag{font-weight:700;letter-spacing:.05em;background:#f5a623;color:#3a2200;border-radius:4px;padding:.05rem .45rem}
+  #stagingBar .stBtn{margin-left:auto;background:transparent;border:1px solid #f5a623;color:#fff;border-radius:6px;padding:.15rem .55rem;cursor:pointer;font-size:.8rem}
+  html.staging body{box-shadow:inset 0 0 0 3px #f5a623}
+  #stagingChip{display:none;position:fixed;right:.6rem;bottom:.6rem;z-index:9999;background:#7a3e00;color:#fff;border:1px solid #f5a623;border-radius:99px;padding:.3rem .75rem;cursor:pointer;font-size:.8rem;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  #stagingBar .stHint{font-size:.78rem;opacity:.92}
+  #stagingBar .stCmd{margin:.5rem 0 0}
+  #stagingBar .stCmd label{display:block;font-size:.78rem;opacity:.92;margin-bottom:.2rem}
+  #stagingBar #stCmd{width:100%;min-height:3.2rem;font:inherit;font-size:.85rem;padding:.4rem .5rem;border-radius:6px;border:1px solid #f5a623;background:#fff8e1;color:#3a2200;resize:vertical}
+  html.stediting,html.stediting *{cursor:text}
+  html.stediting #stagingBar,html.stediting #stagingBar *{cursor:default}
+  html.stediting #stagingBar #stCmd{cursor:text}
+  #stExportModal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:1rem}
+  #stExportModal .stExpCard{background:#fff;color:#111;max-width:640px;width:100%;border-radius:10px;padding:1rem 1.1rem;box-shadow:0 10px 34px rgba(0,0,0,.4)}
+  #stExportModal textarea{width:100%;min-height:220px;font-family:monospace;font-size:.78rem;margin:.4rem 0;padding:.5rem;border:1px solid #ccc;border-radius:6px}
+  #stExportModal .stExpRow{display:flex;gap:.5rem;justify-content:flex-end}
+  #stExportModal button{padding:.4rem .85rem;border-radius:6px;border:1px solid #999;background:#f3f3f3;cursor:pointer;font-size:.85rem}
+  .st-editing{outline:2px solid #f5a623!important;background:#fff8e1;color:#111}
+  .st-edited{outline:1px dashed #f5a623}
   header{background:var(--panel);border-bottom:1px solid var(--line);padding:.7rem 1rem;
     display:flex;align-items:center;gap:1rem;flex-wrap:wrap;position:sticky;top:0;z-index:5}
   header h1{font-size:1.05rem;margin:0;font-weight:700}
@@ -35,6 +55,15 @@
   nav button:disabled{opacity:.45;cursor:not-allowed}
   main{max-width:1050px;margin:1rem auto;padding:0 1rem 4rem}
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem}
+  .faqh{margin:1.1rem 0 .35rem;font-size:1.02rem}
+  .faq{border:1px solid var(--line);border-radius:8px;margin:.35rem 0;padding:0 .7rem;background:var(--bg)}
+  .faq summary{cursor:pointer;padding:.5rem 0;font-weight:600;list-style:none}
+  .faq summary::-webkit-details-marker{display:none}
+  .faq summary::before{content:'▸ ';color:var(--brand)}
+  .faq[open] summary::before{content:'▾ '}
+  .faq[open] summary{border-bottom:1px solid var(--line)}
+  .faq .fa{padding:.5rem 0;color:var(--ink)}
+  #tab-about p{color:var(--ink)}
   .panel h2{margin:.1rem 0 .6rem;font-size:1.05rem}
   .muted{color:var(--muted)}
   button.act{background:var(--brand);color:#fff;border:0;padding:.5rem .9rem;border-radius:8px;cursor:pointer;font-size:.9rem}
@@ -135,6 +164,7 @@
     <button data-tab="editor" disabled>Editor</button>
     <button data-tab="config" disabled>Config</button>
     <button data-tab="dashboard">Dashboard</button>
+    <button data-tab="about">About</button>
   </nav>
 </header>
 <div id="chapterBar" class="chapbar hide"></div>
@@ -264,6 +294,27 @@
     </div>
     <div id="dashBody"></div>
   </section>
+
+  <!-- ABOUT -->
+  <section id="tab-about" class="hide">
+    <div class="panel">
+      <h2>About the Instructor Console</h2>
+      <p>The Instructor Console is your private workbench for QuizPrep. Here you review the question banks, decide exactly what books and chapters your class practices, set your release schedule, and — once students have practiced — see how they’re doing. Everything happens in your browser: nothing you load or build is sent anywhere until you deliberately export a file. You never touch any code, and nothing you do here changes what other instructors’ classes see. When you’re ready, you export a small config file, hand it to your maintainer to host, and your students have the same stable URL link for the entire term.</p>
+      <h3 class="faqh">Frequently asked questions</h3>
+      <details class="faq"><summary>Is it a problem that this page is public?</summary><div class="fa">No. It’s unlisted — not linked or indexed — and it runs entirely in your browser. It has no bank of its own and makes no network calls with your data. Treat the URL as yours.</div></details>
+      <details class="faq"><summary>Does anything I do here affect other instructors or the shared bank?</summary><div class="fa">No. The shared “canonical” bank is read-only to you. Excluding or editing a question only shapes your own class’s config; the shared bank is untouched.</div></details>
+      <details class="faq"><summary>What’s the difference between canonical, excluded, and forked?</summary><div class="fa"><b>Canonical</b> is the shared question bank (for each book and chapter), which keeps improving — and your class automatically gets those updates. <b>Excluding</b> drops a question from your class while the bank stays canonical, so you still receive future fixes (for non-excluded questions). <b>Editing</b> a question <b>forks</b> your own private copy of that chapter, frozen where you left it, so you stop getting canonical updates for <b>all questions in that chapter</b>.</div></details>
+      <details class="faq"><summary>How do I keep a question out of my class?</summary><div class="fa">In the Review tab, click the ⊘ button on it — or filter to an objective or tier and use “Exclude shown.” It’s non-forking: the bank keeps updating; those questions just won’t reach your students.</div></details>
+      <details class="faq"><summary>How do I get my class live?</summary><div class="fa">In the Config tab, set your class id, display name, sections, and schedule, then Export. Send that one file to your maintainer, who hosts it and gives you a student link (e.g., …?cfg=your-id&sec=001). Hand that link to students; it stays the same all term.</div></details>
+      <details class="faq"><summary>How do I release chapters over the term?</summary><div class="fa">In Config, turn on “Schedule releases by date” and set each chapter’s open date — auto-fill can space them evenly, and if your course mixes textbooks you can schedule one book at a time. Students see a chapter only on or after its date.</div></details>
+      <details class="faq"><summary>What is “anonymize,” and should I leave it on?</summary><div class="fa">Yes — leave it <b>on</b> (it’s the default). With it on, each student’s uploaded file identifies them by a random per-device code instead of their name, yet you still get a fully <b>named</b> roster, because the Dashboard reads each student’s name from their Canvas download filename. The names simply stay with you and never travel <em>inside</em> the files. If you turn it <b>off</b>, each student’s name is embedded in every file — which is fine only if those files never leave your hands. The moment you share them (with the maintainer, a co-instructor, a shared drive, or for research) you are handing around identifiable student records, a FERPA concern. So keep it on unless you have a specific reason not to <em>and</em> you alone will ever handle the files.</div></details>
+      <details class="faq"><summary>What’s the instructor key / encryption for?</summary><div class="fa">It’s optional. Generate a keypair to encrypt the <em>detail</em> of student uploads — which questions each student saw — so only you can read it; the grade summary stays readable either way. Keep the downloaded private key and its passphrase safe: it’s the only thing that opens that detail. It stops casual snooping, not a determined technical user.</div></details>
+      <details class="faq"><summary>Where do I see how students did?</summary><div class="fa">The Dashboard tab. Download the files students uploaded to Canvas and drop them in to see per-objective mastery across the class. If you set a key, load it there to decrypt the detail — it even recovers student names from Canvas’s download filenames.</div></details>
+      <details class="faq"><summary>Can I change things after the term starts?</summary><div class="fa">Yes. Import your hosted config here (the “Edit an existing config” loader), adjust the schedule, exclusions, or settings, re-export, and send it back to your maintainer to re-host. The student link doesn’t change.</div></details>
+      <details class="faq"><summary>Are the questions already vetted?</summary><div class="fa">They ship as drafts for you to review. Mark questions reviewed as you go, flag anything wrong (it goes to your maintainer without changing the bank), and exclude what doesn’t fit your emphasis. You can turn on a gate that blocks building a config until everything’s been reviewed at least once.</div></details>
+      <details class="faq"><summary>Is any of my data stored on a server?</summary><div class="fa">No. Your work stays in your browser; the config and any key you generate are files that download to your computer for you to keep or hand off.</div></details>
+    </div>
+  </section>
 </main>
 
 <footer>QuizPrep Instructor Console · runs entirely in your browser · <span id="ver"></span></footer>
@@ -277,6 +328,98 @@
 const TOOL_VERSION = "0.2-dev";
 const $ = id => document.getElementById(id);
 document.getElementById("ver").textContent = "console " + TOOL_VERSION;
+/* Staging test-deploy: the same console file serves live (…/instructor-console-7k4m9x.html) and staging
+   (…/staging/instructor-console-7k4m9x.html); on the staging path it shows a distinct banner + a
+   preview-as-live toggle. Inert on the live console. */
+const STAGING = (function(){ try{ return /\/staging\//.test(location.pathname || ""); }catch(e){ return false; } })();
+const STAGE_PREVIEW_KEY = "quizprep-staging-preview-v1";
+/* ---- Staging copy editor (staging only): toggle edit mode, click any text to change it; edits
+   persist on this device and export as a JSON diff (where / was / now) to hand to the maintainer. ---- */
+const STEDIT_APP = "instructor", STEDIT_KEY = "quizprep-staging-edits-instructor", STCMD_KEY = "quizprep-staging-commands-instructor";
+let STEDITS = {}, STEDITING = false, STCUR = null, STLISTEN = false;
+function stLoadCmd(){ try{ return localStorage.getItem(STCMD_KEY) || ""; }catch(e){ return ""; } }
+function stSaveCmd(v){ try{ localStorage.setItem(STCMD_KEY, v); }catch(e){} }
+function stLoadEdits(){ try{ STEDITS = JSON.parse(localStorage.getItem(STEDIT_KEY)) || {}; }catch(e){ STEDITS = {}; } }
+function stSaveEdits(){ try{ localStorage.setItem(STEDIT_KEY, JSON.stringify(STEDITS)); }catch(e){} }
+function stChanged(p){ return !!(STEDITS[p] && STEDITS[p].now !== STEDITS[p].was); }
+function stCount(){ return Object.keys(STEDITS).filter(stChanged).length; }
+function stUpdateCount(){ const c = $("stCount"); if (c) c.textContent = stCount(); }
+function stPath(el){ const parts = []; while (el && el.nodeType === 1 && el !== document.body){ if (el.id){ parts.unshift("#" + el.id); break; } const tag = el.tagName.toLowerCase(); let i = 1, sib = el; while ((sib = sib.previousElementSibling)) if (sib.tagName === el.tagName) i++; parts.unshift(tag + ":nth-of-type(" + i + ")"); el = el.parentElement; } return parts.join(">"); }
+function stApplySaved(){ Object.keys(STEDITS).forEach(p => { if (!stChanged(p)) return; try{ const el = document.querySelector(p); if (el && el.textContent !== STEDITS[p].now){ el.textContent = STEDITS[p].now; el.classList.add("st-edited"); } }catch(e){} }); }
+function stCommit(el){ const p = el.dataset.stPath; if (!p) return; STEDITS[p] = STEDITS[p] || { was: el.textContent, now: el.textContent }; STEDITS[p].now = el.textContent; el.classList.toggle("st-edited", stChanged(p)); stSaveEdits(); stUpdateCount(); }
+function stClickToEdit(e){ if (!STEDITING) return; const t = e.target; if (!t || (t.closest && t.closest("#stagingBar,#stagingChip"))) return; if (t === STCUR) return;
+  e.preventDefault(); e.stopPropagation();
+  const p = stPath(t); if (!(p in STEDITS)) STEDITS[p] = { was: t.textContent, now: t.textContent };   // first touch records the source original
+  t.dataset.stPath = p; if (STCUR) STCUR.blur();
+  t.contentEditable = "true"; t.classList.add("st-editing"); STCUR = t; t.focus();
+  t.addEventListener("blur", function h(){ t.removeEventListener("blur", h); t.contentEditable = "false"; t.classList.remove("st-editing"); if (STCUR === t) STCUR = null; stCommit(t); }); }
+function stToggleEdit(on){ STEDITING = !!on; document.documentElement.classList.toggle("stediting", STEDITING); const b = $("stEditBtn"); if (b) b.textContent = "Edit text: " + (STEDITING ? "ON" : "off"); const h = $("stHint"); if (h) h.textContent = STEDITING ? "Click any text to change it; click away to save." : ""; if (!STEDITING && STCUR) STCUR.blur(); }
+function stPayload(){ const edits = Object.keys(STEDITS).filter(stChanged).map(p => ({ where: p, was: STEDITS[p].was, now: STEDITS[p].now }));
+  const commands = (($("stCmd") && $("stCmd").value) || stLoadCmd()).trim();
+  return { format: "quizprep-staging-edits-v1", app: STEDIT_APP, console_version: TOOL_VERSION, generated: new Date().toISOString(), commands, edit_count: edits.length, edits }; }
+function stShowExport(text){   // show the export in a copyable box — reliable even where a file download won't save (iOS Safari)
+  let m = $("stExportModal");
+  if (!m){ m = document.createElement("div"); m.id = "stExportModal";
+    m.innerHTML = '<div class="stExpCard"><h3 style="margin:.1rem 0 .4rem">Your edits + notes</h3>'
+      + '<p style="margin:.2rem 0 .5rem;font-size:.88rem">A file may also have downloaded. If you can’t find it (on iPhone/iPad the download often doesn’t save), just <b>copy the text below</b> and paste it to your maintainer.</p>'
+      + '<textarea id="stExpText" readonly></textarea>'
+      + '<div class="stExpRow"><button id="stExpCopy">Copy to clipboard</button><button id="stExpClose">Close</button></div></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", e => { if (e.target === m) m.style.display = "none"; }); }
+  const ta = m.querySelector("#stExpText"); ta.value = text; m.style.display = "flex";
+  try{ ta.focus(); ta.select(); }catch(e){}
+  m.querySelector("#stExpClose").onclick = () => { m.style.display = "none"; };
+  m.querySelector("#stExpCopy").onclick = () => {
+    try{ ta.focus(); ta.select(); }catch(e){}
+    let done = false; try{ done = document.execCommand("copy"); }catch(e){}
+    if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(()=>{}, ()=>{}); done = true; }
+    const b = m.querySelector("#stExpCopy"); if (b){ b.textContent = done ? "Copied ✓" : "Select all + copy manually"; setTimeout(() => { if (b) b.textContent = "Copy to clipboard"; }, 1800); } }; }
+function stExport(){ const p = stPayload(); const h = $("stHint");
+  if (!p.edit_count && !p.commands){ if (h) h.textContent = "Nothing to export yet — make a text edit or write a change request."; return; }
+  const text = JSON.stringify(p, null, 2);
+  try{ const blob = new Blob([text], { type: "application/json" }), url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = "quizprep-" + STEDIT_APP + "-staging-edits.json"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000); }catch(e){}
+  stShowExport(text);
+  if (h) h.textContent = "Exported " + p.edit_count + " text edit" + (p.edit_count === 1 ? "" : "s") + (p.commands ? " + your change requests." : "."); }
+function stClearEdits(){   // wipe the recorded in-text edits (e.g. after the maintainer has applied a batch); leaves the change-requests box alone
+  const n = stCount(); const h = $("stHint");
+  if (n === 0){ STEDITS = {}; stSaveEdits(); stUpdateCount(); if (h) h.textContent = "No edits to clear."; return; }
+  if (!confirm("Clear all " + n + " recorded text edit" + (n === 1 ? "" : "s") + "? This wipes the list so your next export is clean. The page keeps its current text until you reload.")) return;
+  STEDITS = {}; stSaveEdits();
+  document.querySelectorAll(".st-edited").forEach(el => el.classList.remove("st-edited"));
+  stUpdateCount(); if (h) h.textContent = "Cleared — 0 edits recorded."; }
+function stMountEditor(){ stLoadEdits(); stApplySaved(); if (!STLISTEN){ document.addEventListener("click", stClickToEdit, true); STLISTEN = true; } }
+function setStagingPreview(on){
+  try{ localStorage.setItem(STAGE_PREVIEW_KEY, on ? "1" : "0"); }catch(e){}
+  document.documentElement.classList.toggle("staging", !on);
+  const bar = $("stagingBar"); if (bar) bar.style.display = on ? "none" : "";
+  const chip = $("stagingChip"); if (chip) chip.style.display = on ? "" : "none";
+  if (on) stToggleEdit(false);   // preview-as-live turns editing off so you see the clean page
+}
+function renderStagingChrome(){
+  if (!STAGING) return;
+  stMountEditor();   // load + re-apply any saved text edits, and arm click-to-edit
+  let preview = false; try{ preview = localStorage.getItem(STAGE_PREVIEW_KEY) === "1"; }catch(e){}
+  let bar = $("stagingBar");
+  if (!bar){ bar = document.createElement("div"); bar.id = "stagingBar"; document.body.insertBefore(bar, document.body.firstChild); }
+  bar.innerHTML = `<div class="stInner"><span class="stTag">🚧 STAGING</span> <span>test console · ${esc(TOOL_VERSION)}</span>
+    <button id="stEditBtn" class="stBtn">Edit text: off</button>
+    <button id="stExportBtn" class="stBtn">⭳ Export edits + notes (<span id="stCount">0</span>)</button>
+    <button id="stClearBtn" class="stBtn">Clear edits</button>
+    <button id="stToggle" class="stBtn">Preview as live</button>
+    <span class="stHint" id="stHint"></span></div>
+    <div class="stCmd"><label for="stCmd">Change requests for the maintainer — anything to fix or reword (exports with your in-text edits):</label>
+    <textarea id="stCmd" placeholder="e.g. Add a “duplicate this class config” button. Explain the encryption key in one line on the Config tab."></textarea></div>`;
+  let chip = $("stagingChip");
+  if (!chip){ chip = document.createElement("button"); chip.id = "stagingChip"; chip.textContent = "🚧 staging"; chip.onclick = () => setStagingPreview(false); document.body.appendChild(chip); }
+  $("stToggle").onclick = () => setStagingPreview(true);
+  $("stEditBtn").onclick = () => stToggleEdit(!STEDITING);
+  $("stExportBtn").onclick = stExport;
+  $("stClearBtn").onclick = stClearEdits;
+  const ta = $("stCmd"); if (ta){ ta.value = stLoadCmd(); ta.oninput = () => stSaveCmd(ta.value); }
+  stUpdateCount();
+  setStagingPreview(preview);
+}
 
 let BANK = null;                              // live pointer to the ACTIVE chapter's bank (COURSE.banks[COURSE.active])
 const COURSE = { banks:{}, active:null };     // whole-course set: { <chapter|key>: bank }
@@ -385,7 +528,7 @@ nav.addEventListener("click", e => {
 });
 function showTab(name){
   [...nav.querySelectorAll("button")].forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  ["load","validate","health","editor","config","dashboard"].forEach(t =>
+  ["load","validate","health","editor","config","dashboard","about"].forEach(t =>
     $("tab-" + t).classList.toggle("hide", t !== name));
   lsSet(IK.tab, name);
 }
@@ -1466,7 +1609,7 @@ function renderConfig(){
     fld("Display name", `<input type="text" id="cfgName" placeholder="Prof. Smith — Intro to Entrepreneurship">`) +
     fld("Course", `<input type="text" id="cfgCourse" value="intro-entrepreneurship">`) +
     fld("Sections (comma-separated)", `<input type="text" id="cfgSecs" placeholder="001, 003">`) +
-    `<div class="row"><label class="muted"><input type="checkbox" id="cfgAnon"> Anonymize student identity — the export carries a per-device code, not the name (you attribute uploads via Canvas)</label></div>` +
+    `<div class="row"><label class="muted"><input type="checkbox" id="cfgAnon" checked> Anonymize student identity <b>(recommended — on by default)</b> — uploads carry a per-device code, not the name; you still get a named roster from Canvas. Turn this off only if you alone will ever handle the files (see the About tab).</label></div>` +
     `<div class="fld"><label style="font-weight:600"><input type="checkbox" id="cfgGate"> Schedule releases by date</label>
        <p class="muted" style="margin:.2rem 0 .5rem">Off: every unit in this course is available immediately. On: students see <b>only</b> the units below — each on/after its date; a unit with no date is available now. (Rows are the units you've loaded.)</p>
        <div id="cfgSched" class="hide"></div></div>` +
@@ -1760,6 +1903,7 @@ $("forgetBtn").addEventListener("click", () => { forgetSaved(); location.reload(
 
 /* restore a remembered bank + dashboard + tab on load, so a refresh doesn't start over */
 restoreState();
+renderStagingChrome();   // staging-only banner + preview toggle (no-op on the live console)
 </script>
 </body>
 </html>
