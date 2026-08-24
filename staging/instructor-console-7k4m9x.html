@@ -580,6 +580,8 @@ function showTab(name){
   [...nav.querySelectorAll("button")].forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   ["load","validate","health","editor","flashcards","config","dashboard","about"].forEach(t =>
     $("tab-" + t).classList.toggle("hide", t !== name));
+  const cb = $("chapterBar");   // the chapter switcher belongs only on tabs that act on the selected chapter
+  if (cb){ if (["validate", "health", "editor"].includes(name)) renderChapterBar(); else cb.classList.add("hide"); }
   if (name === "flashcards" && typeof renderDecks === "function") renderDecks();
   lsSet(IK.tab, name);
 }
