@@ -86,7 +86,7 @@ const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 const STAGING=(function(){try{return /\/staging\//.test(location.pathname||'');}catch(e){return false;}})();
 const CBASE=STAGING?'../configs/':'configs/';
 const PKEY='quizprep-master-pending-v1';
-let INDEX=[];                 // summaries from _index.json
+let INDEX=[];                 // summaries from cfgindex-9q2w7z.json
 const CFGCACHE={};            // file -> full config (fetched on expand)
 let PENDING={ files:{}, deletes:{}, log:[] };   // files: filename->config to write; deletes: id->true; log: [{op,id,detail}]
 
@@ -97,9 +97,9 @@ function fileOf(id){ return id+'.config.json'; }
 async function fetchJSON(url){ const r=await fetch(url+(url.indexOf('?')<0?'?':'&')+'nc='+Date.now()); if(!r.ok) throw new Error(r.status); return r.json(); }
 async function loadIndex(){
   $('list').innerHTML='<p class="sub">Loading configs…</p>';
-  try{ const idx=await fetchJSON(CBASE+'_index.json'); INDEX=idx.configs||[];
+  try{ const idx=await fetchJSON(CBASE+'cfgindex-9q2w7z.json'); INDEX=idx.configs||[];
     $('hsub').textContent=`${INDEX.length} configs · index ${idx.generated||''}${STAGING?' · STAGING':''}`;
-  }catch(e){ $('list').innerHTML=`<div class="msg err">Couldn't load <code>${esc(CBASE)}_index.json</code> (${esc(e.message)}). Deploy the index first (tools/build_config_index.py).</div>`; return; }
+  }catch(e){ $('list').innerHTML=`<div class="msg err">Couldn't load <code>${esc(CBASE)}cfgindex-9q2w7z.json</code> (${esc(e.message)}). Deploy the index first (tools/build_config_index.py).</div>`; return; }
   renderList(); renderPending();
 }
 async function getConfig(file){ if(CFGCACHE[file]) return CFGCACHE[file]; const c=await fetchJSON(CBASE+file); CFGCACHE[file]=c; return c; }
@@ -232,7 +232,7 @@ function exportBatch(){
   const files={}; Object.keys(PENDING.files).forEach(f=>{ files[f]=PENDING.files[f]; });
   const deletes=Object.keys(PENDING.deletes).map(fileOf);
   const batch={ format:'quizprep-config-apply-v1', generated:new Date().toISOString(), ops:PENDING.log,
-    write:Object.keys(files), delete:deletes, files, note:'Apply: write each file in `files` to configs/, remove each in `delete`, regenerate configs/_index.json, commit + push pages.' };
+    write:Object.keys(files), delete:deletes, files, note:'Apply: write each file in `files` to configs/, remove each in `delete`, regenerate configs/cfgindex-9q2w7z.json, commit + push pages.' };
   const text=JSON.stringify(batch,null,2);
   $('expText').value=text; $('expModal').classList.add('show');
   $('expDl').onclick=()=>{ const b=new Blob([text],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='config-apply-batch.json'; document.body.appendChild(a); a.click(); a.remove(); };
