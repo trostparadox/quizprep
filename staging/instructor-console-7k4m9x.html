@@ -159,10 +159,10 @@
   </div>
   <nav id="nav">
     <button data-tab="load" class="on">Load</button>
-    <button data-tab="validate" disabled>Validate</button>
+    <button data-tab="validate" disabled>Quiz Banks</button>
+    <button data-tab="flashcards">Flashcards</button>
     <button data-tab="health" disabled>Health</button>
     <button data-tab="editor" disabled>Editor</button>
-    <button data-tab="flashcards">Flashcards</button>
     <button data-tab="config" disabled>Config</button>
     <button data-tab="dashboard">Dashboard</button>
     <button data-tab="about">About</button>
@@ -175,7 +175,7 @@
   <section id="tab-load">
     <div class="panel">
       <h2>Load a question bank or flashcard deck</h2>
-      <p class="muted">With the file picker below, choose <b>one <code>.zip</code> file</b> — the package sent to you — <b>or</b> several individual <code>.json</code> files (question banks and/or flashcard <code>deck_chapter_NN.json</code> files). A <code>.zip</code> is a single file, so select it right here; you do <b>not</b> need to unzip it, and don't use "Load an unzipped folder…" for it (that button is only for a folder you've already extracted). Everything runs in your browser — nothing is uploaded, and this tool never touches the live student app. What you load is <b>remembered on this device</b>. Question banks open the Validate/Review/Editor tabs; flashcard decks appear under <b>Flashcards</b> to review and edit.</p>
+      <p class="muted">With the file picker below, choose <b>one <code>.zip</code> file</b> — the package sent to you — <b>or</b> several individual <code>.json</code> files (question banks and/or flashcard <code>deck_chapter_NN.json</code> files). A <code>.zip</code> is a single file, so select it right here; you do <b>not</b> need to unzip it, and don't use "Load an unzipped folder…" for it (that button is only for a folder you've already extracted). Everything runs in your browser — nothing is uploaded, and this tool never touches the live student app. What you load is <b>remembered on this device</b>. Question banks open the <b>Quiz Banks</b> and Editor tabs; flashcard decks appear under <b>Flashcards</b> to review and edit.</p>
       <div class="row">
         <label class="muted" style="font-size:.85rem">Banks &amp; decks (.zip or .json):</label>
         <input type="file" id="fileIn" accept=".json,application/json,.zip,application/zip" multiple>
@@ -244,7 +244,7 @@
           <button class="act" id="edExport">Export JSON</button>
         </div>
       </div>
-      <p class="muted" style="margin:.4rem 0 0">Edits apply to the in-memory bank and re-validate live (see the badge and the Validate/Health tabs). Export writes a new bank JSON — the original file is never modified. <b>Questions</b> edits standalone items; <b>Sets</b> edits shared-option (mc_pool) question sets.</p>
+      <p class="muted" style="margin:.4rem 0 0">Edits apply to the in-memory bank and re-validate live (see the badge and the Quiz Banks / Health tabs). Export writes a new bank JSON — the original file is never modified. <b>Questions</b> edits standalone items; <b>Sets</b> edits shared-option (mc_pool) question sets.</p>
       <div class="row" id="edFilters" style="margin-top:.5rem"></div>
     </div>
     <div class="edwrap" id="edQWrap">
