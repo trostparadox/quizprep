@@ -88,6 +88,26 @@ h2{font-size:1.25rem;font-weight:600}
 .bookfilter{grid-column:1/-1;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.85rem;font-weight:600;margin-bottom:.1rem}
 .bookchip{border:1.5px solid var(--line);border-radius:999px;padding:.25rem .75rem;background:#fff;color:var(--ink-soft);font-weight:600;font-size:.8rem;cursor:pointer}
 .bookchip.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+/* Flashcards — a self-study supplement (not graded). Deck tile is visually distinct from a quiz tile. */
+.chap.deck{border-style:dashed;background:var(--brand-soft)}
+.chap.deck .cnum{color:var(--ink-soft)}
+.flashwrap{max-width:660px;margin:0 auto}
+.flashhead{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap}
+.flashnote{font-size:.82rem;color:var(--ink-soft);margin:.3rem 0 .9rem}
+.flashcard{border:1.5px solid var(--line);border-radius:var(--radius);background:#fff;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem 1.4rem;cursor:pointer;user-select:none;position:relative;transition:border-color .12s,box-shadow .12s}
+.flashcard:hover{border-color:var(--brand)}
+.flashcard.known{border-color:var(--ok)}
+.flashcard.starred{box-shadow:0 0 0 3px var(--brand-soft)}
+.flashcard .fside{font-family:var(--mono);font-size:.6rem;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);position:absolute;top:.7rem;left:.9rem}
+.flashcard .ftext{font-family:var(--disp);font-size:1.35rem;font-weight:600;line-height:1.4;max-width:36ch}
+.flashcard .ftext.def{font-family:inherit;font-size:1.06rem;font-weight:500}
+.flashcard .fhint{position:absolute;bottom:.7rem;font-size:.7rem;color:var(--ink-soft)}
+.flashprog{text-align:center;font-size:.85rem;color:var(--ink-soft);margin:.75rem 0}
+.flashctl{display:flex;gap:.45rem;justify-content:center;flex-wrap:wrap;align-items:center}
+.flashctl2{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;align-items:center;margin-top:.7rem;font-size:.82rem;color:var(--ink-soft)}
+.flashtog{border:1.5px solid var(--line);border-radius:999px;padding:.22rem .7rem;background:#fff;color:var(--ink-soft);font-weight:600;font-size:.78rem;cursor:pointer}
+.flashtog.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+.flashdone{text-align:center;padding:2rem 1rem;color:var(--ink-soft)}
 .chap:disabled{opacity:.5}
 .setuprow{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin-top:1rem;font-size:.92rem}
 .setuprow select,.setuprow input{font-family:var(--body);font-size:.92rem;padding:.4rem .5rem;border:1.5px solid var(--line);border-radius:6px;background:#fff}
@@ -301,6 +321,21 @@ table.hist tr.exrow td{opacity:.5}table.hist tr.exrow td:has(.cntchk){opacity:1}
   </div>
 </section>
 
+<!-- ============ FLASHCARDS (self-study supplement) ============ -->
+<section id="viewCards" class="hidden">
+  <div class="card flashwrap">
+    <div class="flashhead">
+      <div>
+        <div class="eyebrow">Flashcards · study only</div>
+        <h1 id="deckTitle" style="margin:.2rem 0 0">Flashcards</h1>
+      </div>
+      <button class="btn quiet sm" id="deckHome">End session</button>
+    </div>
+    <p class="flashnote">Self-study — these are <b>not graded</b> and don't affect your mastery. Tap the card to flip; use <b>←</b>/<b>→</b> to move and <b>space</b> to flip. <span id="deckAttrib"></span></p>
+    <div id="deckArea"></div>
+  </div>
+</section>
+
 </main>
 <div class="toast" id="toast"></div>
 <div class="updatebar" id="updateBar"><span>A newer version is available.</span><button class="btn brand sm" id="btnRefresh">Refresh</button></div>
@@ -324,6 +359,7 @@ table.hist tr.exrow td{opacity:.5}table.hist tr.exrow td:has(.cntchk){opacity:1}
   <details class="faq"><summary>Can I stop and come back?</summary><div class="fa">Yes. Your progress saves automatically, and an unfinished session picks up right where you left off when you reopen the link.</div></details>
   <details class="faq"><summary>How do I turn my practice in?</summary><div class="fa">Download your session file at the end and upload it to the Canvas assignment your instructor set up. You can re-download any past session from your progress report if you forget.</div></details>
   <details class="faq"><summary>Why is a chapter greyed out?</summary><div class="fa">Your instructor releases chapters on a schedule; a locked chapter shows the date it opens.</div></details>
+  <details class="faq"><summary>What are the 📇 Flashcards?</summary><div class="fa">Some chapters include a flashcard deck — term/definition cards you flip through to review key people, places, and ideas. Tap a card to flip it, shuffle the deck, mark cards you know, and star tricky ones to focus on. You can also choose whether the term or the definition shows first. Flashcards are pure self-study: they’re not graded and don’t affect your mastery.</div></details>
   <details class="faq"><summary>Can I keep a bad practice run from counting?</summary><div class="fa">Yes. In your progress report, untick “counts toward mastery” on any session. It stays in your history, but its results no longer affect which objectives show as mastered.</div></details>
   <details class="faq"><summary>Will I lose my progress?</summary><div class="fa">Only if you clear this site’s browser data, or switch to a different device or browser — progress is saved per device.</div></details>
   <details class="faq"><summary>There’s a “refresh” bar at the top — what is it?</summary><div class="fa">A newer version is available; tap it to update. Nothing you’ve done is lost.</div></details>
@@ -335,6 +371,7 @@ table.hist tr.exrow td{opacity:.5}table.hist tr.exrow td:has(.cntchk){opacity:1}
 <script>
 /* ================= BANK (injected at build) ================= */
 let BANKS = (/*__BANK__*/null) || {};   // {"<unit-id>": bank, ...} map; empty in the config-only shell — a config populates it at boot
+let DECKS = {};                          // {"<unit-id>": deck} — flashcard decks (manifest units of kind "flashcards"); a self-study supplement, never a quiz chapter
 const EMPTY_BANK={bank_meta:{learning_objectives:{},excerpts:{},chapter:null,chapter_title:''},items:[],question_sets:[]};   // placeholder before a config loads
 const STUDY_OUTCOMES=new Set(['correct_after_probe','wrong_after_probe','revealed','skipped']);   // missed-question outcomes that get a study-guide entry
 let CHAPTERS = [];              // ordered list of unit ids (strings) — stock: numeric order; a manifest config sets its own order
@@ -355,8 +392,10 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.17';
+const APP_VERSION='0.18';
 const CHANGELOG=[
+  {v:'0.18', date:'Aug 23, 2026', notes:[
+    'New flashcards! Some chapters now include a 📇 Flashcards deck on the home screen — term/definition cards you can flip through, shuffle, and mark as known or star for review. Choose whether the term or the definition shows first. It’s pure self-study: flashcards are not graded and don’t affect your mastery.']},
   {v:'0.17', date:'Aug 20, 2026', notes:[
     'New “About & FAQ” link in the top bar — a quick explainer of how QuizPrep works and answers to common questions.',
     'You can now keep a practice run from counting toward mastery: in your progress report, untick “Counts” on any session. It stays in your history, but its results no longer affect which objectives show as mastered — handy for a run you rushed or didn’t take seriously.',
@@ -420,7 +459,7 @@ const SKEY='quizprep-v1';
 const LEGEND=`One row per learning objective.<br>Rungs = recall → comprehension → application; a dashed rung means the bank has no questions at that level.<br>Filled rungs show the level you've reached. Mastery also needs a streak of first-try corrects at the top level — <b>2</b> where that level is application, <b>3</b> where the top level is comprehension — the <span class="streak">x/N</span> chip tracks it.<br><span style="color:var(--ok)">✓</span> mastered · <span style="color:var(--no)">⚑</span> needs review`;
 
 /* ================= App state ================= */
-let DATA={ name:'', sessions:[], carryReview:{}, ladder:{} };   // ladder: {"1":{"1.1":{tier,consec,mastered}}}
+let DATA={ name:'', sessions:[], carryReview:{}, ladder:{}, decks:{} };   // ladder: {"1":{"1.1":{tier,consec,mastered}}}; decks: {"<unit>":{known,starred,dir,pos}} (flashcards)
 let S=null;   // active session
 
 const $=id=>document.getElementById(id);
@@ -475,12 +514,24 @@ function mergeBanks(map){   // a model-1 config package may carry SEVERAL chapte
   Object.keys(map).forEach(k=>{ const b=map[k]; if(b&&b.bank_meta){ pruneExcluded(b,String(k)); BANKS[String(k)]=b; } });
   buildUnitsFromBanks(); CH=CHAPTERS[0]; setBank(BANKS[CH]);   // rebuild units + re-point active + refresh EXCERPTS/LOS/expandSets
 }
-function buildUnitsFromManifest(manifest, banks){   // multi-textbook: a config manifest defines the ordered units + carries their banks
-  BANKS={}; UNITMETA={}; MANIFEST_ACTIVE=true;
-  (manifest||[]).forEach(u=>{ const b=banks&&banks[u.id]; if(b&&b.bank_meta){ pruneExcluded(b,u.id); BANKS[u.id]=b;
-    UNITMETA[u.id]={ title:u.title||b.bank_meta.chapter_title||u.id, chapter:(u.chapter!=null?u.chapter:b.bank_meta.chapter), textbook:u.textbook||textbookLabel(b.bank_meta.source) }; } });
-  CHAPTERS=(manifest||[]).map(u=>u.id).filter(id=>BANKS[id]);   // manifest order
-  CH=CHAPTERS[0]; if(CH) setBank(BANKS[CH]);
+function buildUnitsFromManifest(manifest, banks, decks){   // a config manifest defines the ordered units + carries their banks (kind "quiz") and decks (kind "flashcards")
+  BANKS={}; DECKS={}; UNITMETA={}; MANIFEST_ACTIVE=true;
+  (manifest||[]).forEach(u=>{
+    if(u.kind==='flashcards'){                                  // a flashcard deck unit (self-study supplement)
+      const d=decks&&decks[u.id];
+      if(d&&d.deck_meta){ DECKS[u.id]=d;
+        UNITMETA[u.id]={ title:u.title||d.deck_meta.chapter_title||u.id, chapter:(u.chapter!=null?u.chapter:d.deck_meta.chapter),
+          textbook:u.textbook||textbookLabel(d.deck_meta.source), kind:'flashcards', source:d.deck_meta.source }; }
+      return;
+    }
+    const b=banks&&banks[u.id];
+    if(b&&b.bank_meta){ pruneExcluded(b,u.id); BANKS[u.id]=b;
+      UNITMETA[u.id]={ title:u.title||b.bank_meta.chapter_title||u.id, chapter:(u.chapter!=null?u.chapter:b.bank_meta.chapter),
+        textbook:u.textbook||textbookLabel(b.bank_meta.source), kind:'quiz', source:b.bank_meta.source }; }
+  });
+  CHAPTERS=(manifest||[]).map(u=>u.id).filter(id=>BANKS[id]||DECKS[id]);   // manifest order (quiz + deck units)
+  CH=CHAPTERS.find(id=>BANKS[id]);   // the active QUIZ unit — a deck never becomes the active chapter
+  if(CH) setBank(BANKS[CH]);
 }
 /* Stay-canonical exclusions: a config may carry cfg.exclusions = { "<unit-id>": ["<q_id>", …] } to
    drop specific questions from THIS class while the unit stays canonical (auto-refreshes each host).
@@ -512,9 +563,17 @@ function withTimeout(promise,ms){ return new Promise(res=>{ let done=false;
   promise.then(v=>{ if(!done){done=true;clearTimeout(t);res(v);} },()=>{ if(!done){done=true;clearTimeout(t);res(null);} }); }); }
 function applyPkgBanks(pkg){   // load whatever banks a config package carries (manifest > multi-bank > legacy single)
   if(!pkg) return;
-  if(Array.isArray(pkg.manifest)&&pkg.banks) buildUnitsFromManifest(pkg.manifest, pkg.banks);   // Feature 5: multi-textbook manifest
+  if(Array.isArray(pkg.manifest)&&pkg.banks) buildUnitsFromManifest(pkg.manifest, pkg.banks, pkg.decks);   // Feature 5: multi-textbook manifest (+ flashcard decks)
   else if(pkg.banks&&typeof pkg.banks==='object') mergeBanks(pkg.banks);                        // several banks (one textbook)
   else if(pkg.bank&&pkg.bank.bank_meta) mergeBanks({[String(pkg.bank.bank_meta.chapter)]:pkg.bank});   // legacy single bank → one-entry map (rebuilds units in the empty shell)
+}
+/* The URL &sec= is matched to the config's declared sections CASE-INSENSITIVELY, and the config's own
+   casing is used for display + the export stamp — so ?sec=8a and ?sec=8A both resolve to a class that
+   declares "8A". A section not among the declared list is kept verbatim (no gate). */
+function resolveSection(sec, declared){
+  if(sec==null||sec==='') return null;
+  const hit=(Array.isArray(declared)?declared:[]).find(s=>String(s).toLowerCase()===String(sec).toLowerCase());
+  return hit!=null?String(hit):String(sec);
 }
 async function loadConfig(){
   let p; try{ p=new URLSearchParams(location.search); }catch(e){ p=new URLSearchParams(); }
@@ -534,7 +593,7 @@ async function loadConfig(){
     try{ const r=await withTimeout(fetch(CFG_BASE+'demo.config.json'),6000);
       if(r&&r.ok){ const pkg=await r.json(); applyPkgBanks(pkg); } }catch(e){}
   }
-  if(CONFIG){ CONFIG.section=sec; if(CONFIG.display_name){ try{ document.title=CONFIG.display_name+' · QuizPrep'; }catch(e){} } }
+  if(CONFIG){ CONFIG.section=resolveSection(sec, CONFIG.sections); if(CONFIG.display_name){ try{ document.title=CONFIG.display_name+' · QuizPrep'; }catch(e){} } }
 }
 /* ===== Anonymous device code (§11). When a config sets anonymize, the export identifies the
    student by a random UUIDv4 minted + kept on this device — never the name or a student ID (the
@@ -1186,7 +1245,8 @@ function renderHome(){
   const upcomingTitles={3:'Feasibility Analysis',4:'Developing an Effective Business Model'};   // stock chapters not yet authored
   const books=[]; const bseen=new Set();                  // distinct books in course order (filter chips + per-card author tag)
   CHAPTERS.forEach(id=>{ const tb=UNITMETA[id]&&UNITMETA[id].textbook; if(tb&&!bseen.has(tb)){ bseen.add(tb);
-    books.push({key:tb, label:(firstAuthor(BANKS[id].bank_meta.source)||tb)}); } });
+    const src=(UNITMETA[id]&&UNITMETA[id].source)||(BANKS[id]&&BANKS[id].bank_meta.source);
+    books.push({key:tb, label:(firstAuthor(src)||tb)}); } });
   const multiTb=books.length>1;                            // book chips + per-card author tag only when the course mixes books
   const shown=CHAPTERS.filter(id=> !multiTb || BOOKFILTER.size===0 || BOOKFILTER.has(UNITMETA[id]&&UNITMETA[id].textbook));
   let tiles=banner;
@@ -1195,7 +1255,21 @@ function renderHome(){
       `<button class="bookchip${(BOOKFILTER.size===0||BOOKFILTER.has(bk.key))?' on':''}" data-book="${esc(bk.key)}">${esc(bk.label)}</button>`).join('')+`</div>`;
   }
   shown.forEach(id=>{                                       // one tile per shown unit (flat, in order)
-    const b=BANKS[id], meta=UNITMETA[id]||{}, lad=DATA.ladder[id]||{};
+    const meta=UNITMETA[id]||{};
+    if(DECKS[id]){                                          // flashcard deck tile (distinct look; opens the card viewer, not a quiz)
+      const deck=DECKS[id], nC=(deck.cards||[]).length;
+      const book=multiTb?`<span class="cbook">${esc(firstAuthor(deck.deck_meta.source)||meta.textbook||'')}</span>`:'';
+      const clab=meta.chapter!=null?('CHAPTER '+meta.chapter):'UNIT';
+      const dtitle=esc(meta.title||'Flashcards');
+      if(chapterReleased(id))
+        tiles+=`<button class="chap deck" data-deck="${esc(id)}">${book}<span class="cnum">📇 ${clab} · ${nC} cards</span>
+          <span class="ctitle" style="display:block">${dtitle}</span><span class="ccta">Study flashcards →</span></button>`;
+      else{ const relD=releaseDate(id);
+        tiles+=`<button class="chap deck" disabled>${book}<span class="cnum">📇 ${clab}</span>
+          <span class="ctitle" style="display:block">${dtitle}</span><span class="ccta">${relD?`Releases ${esc(relD)}`:'Not yet released'}</span></button>`; }
+      return;
+    }
+    const b=BANKS[id], lad=DATA.ladder[id]||{};
     const nLO=Object.keys(b.bank_meta.learning_objectives).length;
     const m=Object.values(lad).filter(x=>x.mastered).length;
     const clab=meta.chapter!=null?('CHAPTER '+meta.chapter):'UNIT';
@@ -1215,6 +1289,9 @@ function renderHome(){
     tiles+=`<button class="chap" disabled><span class="cnum">CHAPTER ${n}</span>
       <span class="ctitle" style="display:block">${esc(upcomingTitles[n])}</span><span class="ccta">Not yet released</span></button>`; });
   $('chapterList').innerHTML=tiles;
+  document.querySelectorAll('.chap.deck[data-deck]').forEach(btn=>btn.onclick=()=>openDeck(btn.dataset.deck));   // deck tiles open the card viewer (wired in both paths)
+  if(!CH){   // a flashcards-only course (no quiz unit): no quiz session options to show
+    if(setup) setup.style.display='none'; $('btnStart').style.display='none'; return; }
   // session config below reflects the active chapter (CH)
   const lad=DATA.ladder[CH]||{};
   const am=UNITMETA[CH]||{};
@@ -1251,6 +1328,93 @@ function selectChapter(ch){                                 // pick the active c
   if(!(DATA.ladder[CH]&&Object.keys(DATA.ladder[CH]).length)) rebuildLadderFromHistory();
   renderHome();                                            // options (length/mastery estimate) + Start now reflect the chosen chapter
   if(typedName&&$('inpName')) $('inpName').value=typedName;
+}
+/* ================= Flashcards (self-study supplement) =================
+   A deck (manifest unit of kind "flashcards") holds term/definition cards. Progress — known/starred/
+   direction/position — persists on-device in DATA.decks[unitId], SEPARATE from the ladder: flashcards
+   never touch mastery, sessions, or the Canvas export. */
+let DECK=null, DECKID=null, DBASE=[], DORDER=[], DPOS=0, DFLIP=false, DDIR='term', DFILTER='all', DSHUF=false;
+const DECK_ACTIVE_KEY='quizprep-active-deck-v1';   // remembers the open deck so a refresh resumes it (like an in-progress quiz)
+function deckState(id){ if(!DATA.decks[id]) DATA.decks[id]={known:{term:{},def:{}},starred:{},dir:'term',pos:0};
+  const s=DATA.decks[id];
+  // "known" is tracked SEPARATELY per direction ({term:{},def:{}}) — knowing the definition from the term
+  // is not the same as knowing the term from the definition. Migrate an old flat {cardId:true} map into `term`.
+  if(!s.known||typeof s.known!=='object') s.known={term:{},def:{}};
+  else if(typeof s.known.term!=='object' && typeof s.known.def!=='object') s.known={term:s.known,def:{}};
+  else { s.known.term=s.known.term||{}; s.known.def=s.known.def||{}; }
+  s.starred=s.starred||{}; return s; }
+function saveDeck(){ store.set(SKEY,DATA); }
+function toggleMap(st,key,id){ st[key]=st[key]||{}; if(st[key][id])delete st[key][id]; else st[key][id]=true; }
+function buildDeckOrder(){ const st=deckState(DECKID), km=st.known[DDIR]||{};   // "known" is per current direction
+  DORDER=DBASE.filter(i=>{ const c=DECK.cards[i];
+    if(DFILTER==='starred') return !!st.starred[c.id];
+    if(DFILTER==='unknown') return !km[c.id];
+    return true; }); }
+function deckCounts(){ const st=deckState(DECKID), km=st.known[DDIR]||{}; let k=0,s=0;   // known count reflects the current direction
+  DECK.cards.forEach(c=>{ if(km[c.id])k++; if(st.starred[c.id])s++; }); return {k,s}; }
+function openDeck(id){
+  DECK=DECKS[id]; DECKID=id; if(!DECK||!Array.isArray(DECK.cards)||!DECK.cards.length) return;
+  const st=deckState(id);
+  if(!st.dir) st.dir=((DECK.deck_meta&&DECK.deck_meta.default_side)==='definition')?'def':'term';
+  DDIR=st.dir; DFILTER='all'; DSHUF=false; DBASE=DECK.cards.map((_,i)=>i); buildDeckOrder();
+  DPOS=Math.min(st.pos||0,Math.max(0,DORDER.length-1)); DFLIP=false;
+  const meta=UNITMETA[id]||{};
+  $('deckTitle').textContent=meta.title||(DECK.deck_meta&&DECK.deck_meta.chapter_title)||'Flashcards';
+  $('deckAttrib').textContent=(DECK.deck_meta&&DECK.deck_meta.attribution)||'';
+  store.set(DECK_ACTIVE_KEY,id);   // resume this deck on refresh
+  show('viewCards'); renderCard();
+}
+function deckMove(d){ if(!DORDER.length)return; DPOS=(DPOS+d+DORDER.length)%DORDER.length; DFLIP=false;
+  deckState(DECKID).pos=DPOS; saveDeck(); renderCard(); }
+function renderCard(){
+  const area=$('deckArea'); if(!area||!DECK) return;
+  const st=deckState(DECKID), cts=deckCounts();
+  const filterRow=`<div class="flashctl2">
+    <span>Filter:</span>
+    <button class="flashtog${DFILTER==='all'?' on':''}" data-f="all">All (${DECK.cards.length})</button>
+    <button class="flashtog${DFILTER==='unknown'?' on':''}" data-f="unknown">Not yet known (${DECK.cards.length-cts.k})</button>
+    <button class="flashtog${DFILTER==='starred'?' on':''}" data-f="starred">Starred (${cts.s})</button></div>
+  <div class="flashctl2">
+    <span>Display:</span>
+    <button class="flashtog on" id="dDir" title="Flip which side shows first">⇄ ${DDIR==='term'?'Term 1st':'Definition 1st'}</button>
+    <button class="flashtog on" id="dShuf" title="Toggle shuffled vs original order">🔀 ${DSHUF?'Shuffled':'Unshuffled'}</button></div>`;
+  const toggleShuffle=()=>{ DSHUF=!DSHUF;
+    DBASE=DSHUF?shuffle(DECK.cards.map((_,i)=>i)):DECK.cards.map((_,i)=>i);   // shuffled ↔ original order
+    buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); };
+  const wireFD=()=>{
+    area.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ DFILTER=b.dataset.f; buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); });
+    const dd=area.querySelector('#dDir'); if(dd) dd.onclick=()=>{ DDIR=(DDIR==='term'?'def':'term'); deckState(DECKID).dir=DDIR; buildDeckOrder(); DFLIP=false; saveDeck(); renderCard(); };   // one capsule flips the front side; rebuild: the "known"/filter set is per-direction
+    const sb=area.querySelector('#dShuf'); if(sb) sb.onclick=toggleShuffle; };
+  if(!DORDER.length){
+    area.innerHTML=`<div class="flashdone">No cards in this view.<br><button class="btn quiet sm" id="deckAll" style="margin-top:.6rem">Show all cards</button></div>${filterRow}`;
+    area.querySelector('#deckAll').onclick=()=>{ DFILTER='all'; buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); }; wireFD(); return;
+  }
+  if(DPOS>=DORDER.length) DPOS=DORDER.length-1;
+  const card=DECK.cards[DORDER[DPOS]];
+  const showingDef=DFLIP?(DDIR==='term'):(DDIR==='def');   // is the currently-shown side a (long) definition?
+  const showText=DFLIP?(DDIR==='term'?card.back:card.front):(DDIR==='term'?card.front:card.back);
+  const sideLabel=showingDef?'Definition':'Term';
+  const isKnown=!!(st.known[DDIR]||{})[card.id], isStar=!!st.starred[card.id];   // known in the CURRENT direction
+  area.innerHTML=`
+    <div class="flashcard${isKnown?' known':''}${isStar?' starred':''}" id="theCard">
+      <span class="fside">${sideLabel}</span>
+      <span class="ftext${showingDef?' def':''}">${esc(showText)}</span>
+      <span class="fhint">${DFLIP?'tap for the '+(DDIR==='term'?'term':'definition'):'tap to flip'}</span></div>
+    <div class="flashprog">${DPOS+1} / ${DORDER.length} &nbsp;·&nbsp; ${cts.k} known · ${cts.s} starred</div>
+    <div class="flashctl">
+      <button class="btn quiet sm" id="dPrev">← Prev</button>
+      <button class="btn secondary sm" id="dFlip">Flip</button>
+      <button class="btn quiet sm" id="dNext">Next →</button>
+      <button class="btn quiet sm" id="dKnown">${isKnown?'✓ Known':'Mark known'} (${DDIR==='term'?'Term 1st':'Definition 1st'})</button>
+      <button class="btn quiet sm" id="dStar">${isStar?'★ Starred':'☆ Star'}</button></div>
+    ${filterRow}`;
+  area.querySelector('#theCard').onclick=()=>{ DFLIP=!DFLIP; renderCard(); };
+  area.querySelector('#dFlip').onclick=()=>{ DFLIP=!DFLIP; renderCard(); };
+  area.querySelector('#dPrev').onclick=()=>deckMove(-1);
+  area.querySelector('#dNext').onclick=()=>deckMove(1);
+  area.querySelector('#dKnown').onclick=()=>{ toggleMap(st.known,DDIR,card.id); if(DFILTER==='unknown')buildDeckOrder(); saveDeck(); renderCard(); };   // per-direction
+  area.querySelector('#dStar').onclick=()=>{ toggleMap(st,'starred',card.id); if(DFILTER==='starred')buildDeckOrder(); saveDeck(); renderCard(); };
+  wireFD();
 }
 function renderReport(){
   const w=$('reportWrap'); w.classList.remove('hidden'); $('studyWrap').classList.add('hidden');
@@ -1337,7 +1501,7 @@ function renderStudyGuide(mode){
     ${toggle}${body}`;
   w.querySelectorAll('[data-study-mode]').forEach(b=>b.onclick=()=>renderStudyGuide(b.dataset.studyMode));
 }
-function show(id){['viewHome','viewSession','viewDigest'].forEach(v=>$(v).classList.toggle('hidden',v!==id));
+function show(id){['viewHome','viewSession','viewDigest','viewCards'].forEach(v=>$(v).classList.toggle('hidden',v!==id));
   if(id==='viewHome'){$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');}window.scrollTo(0,0);}
 
 /* ================= Wiring ================= */
@@ -1408,7 +1572,18 @@ $('btnFresh').onclick=async()=>{   // Restart ladder = untick every session for 
     await store.set(SKEY,DATA); renderHome(); if(!$('reportWrap').classList.contains('hidden'))renderReport();
     toast(`${label} ladder reset — ${sess.length} session${sess.length>1?'s':''} unchecked`); }};
 $('btnReset').onclick=async()=>{ if(confirm('Erase all local QuizPrep data on this device? Export a backup first if you want to keep it.')){
-  DATA={name:'',sessions:[],carryReview:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');toast('Data cleared');}};
+  DATA={name:'',sessions:[],carryReview:{},ladder:{},decks:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');toast('Data cleared');}};
+$('deckHome').onclick=()=>{ store.del(DECK_ACTIVE_KEY); show('viewHome'); renderHome(); };   // "End session" — leave the deck (progress already saved)
+document.addEventListener('keydown',e=>{   // flashcard keyboard: space/enter flip, arrows move, k=known, s=star (only while the card viewer is open)
+  if($('viewCards').classList.contains('hidden'))return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test((e.target&&e.target.tagName)||''))return;
+  if(e.target&&(e.target.isContentEditable||(e.target.closest&&e.target.closest('[contenteditable=""],[contenteditable="true"]'))))return;   // don't hijack keys while text is being edited (e.g. the staging copy-editor)
+  if(e.key===' '||e.key==='Enter'){ e.preventDefault(); DFLIP=!DFLIP; renderCard(); }
+  else if(e.key==='ArrowRight') deckMove(1);
+  else if(e.key==='ArrowLeft') deckMove(-1);
+  else if(e.key==='k'||e.key==='K'){ const st=deckState(DECKID),c=DECK.cards[DORDER[DPOS]]; if(c){ toggleMap(st.known,DDIR,c.id); if(DFILTER==='unknown')buildDeckOrder(); saveDeck(); renderCard(); } }
+  else if(e.key==='s'||e.key==='S'){ const st=deckState(DECKID),c=DECK.cards[DORDER[DPOS]]; if(c){ toggleMap(st,'starred',c.id); if(DFILTER==='starred')buildDeckOrder(); saveDeck(); renderCard(); } }
+});
 $('btnExportSession').onclick=()=>{downloadJSON(S.bundle,`quizprep-ch${CH}-${S.id}.json`);toast('Session export downloaded — upload it to the Canvas assignment');};
 $('btnProg').onclick=()=>{clearActive();renderHome();show('viewHome');renderReport();setTimeout(()=>$('reportWrap').scrollIntoView&&$('reportWrap').scrollIntoView(),0);};
 $('btnAgain').onclick=()=>{initSession({type:'count',n:recommendedLen().n});show('viewSession');nextQuestion();};
@@ -1420,6 +1595,7 @@ function normalizeData(d){
   d.sessions=Array.isArray(d.sessions)?d.sessions:[];
   d.carryReview=d.carryReview&&typeof d.carryReview==='object'?d.carryReview:{};
   d.ladder=d.ladder&&typeof d.ladder==='object'?d.ladder:{};
+  d.decks=d.decks&&typeof d.decks==='object'?d.decks:{};   // flashcard progress (known/starred/dir/pos per deck) — self-study, never in mastery or exports
   return d;
 }
 function replayLadder(){
@@ -1595,6 +1771,8 @@ async function renderStagingChrome(){
   if(act&&BANKS[String(act.chapter)]&&act.bank===BANKS[String(act.chapter)].bank_meta.bank_version&&act.s&&act.s.current&&!act.s.ended){
     try{ const ac=String(act.chapter); if(ac!==CH){ CH=ac; setBank(BANKS[CH]); } resumeSession(act.s); }catch(e){ clearActive(); }
   }
+  const ad=await store.get(DECK_ACTIVE_KEY);   // resume an open flashcard deck across a refresh
+  if(ad&&DECKS[String(ad)]){ try{ openDeck(String(ad)); }catch(e){ store.del(DECK_ACTIVE_KEY); } }
   maybeWhatsNew();
   checkUpdate(); setInterval(checkUpdate,300000);
   renderStagingChrome();   // staging-only: distinct banner + what-changed + preview toggle (no-op on the live root)
