@@ -1371,8 +1371,10 @@ function renderCard(){
     <span>Show:</span>
     <button class="flashtog${DFILTER==='all'?' on':''}" data-f="all">All (${DECK.cards.length})</button>
     <button class="flashtog${DFILTER==='unknown'?' on':''}" data-f="unknown">Not yet known (${DECK.cards.length-cts.k})</button>
-    <button class="flashtog${DFILTER==='starred'?' on':''}" data-f="starred">Starred (${cts.s})</button>
-    <button class="flashtog on" id="dDir" style="margin-left:.6rem" title="Flip which side shows first">⇄ ${DDIR==='term'?'Term 1st':'Definition 1st'}</button>
+    <button class="flashtog${DFILTER==='starred'?' on':''}" data-f="starred">Starred (${cts.s})</button></div>
+  <div class="flashctl2">
+    <span>Display:</span>
+    <button class="flashtog on" id="dDir" title="Flip which side shows first">⇄ ${DDIR==='term'?'Term 1st':'Definition 1st'}</button>
     <button class="flashtog${DSHUF?' on':''}" id="dShuf" title="Toggle shuffled vs original order">🔀 ${DSHUF?'Shuffled':'Unshuffled'}</button></div>`;
   const toggleShuffle=()=>{ DSHUF=!DSHUF;
     DBASE=DSHUF?shuffle(DECK.cards.map((_,i)=>i)):DECK.cards.map((_,i)=>i);   // shuffled ↔ original order
