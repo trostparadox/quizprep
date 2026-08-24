@@ -1368,7 +1368,7 @@ function renderCard(){
   const area=$('deckArea'); if(!area||!DECK) return;
   const st=deckState(DECKID), cts=deckCounts();
   const filterRow=`<div class="flashctl2">
-    <span>Show:</span>
+    <span>Filter:</span>
     <button class="flashtog${DFILTER==='all'?' on':''}" data-f="all">All (${DECK.cards.length})</button>
     <button class="flashtog${DFILTER==='unknown'?' on':''}" data-f="unknown">Not yet known (${DECK.cards.length-cts.k})</button>
     <button class="flashtog${DFILTER==='starred'?' on':''}" data-f="starred">Starred (${cts.s})</button></div>
