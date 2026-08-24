@@ -1,5 +1,5 @@
 {
-  "generated": "2026-08-24T04:29:12Z",
+  "generated": "2026-08-24T19:02:35Z",
   "configs": [
     {
       "cfg_id": "demo",
@@ -101,19 +101,21 @@
       "active": true,
       "anonymize": true,
       "has_key": false,
-      "units": 3,
-      "n_banks": 2,
+      "units": 4,
+      "n_banks": 3,
       "n_decks": 1,
       "chapters": [
-        1
+        1,
+        2
       ],
-      "release_scheduled": false,
-      "release_rows": 0,
+      "release_scheduled": true,
+      "release_rows": 4,
       "exclusions": 0,
       "unit_titles": [
         "America, Europe, and Africa before 1620",
         "America, Europe, and Africa before 1620 · Quizlet-based review",
-        "America, Europe, and Africa before 1620 · Flashcards"
+        "America, Europe, and Africa before 1620 · Flashcards",
+        "Settling the Thirteen Colonies"
       ]
     },
     {
