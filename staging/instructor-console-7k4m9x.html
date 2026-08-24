@@ -162,6 +162,7 @@
     <button data-tab="validate" disabled>Validate</button>
     <button data-tab="health" disabled>Health</button>
     <button data-tab="editor" disabled>Editor</button>
+    <button data-tab="flashcards">Flashcards</button>
     <button data-tab="config" disabled>Config</button>
     <button data-tab="dashboard">Dashboard</button>
     <button data-tab="about">About</button>
@@ -315,6 +316,36 @@
       <details class="faq"><summary>Is any of my data stored on a server?</summary><div class="fa">No. Your work stays in your browser; the config and any key you generate are files that download to your computer for you to keep or hand off.</div></details>
     </div>
   </section>
+
+  <section id="tab-flashcards" class="hide">
+    <div class="panel">
+      <h2>Flashcards — import a Quizlet set</h2>
+      <p class="muted">Paste a Quizlet <b>Export</b> (on the set page → the “…” menu → Export → “term then definition”) to turn it into a study-only flashcard deck for a chapter. Decks are <b>not graded</b> and don’t affect mastery — they ship in your class config alongside the quizzes, as their own tile students can flip through.</p>
+      <div class="row" style="gap:.7rem;flex-wrap:wrap;align-items:flex-end;margin:.6rem 0">
+        <label>Chapter <input type="number" id="dkChapter" min="1" style="width:4.5rem"></label>
+        <label>Deck label <input type="text" id="dkLabel" value="Flashcards" style="width:11rem"></label>
+        <label>Format
+          <select id="dkFmt">
+            <option value="tab-nl">Tab / new line (Quizlet default)</option>
+            <option value="comma-nl">Comma / new line</option>
+            <option value="tab-blank">Tab / blank line between cards</option>
+            <option value="comma-blank">Comma / blank line between cards</option>
+            <option value="custom">Custom…</option>
+          </select>
+        </label>
+        <span id="dkCustom" class="hide muted" style="font-size:.85rem">term/def <input type="text" id="dkTsep" size="3" placeholder="\t" style="width:3rem"> · cards <input type="text" id="dkCsep" size="3" placeholder="\n" style="width:3rem"></span>
+      </div>
+      <textarea id="dkText" rows="8" style="width:100%;font-family:var(--mono);font-size:.85rem" placeholder="Paste the exported text here — one card per line, term and definition separated by a tab."></textarea>
+      <div class="row" style="gap:.5rem;margin:.55rem 0;align-items:center">
+        <button class="btn" id="dkParse">Preview cards</button>
+        <button class="btn brand" id="dkAdd" disabled>Add deck to course</button>
+        <span id="dkStat" class="muted"></span>
+      </div>
+      <div id="dkPreview"></div>
+      <h3 style="margin-top:1.3rem">Flashcard decks in this course</h3>
+      <div id="dkList"></div>
+    </div>
+  </section>
 </main>
 
 <footer>QuizPrep Instructor Console · runs entirely in your browser · <span id="ver"></span></footer>
@@ -422,7 +453,7 @@ function renderStagingChrome(){
 }
 
 let BANK = null;                              // live pointer to the ACTIVE chapter's bank (COURSE.banks[COURSE.active])
-const COURSE = { banks:{}, active:null };     // whole-course set: { <chapter|key>: bank }
+const COURSE = { banks:{}, decks:{}, active:null };     // whole-course set: banks { <unit-id>: bank } + flashcard decks { <unit-id>: deck }
 let EDIT_CFG = null;                           // when set, the Config tab is re-populated from this imported config (edit mode)
 function courseKeys(){ return Object.keys(COURSE.banks); }
 function courseChapters(){ return courseKeys().sort((a,b)=>{ const na=+a, nb=+b; return (isNaN(na)||isNaN(nb)) ? String(a).localeCompare(String(b)) : na-nb; }); }
@@ -498,10 +529,10 @@ let AUTO_LOG = [];   // this-session log of auto-accepted (re-vetted) questions
 function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
 function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
-function saveBank(){ if (courseKeys().length) lsSet(IK.course, JSON.stringify({ banks: COURSE.banks, active: COURSE.active })); }   // persists the whole course; edits to BANK land here (BANK aliases COURSE.banks[active])
+function saveBank(){ if (courseKeys().length || Object.keys(COURSE.decks).length) lsSet(IK.course, JSON.stringify({ banks: COURSE.banks, decks: COURSE.decks, active: COURSE.active })); }   // persists the whole course (banks + flashcard decks); edits to BANK land here (BANK aliases COURSE.banks[active])
 function saveDash(){ lsSet(IK.dash, JSON.stringify((DASH.bundles || []).map(b => b.encrypted ? Object.assign({}, b, { recs:[], decrypted:false }) : b))); }   // never persist decrypted item detail
 function saveHiddenWarns(){ lsSet(IK.hidewarn, JSON.stringify([...HIDDEN_WARNS])); }
-function forgetSaved(){ lsDel(IK.bank); lsDel(IK.course); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); lsDel(IK.flags); lsDel(IK.excl); HIDDEN_WARNS = new Set(); FLAGS = []; EXCLUDED = {}; COURSE.banks = {}; COURSE.active = null; BANK = null; EDIT_CFG = null; }
+function forgetSaved(){ lsDel(IK.bank); lsDel(IK.course); lsDel(IK.dash); lsDel(IK.tab); lsDel(IK.hidewarn); lsDel(IK.flags); lsDel(IK.excl); HIDDEN_WARNS = new Set(); FLAGS = []; EXCLUDED = {}; COURSE.banks = {}; COURSE.decks = {}; COURSE.active = null; BANK = null; EDIT_CFG = null; }
 function saveFlags(){ lsSet(IK.flags, JSON.stringify(FLAGS)); }
 /* ---- stay-canonical exclusions: drop specific questions from THIS class, keyed by unit id (COURSE key), NON-forking ---- */
 function saveExcluded(){ lsSet(IK.excl, JSON.stringify(EXCLUDED)); }
@@ -526,7 +557,9 @@ function restoreState(){
   const pf = lsGet(IK.prefs);
   if (pf){ try{ PREFS = Object.assign(PREFS, JSON.parse(pf) || {}); }catch(e){} }
   const c = lsGet(IK.course);
-  if (c){ try{ const o = JSON.parse(c); if (o && o.banks){ COURSE.banks = o.banks; const chs = courseChapters(); if (chs.length) activateChapter(o.active != null && COURSE.banks[o.active] ? o.active : chs[0]); } }catch(e){ lsDel(IK.course); } }
+  if (c){ try{ const o = JSON.parse(c); if (o){ COURSE.banks = o.banks || {}; COURSE.decks = o.decks || {};
+    const chs = courseChapters(); if (chs.length) activateChapter(o.active != null && COURSE.banks[o.active] ? o.active : chs[0]);
+    if (typeof renderDecks === "function") renderDecks(); } }catch(e){ lsDel(IK.course); } }
   else { const b = lsGet(IK.bank); if (b){ try{ onBankLoaded(JSON.parse(b)); lsDel(IK.bank); }catch(e){ lsDel(IK.bank); } } }   // migrate legacy single-bank key
   const d = lsGet(IK.dash);
   if (d){ try{ DASH.bundles = JSON.parse(d) || []; if (DASH.bundles.length) renderDashboard(); }catch(e){ lsDel(IK.dash); } }
@@ -543,8 +576,9 @@ nav.addEventListener("click", e => {
 });
 function showTab(name){
   [...nav.querySelectorAll("button")].forEach(b => b.classList.toggle("on", b.dataset.tab === name));
-  ["load","validate","health","editor","config","dashboard","about"].forEach(t =>
+  ["load","validate","health","editor","flashcards","config","dashboard","about"].forEach(t =>
     $("tab-" + t).classList.toggle("hide", t !== name));
+  if (name === "flashcards" && typeof renderDecks === "function") renderDecks();
   lsSet(IK.tab, name);
 }
 
@@ -1695,8 +1729,9 @@ function importConfigToEdit(pkg){
   const ids = Object.keys(pkg.banks);
   if (!ids.length) return showLoadErr("This config has no banks to edit.");
   EDIT_CFG = pkg.cfg;
-  COURSE.banks = {}; COURSE.active = null;
+  COURSE.banks = {}; COURSE.decks = {}; COURSE.active = null;
   ids.forEach(id => { COURSE.banks[id] = pkg.banks[id]; });   // keep the config's own ids
+  if (pkg.decks && typeof pkg.decks === "object") Object.keys(pkg.decks).forEach(id => { COURSE.decks[id] = pkg.decks[id]; });   // flashcard decks round-trip too
   EXCLUDED = {};                                              // seed exclusions from the imported config so they round-trip on re-export
   const impEx = pkg.cfg.exclusions;
   if (impEx && typeof impEx === "object") ids.forEach(id => { if (Array.isArray(impEx[id]) && impEx[id].length) EXCLUDED[id] = impEx[id].slice(); });
@@ -1810,17 +1845,23 @@ function buildConfig(){
   if (Object.keys(excl).length) cfg.exclusions = excl;   // omit when empty (the app treats absent as none)
   return cfg;
 }
-function buildConfigPackage(){   // manifest when the course mixes textbooks OR any chapter has more than one bank (sets); else single-textbook stock
+function buildConfigPackage(){   // manifest when the course mixes textbooks, has multi-set chapters, OR carries flashcard decks; else single-textbook stock
   const cfg = buildConfig();
   const keys = courseChapters();
   const banks = {}; keys.forEach(k => { banks[k] = COURSE.banks[k]; });
-  if (courseTextbooks().size > 1 || hasMultiSet()){   // a manifest defines the ordered units, keyed by unit id, with set-labeled titles
+  const deckIds = Object.keys(COURSE.decks);
+  if (courseTextbooks().size > 1 || hasMultiSet() || deckIds.length){   // a manifest defines the ordered units, keyed by unit id, with set-labeled titles
     const manifest = keys.map(id => { const m = COURSE.banks[id].bank_meta || {}, sl = unitSetLabel(id);
-      const u = { id, title: (m.chapter_title || id) + (sl ? " · " + sl : ""), textbook: textbookDisplay(m.source), chapter: m.chapter };
+      const u = { id, kind: "quiz", title: (m.chapter_title || id) + (sl ? " · " + sl : ""), textbook: textbookDisplay(m.source), chapter: m.chapter };
       if (bankSetId(COURSE.banks[id])) u.set_id = bankSetId(COURSE.banks[id]);
       if (sl) u.set_label = sl;
       return u; });
-    return { cfg, manifest, banks };
+    deckIds.forEach(id => { const dm = COURSE.decks[id].deck_meta || {};   // flashcard deck units (kind "flashcards")
+      manifest.push({ id, kind: "flashcards", title: (dm.chapter_title || id) + " · " + (dm.set_label || "Flashcards"),
+        textbook: textbookDisplay(dm.source), chapter: dm.chapter, set_id: dm.set_id, set_label: dm.set_label || "Flashcards" }); });
+    const pkg = { cfg, manifest, banks };
+    if (deckIds.length){ pkg.decks = {}; deckIds.forEach(id => { pkg.decks[id] = COURSE.decks[id]; }); }
+    return pkg;
   }
   return { cfg, banks, bank: BANK };   // single textbook, one bank per chapter: banks keyed by chapter number, merges into the app's stock
 }
@@ -1830,12 +1871,78 @@ function exportConfigModel1(){
   if (!cfg.cfg_id){ alert("Enter a config id first."); return; }
   downloadJSON(`${cfg.cfg_id}.config.json`, pkg);
   const nB = Object.keys(pkg.banks).length;
-  const mt = pkg.manifest ? ` · manifest (${pkg.manifest.length} units${hasMultiSet() ? ", some chapters have multiple sets" : ""})` : "";
+  const nD = pkg.decks ? Object.keys(pkg.decks).length : 0;
+  const mt = pkg.manifest ? ` · manifest (${pkg.manifest.length} units${hasMultiSet() ? ", some chapters have multiple sets" : ""}${nD ? `, ${nD} flashcard deck${nD > 1 ? "s" : ""}` : ""})` : "";
   const nEx = cfg.exclusions ? Object.values(cfg.exclusions).reduce((n, a) => n + a.length, 0) : 0;
   const exNote = nEx ? ` · <b>${nEx} question${nEx > 1 ? "s" : ""} excluded</b> (the bank stays canonical / auto-updating; these are dropped from your class)` : "";
   const keyNote = cfg.public_key ? '' : ' <b>No public key set</b> — this class’s exports will be unencrypted (dev stub); generate a keypair above to encrypt.';
   $("cfgOut").innerHTML = `<div class="msg ok">Exported <b>${esc(cfg.cfg_id)}.config.json</b> (${nB} bank${nB > 1 ? "s" : ""}${mt}${exNote}) — drop it in your shared folder for the maintainer. Students launch with <code>?cfg=${esc(cfg.cfg_id)}&amp;sec=…</code>${keyNote}</div>`;
 }
+/* ---------- Flashcards: import a Quizlet export into a study-only deck ---------- */
+let DK_PARSED = null;   // last parsed [{front,back}] awaiting "Add deck to course"
+function dkSeps(){
+  const f = $("dkFmt").value, un = s => (s || "").replace(/\\t/g, "\t").replace(/\\n/g, "\n");
+  if (f === "custom") return { term: un($("dkTsep").value) || "\t", card: un($("dkCsep").value) || "\n" };
+  return ({ "tab-nl":{term:"\t",card:"\n"}, "comma-nl":{term:",",card:"\n"},
+            "tab-blank":{term:"\t",card:"\n\n"}, "comma-blank":{term:",",card:"\n\n"} })[f] || {term:"\t",card:"\n"};
+}
+function parseQuizlet(text, term, card){   // split into cards, then term/definition on the FIRST separator (defs may contain it)
+  const blocks = (card === "\n\n") ? String(text).split(/\r?\n[ \t]*\r?\n/) : String(text).split(card);
+  const out = [];
+  blocks.forEach(bl => { bl = bl.replace(/\r/g, ""); if (!bl.trim()) return;
+    const i = bl.indexOf(term);
+    const front = (i < 0 ? bl : bl.slice(0, i)).trim();
+    const back = (i < 0 ? "" : bl.slice(i + term.length)).trim();
+    if (front) out.push({ front, back }); });
+  return out;
+}
+function dkPreview(){
+  const s = dkSeps(), cards = parseQuizlet($("dkText").value || "", s.term, s.card);
+  DK_PARSED = cards;
+  const pv = $("dkPreview"), noBack = cards.filter(c => !c.back).length;
+  if (!cards.length){ pv.innerHTML = `<div class="msg warn">No cards found — check the format (term/definition and card separators).</div>`; $("dkAdd").disabled = true; return; }
+  const rows = cards.slice(0, 8).map(c => `<tr><td><b>${esc(c.front)}</b></td><td>${esc(c.back || "—")}</td></tr>`).join("");
+  pv.innerHTML = `<div class="msg ok">${cards.length} card${cards.length > 1 ? "s" : ""} parsed${noBack ? ` · <b>${noBack}</b> with an empty back — the separators may be off` : ""}.</div>
+    <table class="hist"><tr><th>Term (front)</th><th>Definition (back)</th></tr>${rows}</table>${cards.length > 8 ? `<p class="muted">…and ${cards.length - 8} more.</p>` : ""}`;
+  $("dkAdd").disabled = false;
+}
+function dkSlug(s){ return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 16); }
+function dkAdd(){
+  if (!DK_PARSED || !DK_PARSED.length){ $("dkStat").textContent = "Preview the cards first."; return; }
+  const ch = parseInt($("dkChapter").value, 10);
+  if (!ch){ $("dkStat").textContent = "Enter a chapter number first."; return; }
+  const label = ($("dkLabel").value || "Flashcards").trim();
+  const sid = dkSlug(label) || "cards", base = String(ch);
+  let uid = base + "~" + sid, n = 2;
+  while (COURSE.decks[uid] || COURSE.banks[uid]){ uid = base + "~" + sid + n; n++; }   // don't collide with an existing deck/bank unit
+  const srcBank = Object.values(COURSE.banks).find(b => String((b.bank_meta || {}).chapter) === base) || BANK || null;
+  const src = srcBank ? (srcBank.bank_meta || {}).source : null;
+  const title = (srcBank ? (srcBank.bank_meta || {}).chapter_title : "") || ("Chapter " + ch);
+  const cards = DK_PARSED.map((c, i) => ({ id: sid + "-" + (i + 1), front: c.front, back: c.back }));
+  COURSE.decks[uid] = { deck_meta: {
+      kind: "flashcards", chapter: ch, chapter_title: title, set_id: sid, set_label: label,
+      source: src, attribution: "Imported from a Quizlet export.", deck_version: "0.1-import",
+      status: "Instructor-imported flashcard deck (self-study).", default_side: "term",
+      provenance: { forked_from: "quizlet-import" } },   // the instructor's own deck → build_config keeps it verbatim (never refreshed to a repo deck)
+    cards };
+  saveBank();
+  $("dkText").value = ""; DK_PARSED = null; $("dkPreview").innerHTML = ""; $("dkAdd").disabled = true;
+  $("dkStat").textContent = `Added “${label}” for Chapter ${ch} (${cards.length} cards) as unit ${uid}. It ships when you export the config.`;
+  renderDecks();
+}
+function renderDecks(){
+  const el = $("dkList"); if (!el) return;
+  const ids = Object.keys(COURSE.decks);
+  if (!ids.length){ el.innerHTML = `<p class="muted">No flashcard decks yet. Paste a Quizlet export above to add one.</p>`; return; }
+  el.innerHTML = `<table class="hist"><tr><th>Unit</th><th>Chapter</th><th>Label</th><th>Cards</th><th></th></tr>` +
+    ids.map(id => { const m = COURSE.decks[id].deck_meta || {}, nC = (COURSE.decks[id].cards || []).length;
+      return `<tr><td><code>${esc(id)}</code></td><td>${esc(String(m.chapter ?? "?"))}</td><td>${esc(m.set_label || "Flashcards")}</td><td>${nC}</td>
+        <td><button class="btn quiet sm" data-deckrm="${esc(id)}">Remove</button></td></tr>`; }).join("") + `</table>`;
+  el.querySelectorAll("[data-deckrm]").forEach(b => b.onclick = () => { if (confirm("Remove this flashcard deck from the course?")){ delete COURSE.decks[b.dataset.deckrm]; saveBank(); renderDecks(); } });
+}
+$("dkFmt").onchange = () => $("dkCustom").classList.toggle("hide", $("dkFmt").value !== "custom");
+$("dkParse").onclick = dkPreview;
+$("dkAdd").onclick = dkAdd;
 function configLink2(){
   if (hardGateBlocks()) return;
   const cfg = buildConfig();
