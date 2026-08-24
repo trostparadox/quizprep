@@ -399,7 +399,7 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 const APP_VERSION='0.19';
 const CHANGELOG=[
   {v:'0.19', date:'Aug 24, 2026', notes:[
-    'Flashcards can now quiz you by typing: on a deck, switch “Flip” to “Type the term,” and instead of flipping the card you type the term for each definition. Minor misspellings are accepted, and you always see the correct spelling after you answer. A correct typed answer counts the card as known. Flip mode is unchanged.']},
+    'Flashcards can now quiz you by typing: on a deck, switch “Flip” to “Type the term,” and instead of flipping the card you type the term for each definition. Minor misspellings are accepted — and if you slipped, you’ll see both the correct spelling and what you typed. A correct typed answer counts the card as known. Flip mode is unchanged.']},
   {v:'0.18', date:'Aug 23, 2026', notes:[
     'New flashcards! Some chapters now include a 📇 Flashcards deck on the home screen — term/definition cards you can flip through, shuffle, and mark as known or star for review. Choose whether the term or the definition shows first. It’s pure self-study: flashcards are not graded and don’t affect your mastery.']},
   {v:'0.17', date:'Aug 20, 2026', notes:[
@@ -1419,6 +1419,7 @@ function renderCard(){
   if(DMODE==='type'){   // type-the-term: the DEFINITION is the prompt; the student types the term (typo-tolerant)
     const tKnown=!!(st.known.def||{})[card.id], tStar=!!st.starred[card.id], answered=DRESULT!==null;
     const fb = DRESULT==='correct' ? `<div class="msg ok">✓ Correct — <b>${esc(card.front)}</b></div>`
+      : DRESULT==='close' ? `<div class="msg ok">✓ Correct — <b>${esc(card.front)}</b> <span class="muted">(you typed “${esc(DTYPED)}”)</span></div>`
       : DRESULT==='revealed' ? `<div class="msg">The term is <b>${esc(card.front)}</b></div>`
       : DRESULT==='wrong' ? `<div class="msg warn">✗ Not quite — the term is <b>${esc(card.front)}</b>${DTYPED?` <span class="muted">(you typed “${esc(DTYPED)}”)</span>`:''}</div>` : '';
     area.innerHTML=`
@@ -1433,8 +1434,9 @@ function renderCard(){
         <button class="btn quiet sm" id="dStar">${tStar?'★ Starred':'☆ Star'}</button></div>
       ${filterRow}`;
     const doCheck=()=>{ const el=area.querySelector('#dType'); DTYPED=el?el.value:'';
-      const good=termMatches(DTYPED, card.front); DRESULT=good?'correct':'wrong';
-      if(good){ st.known.def=st.known.def||{}; st.known.def[card.id]=true; }   // correct type-the-term ⇒ known in the def→term direction
+      const exact=normTerm(DTYPED)===normTerm(card.front), good=exact||termMatches(DTYPED, card.front);
+      DRESULT=good?(exact?'correct':'close'):'wrong';   // 'close' = accepted despite a misspelling → show what they typed
+      if(good){ st.known.def=st.known.def||{}; st.known.def[card.id]=true; }   // correct/close ⇒ known in the def→term direction
       saveDeck(); renderCard(); };
     area.querySelector('#dPrev').onclick=()=>deckMove(-1);
     area.querySelector('#dNext').onclick=()=>deckMove(1);
