@@ -159,10 +159,10 @@
   </div>
   <nav id="nav">
     <button data-tab="load" class="on">Load</button>
-    <button data-tab="validate" disabled>Validate</button>
+    <button data-tab="validate" disabled>Quiz Banks</button>
+    <button data-tab="flashcards">Flashcards</button>
     <button data-tab="health" disabled>Health</button>
     <button data-tab="editor" disabled>Editor</button>
-    <button data-tab="flashcards">Flashcards</button>
     <button data-tab="config" disabled>Config</button>
     <button data-tab="dashboard">Dashboard</button>
     <button data-tab="about">About</button>
@@ -174,10 +174,10 @@
   <!-- LOAD -->
   <section id="tab-load">
     <div class="panel">
-      <h2>Load a question bank</h2>
-      <p class="muted">With the file picker below, choose <b>one <code>.zip</code> file</b> — the banks package sent to you — <b>or</b> several individual chapter <code>.json</code> files. A <code>.zip</code> is a single file, so select it right here; you do <b>not</b> need to unzip it, and don't use "Load an unzipped folder…" for it (that button is only for a folder you've already extracted). Everything runs in your browser — nothing is uploaded, and this tool never touches the live student app. Loaded banks are <b>remembered on this device</b>. Load more than one chapter and a chapter switcher appears under the header.</p>
+      <h2>Load a question bank or flashcard deck</h2>
+      <p class="muted">With the file picker below, choose <b>one <code>.zip</code> file</b> — the package sent to you — <b>or</b> several individual <code>.json</code> files (question banks and/or flashcard <code>deck_chapter_NN.json</code> files). A <code>.zip</code> is a single file, so select it right here; you do <b>not</b> need to unzip it, and don't use "Load an unzipped folder…" for it (that button is only for a folder you've already extracted). Everything runs in your browser — nothing is uploaded, and this tool never touches the live student app. What you load is <b>remembered on this device</b>. Question banks open the <b>Quiz Banks</b> and Editor tabs; flashcard decks appear under <b>Flashcards</b> to review and edit.</p>
       <div class="row">
-        <label class="muted" style="font-size:.85rem">Banks (.zip or .json):</label>
+        <label class="muted" style="font-size:.85rem">Banks &amp; decks (.zip or .json):</label>
         <input type="file" id="fileIn" accept=".json,application/json,.zip,application/zip" multiple>
         <button class="ghost" id="folderBtn" type="button">Load an unzipped folder…</button>
         <input type="file" id="folderIn" webkitdirectory directory style="display:none">
@@ -244,7 +244,7 @@
           <button class="act" id="edExport">Export JSON</button>
         </div>
       </div>
-      <p class="muted" style="margin:.4rem 0 0">Edits apply to the in-memory bank and re-validate live (see the badge and the Validate/Health tabs). Export writes a new bank JSON — the original file is never modified. <b>Questions</b> edits standalone items; <b>Sets</b> edits shared-option (mc_pool) question sets.</p>
+      <p class="muted" style="margin:.4rem 0 0">Edits apply to the in-memory bank and re-validate live (see the badge and the Quiz Banks / Health tabs). Export writes a new bank JSON — the original file is never modified. <b>Questions</b> edits standalone items; <b>Sets</b> edits shared-option (mc_pool) question sets.</p>
       <div class="row" id="edFilters" style="margin-top:.5rem"></div>
     </div>
     <div class="edwrap" id="edQWrap">
@@ -343,7 +343,9 @@
       </div>
       <div id="dkPreview"></div>
       <h3 style="margin-top:1.3rem">Flashcard decks in this course</h3>
+      <p class="muted" style="font-size:.85rem">Load a deck file (a <code>deck_chapter_NN.json</code>, or the class banks .zip above) or import a Quizlet set, then <b>Review / edit cards</b>.</p>
       <div id="dkList"></div>
+      <div id="dkEditor"></div>
     </div>
   </section>
 </main>
@@ -578,6 +580,8 @@ function showTab(name){
   [...nav.querySelectorAll("button")].forEach(b => b.classList.toggle("on", b.dataset.tab === name));
   ["load","validate","health","editor","flashcards","config","dashboard","about"].forEach(t =>
     $("tab-" + t).classList.toggle("hide", t !== name));
+  const cb = $("chapterBar");   // the chapter switcher belongs only on tabs that act on the selected chapter
+  if (cb){ if (["validate", "health", "editor"].includes(name)) renderChapterBar(); else cb.classList.add("hide"); }
   if (name === "flashcards" && typeof renderDecks === "function") renderDecks();
   lsSet(IK.tab, name);
 }
@@ -1907,6 +1911,18 @@ function dkPreview(){
   $("dkAdd").disabled = false;
 }
 function dkSlug(s){ return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 16); }
+function addDeckToCourse(deck){   // a loaded deck file (deck_meta + cards) → COURSE.decks, keyed <chapter>~<set_id>
+  const m = deck.deck_meta || {};
+  const sidv = m.set_id ? dkSlug(m.set_id) : "cards";
+  const base = (m.chapter == null || m.chapter === "") ? ("x" + (Object.keys(COURSE.decks).length + 1)) : String(m.chapter);
+  const uid = base + "~" + sidv;
+  COURSE.decks[uid] = deck;   // same chapter + set_id ⇒ reload (overwrite)
+  return uid;
+}
+function forkDeck(deck){   // editing a canonical deck forks it (provenance) so build_config keeps the instructor's copy verbatim
+  const m = deck.deck_meta || (deck.deck_meta = {});
+  if (!(m.provenance && m.provenance.forked_from)) m.provenance = { forked_from: "console-edit" };
+}
 function dkAdd(){
   if (!DK_PARSED || !DK_PARSED.length){ $("dkStat").textContent = "Preview the cards first."; return; }
   const ch = parseInt($("dkChapter").value, 10);
@@ -1936,9 +1952,41 @@ function renderDecks(){
   if (!ids.length){ el.innerHTML = `<p class="muted">No flashcard decks yet. Paste a Quizlet export above to add one.</p>`; return; }
   el.innerHTML = `<table class="hist"><tr><th>Unit</th><th>Chapter</th><th>Label</th><th>Cards</th><th></th></tr>` +
     ids.map(id => { const m = COURSE.decks[id].deck_meta || {}, nC = (COURSE.decks[id].cards || []).length;
-      return `<tr><td><code>${esc(id)}</code></td><td>${esc(String(m.chapter ?? "?"))}</td><td>${esc(m.set_label || "Flashcards")}</td><td>${nC}</td>
-        <td><button class="btn quiet sm" data-deckrm="${esc(id)}">Remove</button></td></tr>`; }).join("") + `</table>`;
-  el.querySelectorAll("[data-deckrm]").forEach(b => b.onclick = () => { if (confirm("Remove this flashcard deck from the course?")){ delete COURSE.decks[b.dataset.deckrm]; saveBank(); renderDecks(); } });
+      const forked = !!(m.provenance && m.provenance.forked_from);
+      return `<tr><td><code>${esc(id)}</code></td><td>${esc(String(m.chapter ?? "?"))}</td><td>${esc(m.set_label || "Flashcards")}${forked ? ' <span class="pill" style="background:var(--warnbg);color:var(--warn)">edited</span>' : ''}</td><td>${nC}</td>
+        <td><button class="btn sm" data-deckedit="${esc(id)}">Review / edit cards</button> <button class="btn quiet sm" data-deckrm="${esc(id)}">Remove</button></td></tr>`; }).join("") + `</table>`;
+  el.querySelectorAll("[data-deckedit]").forEach(b => b.onclick = () => editDeckCards(b.dataset.deckedit));
+  el.querySelectorAll("[data-deckrm]").forEach(b => b.onclick = () => { if (confirm("Remove this flashcard deck from the course?")){ delete COURSE.decks[b.dataset.deckrm]; if (DKEDIT === b.dataset.deckrm){ DKEDIT = null; const ed = $("dkEditor"); if (ed) ed.innerHTML = ""; } saveBank(); renderDecks(); } });
+}
+let DKEDIT = null, _dkSaveT = null;
+function scheduleDeckSave(){ if (_dkSaveT) clearTimeout(_dkSaveT); _dkSaveT = setTimeout(() => { saveBank(); const s = $("dkEditStat"); if (s){ s.textContent = "Saved."; setTimeout(() => { if (s) s.textContent = ""; }, 1200); } }, 500); }
+function editDeckCards(uid){
+  const deck = COURSE.decks[uid]; if (!deck) return;
+  DKEDIT = uid; deck.cards = deck.cards || [];
+  const m = deck.deck_meta || {};
+  const el = $("dkEditor");
+  el.innerHTML = `<div class="panel" style="margin-top:.6rem">
+    <div class="row" style="justify-content:space-between;align-items:baseline"><h3 style="margin:0">Review / edit cards — ${esc(m.set_label || "Flashcards")} <span class="muted" style="font-weight:400">(${esc(uid)})</span></h3>
+      <button class="btn quiet sm" id="dkEditDone">Done</button></div>
+    <p class="muted" style="font-size:.85rem">Read through the cards; edit any term or definition, add a card, or delete one. Your edits are remembered on this device and ship when you export the config. (Editing marks the deck as your own copy.)</p>
+    <div id="dkCardRows"></div>
+    <div class="row" style="margin-top:.5rem"><button class="btn sm" id="dkAddCard">+ Add card</button><span id="dkEditStat" class="muted"></span></div></div>`;
+  renderDeckCardRows();
+  $("dkEditDone").onclick = () => { DKEDIT = null; el.innerHTML = ""; };
+  $("dkAddCard").onclick = () => { forkDeck(deck); deck.cards.push({ id: "c" + deck.cards.length + "-" + Date.now().toString(36), front: "", back: "" }); saveBank(); renderDeckCardRows(); renderDecks(); };
+}
+function renderDeckCardRows(){
+  const deck = COURSE.decks[DKEDIT]; if (!deck) return; const cards = deck.cards || [];
+  $("dkCardRows").innerHTML = `<table class="hist" style="width:100%"><tr><th style="width:1.6rem">#</th><th style="width:32%">Term (front)</th><th>Definition (back)</th><th style="width:2rem"></th></tr>` +
+    cards.map((c, i) => `<tr>
+      <td class="muted">${i + 1}</td>
+      <td><input type="text" class="dkcf" data-i="${i}" value="${esc(c.front || "")}" style="width:100%"></td>
+      <td><textarea class="dkcb" data-i="${i}" rows="2" style="width:100%">${esc(c.back || "")}</textarea></td>
+      <td><button class="btn quiet sm dkcd" data-i="${i}" title="Delete this card">✕</button></td></tr>`).join("") + `</table>`;
+  const rows = $("dkCardRows");
+  rows.querySelectorAll(".dkcf").forEach(inp => inp.oninput = () => { forkDeck(deck); cards[+inp.dataset.i].front = inp.value; scheduleDeckSave(); });
+  rows.querySelectorAll(".dkcb").forEach(inp => inp.oninput = () => { forkDeck(deck); cards[+inp.dataset.i].back = inp.value; scheduleDeckSave(); });
+  rows.querySelectorAll(".dkcd").forEach(b => b.onclick = () => { if (confirm("Delete this card?")){ forkDeck(deck); cards.splice(+b.dataset.i, 1); saveBank(); renderDeckCardRows(); renderDecks(); } });
 }
 $("dkFmt").onchange = () => $("dkCustom").classList.toggle("hide", $("dkFmt").value !== "custom");
 $("dkParse").onclick = dkPreview;
@@ -2002,8 +2050,11 @@ async function readFilesIntoCourse(fileList){
   const files = [...fileList].filter(f => /\.(json|zip)$/i.test(f.name));
   if (!files.length) return showLoadErr("No .json or .zip files found in that selection.");
   $("loadErr").classList.add("hide");
-  const banks = []; let bad = 0;
-  const take = o => { if (o && o.bank_meta && Array.isArray(o.items)) banks.push(o); else bad++; };
+  const banks = [], decks = []; let bad = 0;
+  const take = o => {
+    if (o && o.bank_meta && Array.isArray(o.items)) banks.push(o);
+    else if (o && o.deck_meta && Array.isArray(o.cards)) decks.push(o);   // a flashcard deck
+    else bad++; };
   for (const f of files){
     try {
       if (/\.zip$/i.test(f.name)){ for (const e of await readZip(await f.arrayBuffer())){ try { take(JSON.parse(e.text)); } catch(_){ bad++; } } }
@@ -2012,9 +2063,12 @@ async function readFilesIntoCourse(fileList){
              take(obj); }
     } catch(e){ bad++; }
   }
-  if (!banks.length) return showLoadErr("No valid bank files loaded" + (bad ? ` (${bad} skipped)` : "") + ".");
-  onBanksLoaded(banks);
-  if (bad) $("loadState").append(` · ${bad} file(s) skipped`);
+  if (!banks.length && !decks.length) return showLoadErr("No valid bank or deck files loaded" + (bad ? ` (${bad} skipped)` : "") + ".");
+  decks.forEach(addDeckToCourse);
+  if (banks.length) onBanksLoaded(banks);
+  else { saveBank(); renderDecks(); showTab("flashcards"); }   // decks only → open the Flashcards tab
+  if (decks.length) renderDecks();
+  if (bad){ const ls = $("loadState"); if (ls) ls.append(` · ${bad} file(s) skipped`); }
 }
 $("cfgImport").addEventListener("change", async e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return;
   try { importConfigToEdit(JSON.parse(await f.text())); } catch(err){ showLoadErr("Couldn't read that config: " + err.message); } });
