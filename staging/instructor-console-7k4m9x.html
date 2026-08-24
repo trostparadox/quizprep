@@ -438,8 +438,8 @@ function unitBase(k){ const i=String(k).indexOf("~"); return i<0?String(k):Strin
 function chapterSets(k){ const base=unitBase(k); return courseChapters().filter(x=>unitBase(x)===base); }   // sibling units sharing a chapter (incl. self), in course order
 function unitSetLabel(k){                       // "" when the chapter has a single bank; else this set's display label
   const sibs=chapterSets(k); if(sibs.length<=1) return "";
-  const sl=bankSetLabel(COURSE.banks[k]); if(sl) return sl;
-  return "Set "+(sibs.indexOf(k)+1);           // unlabeled → position among siblings (primary first)
+  const b=COURSE.banks[k], sl=bankSetLabel(b); if(sl) return sl;   // an explicit set_label always wins
+  return bankSetId(b) ? "Set "+(sibs.indexOf(k)+1) : "";           // a named-but-unlabeled set → positional; the PRIMARY (no set_id) needs no suffix — the labeled sets carry the distinction
 }
 function hasMultiSet(){ const n={}; courseKeys().forEach(k=>{ const b=unitBase(k); n[b]=(n[b]||0)+1; }); return Object.values(n).some(c=>c>1); }
 function bankQidSet(b){ const s=new Set(); ((b&&b.items)||[]).forEach(i=>{if(i&&i.q_id)s.add(i.q_id);}); ((b&&b.question_sets)||[]).forEach(x=>((x.questions)||[]).forEach(q=>{if(q&&q.q_id)s.add(q.q_id);})); return s; }
