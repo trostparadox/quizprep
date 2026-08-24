@@ -1,0 +1,162 @@
+{
+  "generated": "2026-08-24T04:23:26Z",
+  "configs": [
+    {
+      "cfg_id": "demo",
+      "file": "demo.config.json",
+      "display_name": "Demo Class",
+      "course": "demo",
+      "sections": [],
+      "active": true,
+      "anonymize": false,
+      "has_key": false,
+      "units": 11,
+      "n_banks": 11,
+      "n_decks": 0,
+      "chapters": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "release_scheduled": false,
+      "release_rows": 0,
+      "exclusions": 0,
+      "unit_titles": [
+        "Introduction to Entrepreneurship",
+        "Recognizing Opportunities and Generating Ideas",
+        "What Economics Is",
+        "Economic Theory",
+        "How to Do Economics",
+        "A Process, Not a Factory",
+        "Production and Entrepreneurship",
+        "Value, Money, and Price",
+        "Economic Calculation",
+        "Monetary Intervention",
+        "Regulatory Intervention"
+      ]
+    },
+    {
+      "cfg_id": "eee2023-t01",
+      "file": "eee2023-t01.config.json",
+      "display_name": "Ryan Turnipseed",
+      "course": "eee-2023",
+      "sections": [
+        "001"
+      ],
+      "active": true,
+      "anonymize": true,
+      "has_key": false,
+      "units": 17,
+      "n_banks": 17,
+      "n_decks": 0,
+      "chapters": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "release_scheduled": true,
+      "release_rows": 17,
+      "exclusions": 0,
+      "unit_titles": [
+        "Introduction to Entrepreneurship",
+        "Recognizing Opportunities and Generating Ideas",
+        "Feasibility Analysis",
+        "Developing an Effective Business Model",
+        "Industry and Competitor Analysis",
+        "Writing a Business Plan",
+        "Preparing the Proper Ethical and Legal Foundation",
+        "Assessing a New Venture's Financial Strength and Viability",
+        "Regulatory Intervention",
+        "What Economics Is",
+        "Economic Theory",
+        "How to Do Economics",
+        "A Process, Not a Factory",
+        "Production and Entrepreneurship",
+        "Value, Money, and Price",
+        "Economic Calculation",
+        "Monetary Intervention"
+      ]
+    },
+    {
+      "cfg_id": "scs-history-8th",
+      "file": "scs-history-8th.config.json",
+      "display_name": "Mr. Ritchie",
+      "course": "scs-history-8th",
+      "sections": [
+        "8A",
+        "8B"
+      ],
+      "active": true,
+      "anonymize": true,
+      "has_key": false,
+      "units": 3,
+      "n_banks": 2,
+      "n_decks": 1,
+      "chapters": [
+        1
+      ],
+      "release_scheduled": false,
+      "release_rows": 0,
+      "exclusions": 0,
+      "unit_titles": [
+        "America, Europe, and Africa before 1620",
+        "America, Europe, and Africa before 1620 · Quizlet-based review",
+        "America, Europe, and Africa before 1620 · Flashcards"
+      ]
+    },
+    {
+      "cfg_id": "trost-demo-01",
+      "file": "trost-demo-01.config.json",
+      "display_name": "Dr. Trost",
+      "course": "entrepreneurship-demo",
+      "sections": [
+        "001"
+      ],
+      "active": true,
+      "anonymize": false,
+      "has_key": false,
+      "units": 11,
+      "n_banks": 11,
+      "n_decks": 0,
+      "chapters": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "release_scheduled": true,
+      "release_rows": 11,
+      "exclusions": 0,
+      "unit_titles": [
+        "Introduction to Entrepreneurship",
+        "Recognizing Opportunities and Generating Ideas",
+        "What Economics Is",
+        "Economic Theory",
+        "How to Do Economics",
+        "A Process, Not a Factory",
+        "Production and Entrepreneurship",
+        "Value, Money, and Price",
+        "Economic Calculation",
+        "Monetary Intervention",
+        "Regulatory Intervention"
+      ]
+    }
+  ]
+}

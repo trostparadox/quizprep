@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>QuizPrep — Master Console</title>
+<style>
+  :root{ --bg:#f6f7f9; --panel:#fff; --ink:#1c2430; --muted:#5b6672; --line:#e2e6ea; --brand:#2c6bed; --brandsoft:#e8f0ff;
+    --ok:#1e874b; --okbg:#e7f6ec; --warn:#9a6a00; --warnbg:#fdf3dd; --no:#c02a2a; --nobg:#fbe9e9; --chip:#eef1f5; --radius:10px; }
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#12161c; --panel:#1a2028; --ink:#e6ebf1; --muted:#9aa6b2; --line:#2a323c;
+    --brand:#6ea0ff; --brandsoft:#1c2740; --ok:#5fd08a; --okbg:#173226; --warn:#e6be5a; --warnbg:#332a12; --no:#ff8a8a; --nobg:#3a1e1e; --chip:#232b34; }}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--panel);border-bottom:1px solid var(--line);padding:.8rem 1rem;display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+  header h1{font-size:1.1rem;margin:0}
+  header .sub{color:var(--muted);font-size:.82rem}
+  main{max-width:920px;margin:0 auto;padding:1rem}
+  .btn{border:1.5px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:.35rem .7rem;font:inherit;font-size:.85rem;cursor:pointer}
+  .btn:hover{border-color:var(--brand)}
+  .btn.brand{background:var(--brand);border-color:var(--brand);color:#fff}
+  .btn.no{color:var(--no);border-color:var(--no)}
+  .btn.sm{padding:.2rem .55rem;font-size:.8rem}
+  .row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);margin:.6rem 0;overflow:hidden}
+  .chead{display:flex;gap:.6rem;align-items:center;padding:.7rem .9rem;cursor:pointer}
+  .chead:hover{background:var(--brandsoft)}
+  .chead .cid{font-weight:700}
+  .chead .cwho{color:var(--muted)}
+  .chead .cmeta{margin-left:auto;color:var(--muted);font-size:.82rem;text-align:right}
+  .pill{display:inline-block;border-radius:999px;padding:.05rem .5rem;font-size:.72rem;font-weight:700}
+  .pill.on{background:var(--okbg);color:var(--ok)}
+  .pill.off{background:var(--nobg);color:var(--no)}
+  .pill.flag{background:var(--chip);color:var(--muted)}
+  .pill.pend{background:var(--warnbg);color:var(--warn)}
+  .cbody{border-top:1px solid var(--line);padding:.9rem;display:none}
+  .card.open .cbody{display:block}
+  .card.del .chead{opacity:.5;text-decoration:line-through}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:.15rem .7rem;font-size:.88rem;margin:.3rem 0 .7rem}
+  .kv b{color:var(--muted);font-weight:600}
+  label{font-size:.85rem}
+  input[type=text],input[type=date]{font:inherit;font-size:.85rem;padding:.3rem .45rem;border:1.5px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+  .form{display:grid;gap:.5rem;max-width:520px}
+  .form .fr{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  .form .fr>label:first-child{min-width:7rem;color:var(--muted)}
+  .sched{margin:.3rem 0;display:grid;gap:.25rem}
+  .sched .sr{display:flex;gap:.5rem;align-items:center;font-size:.82rem}
+  .sched .sr span{flex:1;color:var(--muted)}
+  .acts{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.7rem;border-top:1px solid var(--line);padding-top:.7rem}
+  .pending{position:sticky;top:0;z-index:5;background:var(--warnbg);border:1px solid var(--warn);border-radius:var(--radius);padding:.6rem .9rem;margin-bottom:.6rem}
+  .pending.hide{display:none}
+  .pending ul{margin:.3rem 0 .5rem 1.1rem;padding:0;font-size:.85rem}
+  .msg{border-radius:8px;padding:.5rem .7rem;font-size:.85rem;margin:.4rem 0}
+  .msg.ok{background:var(--okbg);color:var(--ok)} .msg.warn{background:var(--warnbg);color:var(--warn)} .msg.err{background:var(--nobg);color:var(--no)}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.85em;background:var(--chip);padding:.05rem .3rem;border-radius:4px}
+  .modal{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:1rem}
+  .modal.show{display:flex}
+  .modal .mc{background:var(--panel);border-radius:var(--radius);padding:1rem;max-width:640px;width:100%;max-height:85vh;overflow:auto}
+  textarea{width:100%;min-height:220px;font-family:ui-monospace,Menlo,monospace;font-size:.78rem;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:.5rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>QuizPrep · Master Console</h1>
+  <span class="sub" id="hsub">loading…</span>
+  <span class="row" style="margin-left:auto">
+    <button class="btn sm" id="btnRefresh">Refresh</button>
+  </span>
+</header>
+<main>
+  <div class="pending hide" id="pending"></div>
+  <div id="list"><p class="sub">Loading configs…</p></div>
+  <p class="sub" style="margin-top:1.2rem">Read-only view of your live class configs. Changes here compose an <b>apply-batch</b> file — hand it to your maintainer to push. Editing a class's <b>questions</b> still happens in the Instructor Console.</p>
+</main>
+
+<div class="modal" id="expModal"><div class="mc">
+  <h3 style="margin-top:0">Apply-batch — hand this to your maintainer</h3>
+  <p class="sub">Copy this or download it; it lists every pending change plus the exact config files to write/remove.</p>
+  <textarea id="expText" readonly></textarea>
+  <div class="row" style="margin-top:.6rem"><button class="btn brand" id="expCopy">Copy</button><button class="btn" id="expDl">Download</button><button class="btn" id="expClose">Close</button></div>
+</div></div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const STAGING=(function(){try{return /\/staging\//.test(location.pathname||'');}catch(e){return false;}})();
+const CBASE=STAGING?'../configs/':'configs/';
+const PKEY='quizprep-master-pending-v1';
+let INDEX=[];                 // summaries from _index.json
+const CFGCACHE={};            // file -> full config (fetched on expand)
+let PENDING={ files:{}, deletes:{}, log:[] };   // files: filename->config to write; deletes: id->true; log: [{op,id,detail}]
+
+function loadPending(){ try{ const p=JSON.parse(localStorage.getItem(PKEY)); if(p&&p.files) PENDING=p; }catch(e){} }
+function savePending(){ try{ localStorage.setItem(PKEY, JSON.stringify(PENDING)); }catch(e){} }
+function fileOf(id){ return id+'.config.json'; }
+
+async function fetchJSON(url){ const r=await fetch(url+(url.indexOf('?')<0?'?':'&')+'nc='+Date.now()); if(!r.ok) throw new Error(r.status); return r.json(); }
+async function loadIndex(){
+  $('list').innerHTML='<p class="sub">Loading configs…</p>';
+  try{ const idx=await fetchJSON(CBASE+'_index.json'); INDEX=idx.configs||[];
+    $('hsub').textContent=`${INDEX.length} configs · index ${idx.generated||''}${STAGING?' · STAGING':''}`;
+  }catch(e){ $('list').innerHTML=`<div class="msg err">Couldn't load <code>${esc(CBASE)}_index.json</code> (${esc(e.message)}). Deploy the index first (tools/build_config_index.py).</div>`; return; }
+  renderList(); renderPending();
+}
+async function getConfig(file){ if(CFGCACHE[file]) return CFGCACHE[file]; const c=await fetchJSON(CBASE+file); CFGCACHE[file]=c; return c; }
+
+// the effective cfg summary for a row: pending edit (if any) overrides the index summary
+function effective(e){
+  const f=fileOf(e.cfg_id); const pend=PENDING.files[f];
+  if(pend){ const cfg=pend.cfg||{}; return Object.assign({}, e, { display_name:cfg.display_name||'', sections:cfg.sections||[], anonymize:!!cfg.anonymize, active:cfg.active!==false, _pending:true }); }
+  return e;
+}
+function renderList(){
+  // index rows + any pending CLONES (files whose id isn't in the index)
+  const ids=new Set(INDEX.map(e=>e.cfg_id));
+  const cloneRows=Object.keys(PENDING.files).map(f=>PENDING.files[f]).filter(c=>c&&c.cfg&&!ids.has(c.cfg.cfg_id))
+    .map(c=>({ cfg_id:c.cfg.cfg_id, display_name:c.cfg.display_name||'', course:c.cfg.course||'', sections:c.cfg.sections||[],
+      active:c.cfg.active!==false, anonymize:!!c.cfg.anonymize, has_key:!!c.cfg.public_key,
+      units:(c.manifest||[]).length||Object.keys(c.banks||{}).length, n_banks:Object.keys(c.banks||{}).length, n_decks:Object.keys(c.decks||{}).length,
+      chapters:[], _clone:true }));
+  const all=INDEX.map(effective).concat(cloneRows);
+  $('list').innerHTML = all.map(rowHTML).join('') || '<p class="sub">No configs.</p>';
+  all.forEach(e=>{ const head=document.querySelector(`.chead[data-id="${cssq(e.cfg_id)}"]`); if(head) head.onclick=()=>toggle(e.cfg_id); });
+}
+function cssq(s){ return String(s).replace(/"/g,'\\"'); }
+function rowHTML(e){
+  const del=!!PENDING.deletes[e.cfg_id];
+  const badges=[
+    `<span class="pill ${e.active?'on':'off'}">${e.active?'active':'inactive'}</span>`,
+    e.anonymize?'<span class="pill flag">anon</span>':'',
+    e.has_key?'<span class="pill flag">key</span>':'',
+    e._pending?'<span class="pill pend">edited</span>':'', e._clone?'<span class="pill pend">new</span>':'',
+    del?'<span class="pill off">delete</span>':'',
+  ].join('');
+  return `<div class="card${del?' del':''}" id="card-${esc(e.cfg_id)}">
+    <div class="chead" data-id="${esc(e.cfg_id)}">
+      <span class="cid">${esc(e.cfg_id)}</span> ${badges}
+      <span class="cwho">${esc(e.display_name||'—')}</span>
+      <span class="cmeta">${e.units} unit${e.units===1?'':'s'} (${e.n_banks} bank/${e.n_decks} deck)<br>sec ${esc((e.sections||[]).join(', ')||'—')}</span>
+    </div>
+    <div class="cbody" id="body-${esc(e.cfg_id)}"></div>
+  </div>`;
+}
+async function toggle(id){
+  const card=$('card-'+id), body=$('body-'+id); if(!card) return;
+  if(card.classList.contains('open')){ card.classList.remove('open'); return; }
+  card.classList.add('open'); body.innerHTML='<p class="sub">Loading…</p>';
+  const clone=Object.keys(PENDING.files).map(f=>PENDING.files[f]).find(c=>c&&c.cfg&&c.cfg.cfg_id===id&&!INDEX.some(e=>e.cfg_id===id));
+  let cfgFile;
+  try{ cfgFile = clone || PENDING.files[fileOf(id)] || await getConfig(fileOf(id)); }
+  catch(e){ body.innerHTML=`<div class="msg err">Couldn't load ${esc(fileOf(id))}: ${esc(e.message)}</div>`; return; }
+  renderDetail(id, cfgFile);
+}
+function unitList(c){ // ordered unit ids + a title, from manifest or banks
+  if(Array.isArray(c.manifest)&&c.manifest.length) return c.manifest.map(u=>({id:u.id,title:u.title||u.id,kind:u.kind||'quiz'}));
+  return Object.keys(c.banks||{}).map(k=>({id:k,title:((c.banks[k].bank_meta||{}).chapter_title)||k,kind:'quiz'}));
+}
+function renderDetail(id, c){
+  const cfg=c.cfg||{}, body=$('body-'+id), units=unitList(c), rel=cfg.release_schedule||{};
+  const isDeleted=!!PENDING.deletes[id], active=cfg.active!==false;
+  const kv=`<div class="kv">
+    <b>Instructor</b><span>${esc(cfg.display_name||'—')}</span>
+    <b>Course</b><span>${esc(cfg.course||'—')}</span>
+    <b>Sections</b><span>${esc((cfg.sections||[]).join(', ')||'—')}</span>
+    <b>Student link</b><span><code>?cfg=${esc(id)}&amp;sec=…</code></span>
+    <b>Anonymize</b><span>${cfg.anonymize?'on':'off'}</span>
+    <b>Encryption key</b><span>${cfg.public_key?'set':'none'}</span>
+    <b>Units</b><span>${units.map(u=>esc(u.title)+(u.kind==='flashcards'?' 📇':'')).join(' · ')||'—'}</span>
+    <b>Exclusions</b><span>${Object.values(cfg.exclusions||{}).reduce((n,a)=>n+(a||[]).length,0)} question(s)</span>
+    <b>Release</b><span>${Object.keys(rel).length?Object.keys(rel).length+' scheduled unit(s)':'all available now'}</span>
+  </div>`;
+  const schedOn=Object.keys(rel).length>0;
+  const form=`<div class="form">
+    <div class="fr"><label>Instructor name</label><input type="text" id="e-name-${esc(id)}" value="${esc(cfg.display_name||'')}" size="22"></div>
+    <div class="fr"><label>Sections</label><input type="text" id="e-sec-${esc(id)}" value="${esc((cfg.sections||[]).join(', '))}" size="18"><span class="sub">comma-separated</span></div>
+    <div class="fr"><label>Anonymize</label><input type="checkbox" id="e-anon-${esc(id)}" ${cfg.anonymize?'checked':''}></div>
+    <div class="fr"><label>Active</label><input type="checkbox" id="e-active-${esc(id)}" ${active?'checked':''}><span class="sub">unchecked ⇒ students see “class no longer active”</span></div>
+    <div class="fr"><label>Schedule releases</label><input type="checkbox" id="e-sched-${esc(id)}" ${schedOn?'checked':''}><span class="sub">off ⇒ every unit available now</span></div>
+    <div class="sched" id="e-schedrows-${esc(id)}">${units.map(u=>`<div class="sr"><input type="date" data-unit="${esc(u.id)}" value="${esc(rel[u.id]||'')}"><span>${esc(u.title)}</span></div>`).join('')}</div>
+  </div>`;
+  const acts=`<div class="acts">
+    <button class="btn brand sm" id="a-save-${esc(id)}">Save edits</button>
+    <button class="btn sm" id="a-clone-${esc(id)}">Clone…</button>
+    <button class="btn sm" id="a-active-${esc(id)}">${active?'Deactivate':'Reactivate'}</button>
+    <button class="btn no sm" id="a-del-${esc(id)}">${isDeleted?'Undo delete':'Delete'}</button>
+  </div>`;
+  body.innerHTML=kv+form+acts;
+  $('a-save-'+id).onclick=()=>saveEdits(id, c);
+  $('a-clone-'+id).onclick=()=>doClone(id, c);
+  $('a-active-'+id).onclick=()=>{ toggleActive(id, c); };
+  $('a-del-'+id).onclick=()=>{ toggleDelete(id); };
+}
+function collectEdits(id, c){
+  const cfg=JSON.parse(JSON.stringify(c.cfg||{}));
+  cfg.display_name=($('e-name-'+id).value||'').trim();
+  cfg.sections=($('e-sec-'+id).value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  cfg.anonymize=$('e-anon-'+id).checked;
+  cfg.active=$('e-active-'+id).checked ? true : false;
+  if($('e-sched-'+id).checked){ const rel={}; document.querySelectorAll(`#e-schedrows-${cssq(id)} input[data-unit]`).forEach(i=>{ rel[i.dataset.unit]=i.value||''; }); cfg.release_schedule=rel; }
+  else delete cfg.release_schedule;
+  const out=JSON.parse(JSON.stringify(c)); out.cfg=cfg; return out;
+}
+function queueFile(file, cfgObj, logEntry){ PENDING.files[file]=cfgObj; PENDING.log.push(logEntry); savePending(); renderList(); renderPending(); }
+function saveEdits(id, c){ const out=collectEdits(id, c); queueFile(fileOf(id), out, {op:'edit', id, detail:'settings/schedule'}); flash(id,'Edits queued.'); }
+function toggleActive(id, c){ const out=collectEdits(id, c); out.cfg.active = !( (PENDING.files[fileOf(id)]||c).cfg.active!==false ); queueFile(fileOf(id), out, {op:out.cfg.active?'reactivate':'deactivate', id}); flash(id, out.cfg.active?'Reactivate queued.':'Deactivate queued.'); }
+function toggleDelete(id){ if(PENDING.deletes[id]) delete PENDING.deletes[id]; else PENDING.deletes[id]=true; PENDING.log.push({op:PENDING.deletes[id]?'delete':'undelete', id}); savePending(); renderList(); renderPending(); }
+function doClone(id, c){
+  const newId=(prompt('New config id for the clone (letters, numbers, hyphens):','')||'').trim().toLowerCase().replace(/[^a-z0-9-]/g,'');
+  if(!newId) return;
+  if(INDEX.some(e=>e.cfg_id===newId)||PENDING.files[fileOf(newId)]){ alert('That id already exists or is pending.'); return; }
+  const out=JSON.parse(JSON.stringify(c)); out.cfg=out.cfg||{}; out.cfg.cfg_id=newId; out.cfg.active=true;
+  queueFile(fileOf(newId), out, {op:'clone', id:newId, detail:'from '+id});
+  flash(id,'Clone “'+newId+'” queued.');
+}
+function flash(id,msg){ const b=$('body-'+id); if(b){ const d=document.createElement('div'); d.className='msg ok'; d.textContent=msg; b.appendChild(d); setTimeout(()=>d.remove(),2500); } }
+function pendingCount(){ return Object.keys(PENDING.files).length + Object.keys(PENDING.deletes).length; }
+function renderPending(){
+  const n=pendingCount(), el=$('pending');
+  if(!n){ el.classList.add('hide'); return; }
+  el.classList.remove('hide');
+  const items=[];
+  Object.keys(PENDING.files).forEach(f=>{ const c=PENDING.files[f]; const isClone=c&&c.cfg&&!INDEX.some(e=>e.cfg_id===c.cfg.cfg_id);
+    items.push(`${isClone?'clone/new':'edit'} <code>${esc(c.cfg.cfg_id)}</code>${c.cfg.active===false?' <span class="pill off">→ inactive</span>':''}`); });
+  Object.keys(PENDING.deletes).forEach(id=>items.push(`delete <code>${esc(id)}</code>`));
+  el.innerHTML=`<b>${n} pending change${n===1?'':'s'}</b> — compose an apply-batch for your maintainer.
+    <ul>${items.map(i=>`<li>${i}</li>`).join('')}</ul>
+    <div class="row"><button class="btn brand sm" id="pExport">Export apply-batch</button><button class="btn sm" id="pClear">Clear pending</button></div>`;
+  $('pExport').onclick=exportBatch;
+  $('pClear').onclick=()=>{ if(confirm('Discard all pending changes?')){ PENDING={files:{},deletes:{},log:[]}; savePending(); renderList(); renderPending(); } };
+}
+function exportBatch(){
+  const files={}; Object.keys(PENDING.files).forEach(f=>{ files[f]=PENDING.files[f]; });
+  const deletes=Object.keys(PENDING.deletes).map(fileOf);
+  const batch={ format:'quizprep-config-apply-v1', generated:new Date().toISOString(), ops:PENDING.log,
+    write:Object.keys(files), delete:deletes, files, note:'Apply: write each file in `files` to configs/, remove each in `delete`, regenerate configs/_index.json, commit + push pages.' };
+  const text=JSON.stringify(batch,null,2);
+  $('expText').value=text; $('expModal').classList.add('show');
+  $('expDl').onclick=()=>{ const b=new Blob([text],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='config-apply-batch.json'; document.body.appendChild(a); a.click(); a.remove(); };
+  $('expCopy').onclick=()=>{ try{ navigator.clipboard.writeText(text); }catch(e){ $('expText').select(); document.execCommand&&document.execCommand('copy'); } };
+}
+$('expClose').onclick=()=>$('expModal').classList.remove('show');
+$('btnRefresh').onclick=()=>{ for(const k in CFGCACHE) delete CFGCACHE[k]; loadIndex(); };
+loadPending(); loadIndex();
+</script>
+</body>
+</html>

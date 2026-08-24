@@ -396,8 +396,10 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.19';
+const APP_VERSION='0.20';
 const CHANGELOG=[
+  {v:'0.20', date:'Aug 24, 2026', notes:[
+    'If your instructor closes a class, its link now shows a clear “this class is no longer active” message instead of a broken page.']},
   {v:'0.19', date:'Aug 24, 2026', notes:[
     'Flashcards can now quiz you by typing: on a deck, switch “Flip” to “Type the term,” and instead of flipping the card you type the term for each definition. Minor misspellings are accepted — and if you slipped, you’ll see both the correct spelling and what you typed. A correct typed answer counts the card as known. Flip mode is unchanged.']},
   {v:'0.18', date:'Aug 23, 2026', notes:[
@@ -506,6 +508,7 @@ expandSets();
    unchanged. setBank() lets model 1 swap in its bank before the home renders. */
 let CONFIG=null;
 let DEMO_MODE=false;   // true on a no-?cfg visit (the public demo class) → renderHome shows a prominent 'get your class link' banner
+let CLASS_INACTIVE=false;   // true when the loaded config has active:false (deactivated by the maintainer) → show a "class no longer active" message
 /* Staging test-deploy: the SAME built file serves live (/quizprep/) and staging (/quizprep/staging/),
    detecting which by its own path. On staging it reads the live configs (../configs/) so it runs under
    real class conditions, and renderStagingChrome() wraps it in a distinct banner + "what changed since
@@ -599,7 +602,7 @@ async function loadConfig(){
     try{ const r=await withTimeout(fetch(CFG_BASE+'demo.config.json'),6000);
       if(r&&r.ok){ const pkg=await r.json(); applyPkgBanks(pkg); } }catch(e){}
   }
-  if(CONFIG){ CONFIG.section=resolveSection(sec, CONFIG.sections); if(CONFIG.display_name){ try{ document.title=CONFIG.display_name+' · QuizPrep'; }catch(e){} } }
+  if(CONFIG){ CONFIG.section=resolveSection(sec, CONFIG.sections); CLASS_INACTIVE=(CONFIG.active===false); if(CONFIG.display_name){ try{ document.title=CONFIG.display_name+' · QuizPrep'; }catch(e){} } }
 }
 /* ===== Anonymous device code (§11). When a config sets anonymize, the export identifies the
    student by a random UUIDv4 minted + kept on this device — never the name or a student ID (the
@@ -1237,6 +1240,12 @@ function downloadJSON(obj,name){
 /* ================= Home / report ================= */
 function renderHome(){
   const setup=document.querySelector('#viewHome .setuprow');
+  if(CLASS_INACTIVE){   // config deactivated by the maintainer (active:false)
+    if(setup) setup.style.display='none'; $('btnStart').style.display='none';
+    const nm=(CONFIG&&CONFIG.display_name)?esc(CONFIG.display_name)+' is ':'This class is ';
+    $('chapterList').innerHTML=`<div style="grid-column:1/-1;padding:1rem;border:2px solid var(--brand);border-radius:8px;background:var(--card);font-weight:600;line-height:1.5">${nm}<b>no longer active</b>. Please check with your instructor.</div>`;
+    return;
+  }
   if(!CHAPTERS.length){   // config-only shell: no bank loaded (bad/expired link, offline, or the config fetch failed)
     if(setup) setup.style.display='none'; $('btnStart').style.display='none';
     const msg=DEMO_MODE
