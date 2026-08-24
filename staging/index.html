@@ -567,6 +567,14 @@ function applyPkgBanks(pkg){   // load whatever banks a config package carries (
   else if(pkg.banks&&typeof pkg.banks==='object') mergeBanks(pkg.banks);                        // several banks (one textbook)
   else if(pkg.bank&&pkg.bank.bank_meta) mergeBanks({[String(pkg.bank.bank_meta.chapter)]:pkg.bank});   // legacy single bank → one-entry map (rebuilds units in the empty shell)
 }
+/* The URL &sec= is matched to the config's declared sections CASE-INSENSITIVELY, and the config's own
+   casing is used for display + the export stamp — so ?sec=8a and ?sec=8A both resolve to a class that
+   declares "8A". A section not among the declared list is kept verbatim (no gate). */
+function resolveSection(sec, declared){
+  if(sec==null||sec==='') return null;
+  const hit=(Array.isArray(declared)?declared:[]).find(s=>String(s).toLowerCase()===String(sec).toLowerCase());
+  return hit!=null?String(hit):String(sec);
+}
 async function loadConfig(){
   let p; try{ p=new URLSearchParams(location.search); }catch(e){ p=new URLSearchParams(); }
   let raw=p.get('cfg');
@@ -585,7 +593,7 @@ async function loadConfig(){
     try{ const r=await withTimeout(fetch(CFG_BASE+'demo.config.json'),6000);
       if(r&&r.ok){ const pkg=await r.json(); applyPkgBanks(pkg); } }catch(e){}
   }
-  if(CONFIG){ CONFIG.section=sec; if(CONFIG.display_name){ try{ document.title=CONFIG.display_name+' · QuizPrep'; }catch(e){} } }
+  if(CONFIG){ CONFIG.section=resolveSection(sec, CONFIG.sections); if(CONFIG.display_name){ try{ document.title=CONFIG.display_name+' · QuizPrep'; }catch(e){} } }
 }
 /* ===== Anonymous device code (§11). When a config sets anonymize, the export identifies the
    student by a random UUIDv4 minted + kept on this device — never the name or a student ID (the
@@ -1325,23 +1333,29 @@ function selectChapter(ch){                                 // pick the active c
    A deck (manifest unit of kind "flashcards") holds term/definition cards. Progress — known/starred/
    direction/position — persists on-device in DATA.decks[unitId], SEPARATE from the ladder: flashcards
    never touch mastery, sessions, or the Canvas export. */
-let DECK=null, DECKID=null, DBASE=[], DORDER=[], DPOS=0, DFLIP=false, DDIR='term', DFILTER='all';
-function deckState(id){ if(!DATA.decks[id]) DATA.decks[id]={known:{},starred:{},dir:'term',pos:0};
-  const s=DATA.decks[id]; s.known=s.known||{}; s.starred=s.starred||{}; return s; }
+let DECK=null, DECKID=null, DBASE=[], DORDER=[], DPOS=0, DFLIP=false, DDIR='term', DFILTER='all', DSHUF=false;
+function deckState(id){ if(!DATA.decks[id]) DATA.decks[id]={known:{term:{},def:{}},starred:{},dir:'term',pos:0};
+  const s=DATA.decks[id];
+  // "known" is tracked SEPARATELY per direction ({term:{},def:{}}) — knowing the definition from the term
+  // is not the same as knowing the term from the definition. Migrate an old flat {cardId:true} map into `term`.
+  if(!s.known||typeof s.known!=='object') s.known={term:{},def:{}};
+  else if(typeof s.known.term!=='object' && typeof s.known.def!=='object') s.known={term:s.known,def:{}};
+  else { s.known.term=s.known.term||{}; s.known.def=s.known.def||{}; }
+  s.starred=s.starred||{}; return s; }
 function saveDeck(){ store.set(SKEY,DATA); }
 function toggleMap(st,key,id){ st[key]=st[key]||{}; if(st[key][id])delete st[key][id]; else st[key][id]=true; }
-function buildDeckOrder(){ const st=deckState(DECKID);
+function buildDeckOrder(){ const st=deckState(DECKID), km=st.known[DDIR]||{};   // "known" is per current direction
   DORDER=DBASE.filter(i=>{ const c=DECK.cards[i];
     if(DFILTER==='starred') return !!st.starred[c.id];
-    if(DFILTER==='unknown') return !st.known[c.id];
+    if(DFILTER==='unknown') return !km[c.id];
     return true; }); }
-function deckCounts(){ const st=deckState(DECKID); let k=0,s=0;
-  DECK.cards.forEach(c=>{ if(st.known[c.id])k++; if(st.starred[c.id])s++; }); return {k,s}; }
+function deckCounts(){ const st=deckState(DECKID), km=st.known[DDIR]||{}; let k=0,s=0;   // known count reflects the current direction
+  DECK.cards.forEach(c=>{ if(km[c.id])k++; if(st.starred[c.id])s++; }); return {k,s}; }
 function openDeck(id){
   DECK=DECKS[id]; DECKID=id; if(!DECK||!Array.isArray(DECK.cards)||!DECK.cards.length) return;
   const st=deckState(id);
   if(!st.dir) st.dir=((DECK.deck_meta&&DECK.deck_meta.default_side)==='definition')?'def':'term';
-  DDIR=st.dir; DFILTER='all'; DBASE=DECK.cards.map((_,i)=>i); buildDeckOrder();
+  DDIR=st.dir; DFILTER='all'; DSHUF=false; DBASE=DECK.cards.map((_,i)=>i); buildDeckOrder();
   DPOS=Math.min(st.pos||0,Math.max(0,DORDER.length-1)); DFLIP=false;
   const meta=UNITMETA[id]||{};
   $('deckTitle').textContent=meta.title||(DECK.deck_meta&&DECK.deck_meta.chapter_title)||'Flashcards';
@@ -1360,10 +1374,15 @@ function renderCard(){
     <button class="flashtog${DFILTER==='starred'?' on':''}" data-f="starred">Starred (${cts.s})</button>
     <span style="margin-left:.6rem">Front:</span>
     <button class="flashtog${DDIR==='term'?' on':''}" data-dir="term">Term</button>
-    <button class="flashtog${DDIR==='def'?' on':''}" data-dir="def">Definition</button></div>`;
+    <button class="flashtog${DDIR==='def'?' on':''}" data-dir="def">Definition</button>
+    <button class="flashtog${DSHUF?' on':''}" id="dShuf" style="margin-left:.6rem" title="Toggle shuffled vs original order">🔀 ${DSHUF?'Shuffled':'Unshuffled'}</button></div>`;
+  const toggleShuffle=()=>{ DSHUF=!DSHUF;
+    DBASE=DSHUF?shuffle(DECK.cards.map((_,i)=>i)):DECK.cards.map((_,i)=>i);   // shuffled ↔ original order
+    buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); };
   const wireFD=()=>{
     area.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ DFILTER=b.dataset.f; buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); });
-    area.querySelectorAll('[data-dir]').forEach(b=>b.onclick=()=>{ DDIR=b.dataset.dir; deckState(DECKID).dir=DDIR; DFLIP=false; saveDeck(); renderCard(); }); };
+    area.querySelectorAll('[data-dir]').forEach(b=>b.onclick=()=>{ DDIR=b.dataset.dir; deckState(DECKID).dir=DDIR; buildDeckOrder(); DFLIP=false; saveDeck(); renderCard(); });   // rebuild: the "known"/filter set is per-direction
+    const sb=area.querySelector('#dShuf'); if(sb) sb.onclick=toggleShuffle; };
   if(!DORDER.length){
     area.innerHTML=`<div class="flashdone">No cards in this view.<br><button class="btn quiet sm" id="deckAll" style="margin-top:.6rem">Show all cards</button></div>${filterRow}`;
     area.querySelector('#deckAll').onclick=()=>{ DFILTER='all'; buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); }; wireFD(); return;
@@ -1373,7 +1392,7 @@ function renderCard(){
   const showingDef=DFLIP?(DDIR==='term'):(DDIR==='def');   // is the currently-shown side a (long) definition?
   const showText=DFLIP?(DDIR==='term'?card.back:card.front):(DDIR==='term'?card.front:card.back);
   const sideLabel=showingDef?'Definition':'Term';
-  const isKnown=!!st.known[card.id], isStar=!!st.starred[card.id];
+  const isKnown=!!(st.known[DDIR]||{})[card.id], isStar=!!st.starred[card.id];   // known in the CURRENT direction
   area.innerHTML=`
     <div class="flashcard${isKnown?' known':''}${isStar?' starred':''}" id="theCard">
       <span class="fside">${sideLabel}</span>
@@ -1385,16 +1404,14 @@ function renderCard(){
       <button class="btn secondary sm" id="dFlip">Flip</button>
       <button class="btn quiet sm" id="dNext">Next →</button>
       <button class="btn quiet sm" id="dKnown">${isKnown?'✓ Known':'Mark known'}</button>
-      <button class="btn quiet sm" id="dStar">${isStar?'★ Starred':'☆ Star'}</button>
-      <button class="btn quiet sm" id="dShuf">Shuffle</button></div>
+      <button class="btn quiet sm" id="dStar">${isStar?'★ Starred':'☆ Star'}</button></div>
     ${filterRow}`;
   area.querySelector('#theCard').onclick=()=>{ DFLIP=!DFLIP; renderCard(); };
   area.querySelector('#dFlip').onclick=()=>{ DFLIP=!DFLIP; renderCard(); };
   area.querySelector('#dPrev').onclick=()=>deckMove(-1);
   area.querySelector('#dNext').onclick=()=>deckMove(1);
-  area.querySelector('#dKnown').onclick=()=>{ toggleMap(st,'known',card.id); if(DFILTER==='unknown')buildDeckOrder(); saveDeck(); renderCard(); };
+  area.querySelector('#dKnown').onclick=()=>{ toggleMap(st.known,DDIR,card.id); if(DFILTER==='unknown')buildDeckOrder(); saveDeck(); renderCard(); };   // per-direction
   area.querySelector('#dStar').onclick=()=>{ toggleMap(st,'starred',card.id); if(DFILTER==='starred')buildDeckOrder(); saveDeck(); renderCard(); };
-  area.querySelector('#dShuf').onclick=()=>{ DBASE=shuffle(DBASE); buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); };
   wireFD();
 }
 function renderReport(){
@@ -1561,7 +1578,7 @@ document.addEventListener('keydown',e=>{   // flashcard keyboard: space/enter fl
   if(e.key===' '||e.key==='Enter'){ e.preventDefault(); DFLIP=!DFLIP; renderCard(); }
   else if(e.key==='ArrowRight') deckMove(1);
   else if(e.key==='ArrowLeft') deckMove(-1);
-  else if(e.key==='k'||e.key==='K'){ const st=deckState(DECKID),c=DECK.cards[DORDER[DPOS]]; if(c){ toggleMap(st,'known',c.id); if(DFILTER==='unknown')buildDeckOrder(); saveDeck(); renderCard(); } }
+  else if(e.key==='k'||e.key==='K'){ const st=deckState(DECKID),c=DECK.cards[DORDER[DPOS]]; if(c){ toggleMap(st.known,DDIR,c.id); if(DFILTER==='unknown')buildDeckOrder(); saveDeck(); renderCard(); } }
   else if(e.key==='s'||e.key==='S'){ const st=deckState(DECKID),c=DECK.cards[DORDER[DPOS]]; if(c){ toggleMap(st,'starred',c.id); if(DFILTER==='starred')buildDeckOrder(); saveDeck(); renderCard(); } }
 });
 $('btnExportSession').onclick=()=>{downloadJSON(S.bundle,`quizprep-ch${CH}-${S.id}.json`);toast('Session export downloaded — upload it to the Canvas assignment');};
