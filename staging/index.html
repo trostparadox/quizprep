@@ -1372,16 +1372,14 @@ function renderCard(){
     <button class="flashtog${DFILTER==='all'?' on':''}" data-f="all">All (${DECK.cards.length})</button>
     <button class="flashtog${DFILTER==='unknown'?' on':''}" data-f="unknown">Not yet known (${DECK.cards.length-cts.k})</button>
     <button class="flashtog${DFILTER==='starred'?' on':''}" data-f="starred">Starred (${cts.s})</button>
-    <span style="margin-left:.6rem">Front:</span>
-    <button class="flashtog${DDIR==='term'?' on':''}" data-dir="term">Term</button>
-    <button class="flashtog${DDIR==='def'?' on':''}" data-dir="def">Definition</button>
-    <button class="flashtog${DSHUF?' on':''}" id="dShuf" style="margin-left:.6rem" title="Toggle shuffled vs original order">🔀 ${DSHUF?'Shuffled':'Unshuffled'}</button></div>`;
+    <button class="flashtog on" id="dDir" style="margin-left:.6rem" title="Flip which side shows first">⇄ ${DDIR==='term'?'Term 1st':'Definition 1st'}</button>
+    <button class="flashtog${DSHUF?' on':''}" id="dShuf" title="Toggle shuffled vs original order">🔀 ${DSHUF?'Shuffled':'Unshuffled'}</button></div>`;
   const toggleShuffle=()=>{ DSHUF=!DSHUF;
     DBASE=DSHUF?shuffle(DECK.cards.map((_,i)=>i)):DECK.cards.map((_,i)=>i);   // shuffled ↔ original order
     buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); };
   const wireFD=()=>{
     area.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{ DFILTER=b.dataset.f; buildDeckOrder(); DPOS=0; DFLIP=false; renderCard(); });
-    area.querySelectorAll('[data-dir]').forEach(b=>b.onclick=()=>{ DDIR=b.dataset.dir; deckState(DECKID).dir=DDIR; buildDeckOrder(); DFLIP=false; saveDeck(); renderCard(); });   // rebuild: the "known"/filter set is per-direction
+    const dd=area.querySelector('#dDir'); if(dd) dd.onclick=()=>{ DDIR=(DDIR==='term'?'def':'term'); deckState(DECKID).dir=DDIR; buildDeckOrder(); DFLIP=false; saveDeck(); renderCard(); };   // one capsule flips the front side; rebuild: the "known"/filter set is per-direction
     const sb=area.querySelector('#dShuf'); if(sb) sb.onclick=toggleShuffle; };
   if(!DORDER.length){
     area.innerHTML=`<div class="flashdone">No cards in this view.<br><button class="btn quiet sm" id="deckAll" style="margin-top:.6rem">Show all cards</button></div>${filterRow}`;
@@ -1403,7 +1401,7 @@ function renderCard(){
       <button class="btn quiet sm" id="dPrev">← Prev</button>
       <button class="btn secondary sm" id="dFlip">Flip</button>
       <button class="btn quiet sm" id="dNext">Next →</button>
-      <button class="btn quiet sm" id="dKnown">${isKnown?'✓ Known':'Mark known'}</button>
+      <button class="btn quiet sm" id="dKnown">${isKnown?'✓ Known':'Mark known'} (${DDIR==='term'?'Term 1st':'Definition 1st'})</button>
       <button class="btn quiet sm" id="dStar">${isStar?'★ Starred':'☆ Star'}</button></div>
     ${filterRow}`;
   area.querySelector('#theCard').onclick=()=>{ DFLIP=!DFLIP; renderCard(); };
