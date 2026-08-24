@@ -329,7 +329,7 @@ table.hist tr.exrow td{opacity:.5}table.hist tr.exrow td:has(.cntchk){opacity:1}
         <div class="eyebrow">Flashcards · study only</div>
         <h1 id="deckTitle" style="margin:.2rem 0 0">Flashcards</h1>
       </div>
-      <button class="btn quiet sm" id="deckHome">← Home</button>
+      <button class="btn quiet sm" id="deckHome">End session</button>
     </div>
     <p class="flashnote">Self-study — these are <b>not graded</b> and don't affect your mastery. Tap the card to flip; use <b>←</b>/<b>→</b> to move and <b>space</b> to flip. <span id="deckAttrib"></span></p>
     <div id="deckArea"></div>
@@ -1334,6 +1334,7 @@ function selectChapter(ch){                                 // pick the active c
    direction/position — persists on-device in DATA.decks[unitId], SEPARATE from the ladder: flashcards
    never touch mastery, sessions, or the Canvas export. */
 let DECK=null, DECKID=null, DBASE=[], DORDER=[], DPOS=0, DFLIP=false, DDIR='term', DFILTER='all', DSHUF=false;
+const DECK_ACTIVE_KEY='quizprep-active-deck-v1';   // remembers the open deck so a refresh resumes it (like an in-progress quiz)
 function deckState(id){ if(!DATA.decks[id]) DATA.decks[id]={known:{term:{},def:{}},starred:{},dir:'term',pos:0};
   const s=DATA.decks[id];
   // "known" is tracked SEPARATELY per direction ({term:{},def:{}}) — knowing the definition from the term
@@ -1360,6 +1361,7 @@ function openDeck(id){
   const meta=UNITMETA[id]||{};
   $('deckTitle').textContent=meta.title||(DECK.deck_meta&&DECK.deck_meta.chapter_title)||'Flashcards';
   $('deckAttrib').textContent=(DECK.deck_meta&&DECK.deck_meta.attribution)||'';
+  store.set(DECK_ACTIVE_KEY,id);   // resume this deck on refresh
   show('viewCards'); renderCard();
 }
 function deckMove(d){ if(!DORDER.length)return; DPOS=(DPOS+d+DORDER.length)%DORDER.length; DFLIP=false;
@@ -1571,7 +1573,7 @@ $('btnFresh').onclick=async()=>{   // Restart ladder = untick every session for 
     toast(`${label} ladder reset — ${sess.length} session${sess.length>1?'s':''} unchecked`); }};
 $('btnReset').onclick=async()=>{ if(confirm('Erase all local QuizPrep data on this device? Export a backup first if you want to keep it.')){
   DATA={name:'',sessions:[],carryReview:{},ladder:{},decks:{}};await store.del(SKEY);renderHome();$('reportWrap').classList.add('hidden');$('studyWrap').classList.add('hidden');toast('Data cleared');}};
-$('deckHome').onclick=()=>{ show('viewHome'); renderHome(); };
+$('deckHome').onclick=()=>{ store.del(DECK_ACTIVE_KEY); show('viewHome'); renderHome(); };   // "End session" — leave the deck (progress already saved)
 document.addEventListener('keydown',e=>{   // flashcard keyboard: space/enter flip, arrows move, k=known, s=star (only while the card viewer is open)
   if($('viewCards').classList.contains('hidden'))return;
   if(/^(INPUT|TEXTAREA|SELECT)$/.test((e.target&&e.target.tagName)||''))return;
@@ -1769,6 +1771,8 @@ async function renderStagingChrome(){
   if(act&&BANKS[String(act.chapter)]&&act.bank===BANKS[String(act.chapter)].bank_meta.bank_version&&act.s&&act.s.current&&!act.s.ended){
     try{ const ac=String(act.chapter); if(ac!==CH){ CH=ac; setBank(BANKS[CH]); } resumeSession(act.s); }catch(e){ clearActive(); }
   }
+  const ad=await store.get(DECK_ACTIVE_KEY);   // resume an open flashcard deck across a refresh
+  if(ad&&DECKS[String(ad)]){ try{ openDeck(String(ad)); }catch(e){ store.del(DECK_ACTIVE_KEY); } }
   maybeWhatsNew();
   checkUpdate(); setInterval(checkUpdate,300000);
   renderStagingChrome();   // staging-only: distinct banner + what-changed + preview toggle (no-op on the live root)
