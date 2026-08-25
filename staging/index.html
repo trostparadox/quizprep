@@ -1546,8 +1546,8 @@ function renderStudyGuide(mode){
   const w=$('studyWrap'); w.classList.remove('hidden'); $('reportWrap').classList.add('hidden');
   const items=collectStudy();
   const toggle=`<div class="btnrow" style="margin:.2rem 0 .7rem">
-    <button class="btn quiet sm${studyMode==='section'?' brand':''}" data-study-mode="section">By chapter &amp; section</button>
-    <button class="btn quiet sm${studyMode==='lo'?' brand':''}" data-study-mode="lo">By objective</button></div>`;
+    <button class="btn sm ${studyMode==='section'?'brand':'quiet'}" data-study-mode="section">By chapter &amp; section</button>
+    <button class="btn sm ${studyMode==='lo'?'brand':'quiet'}" data-study-mode="lo">By objective</button></div>`;
   let body;
   if(!items.length){ body=`<p class="muted">No study items yet — miss a question or two and a targeted guide shows up here. (Guides are recorded from this version of the app on.)</p>`; }
   else{
