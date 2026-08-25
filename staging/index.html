@@ -516,7 +516,19 @@ let CLASS_INACTIVE=false;   // true when the loaded config has active:false (dea
    real class conditions, and renderStagingChrome() wraps it in a distinct banner + "what changed since
    live" + a preview-as-live toggle. Inert at the live root. */
 const STAGING=(function(){ try{ return /\/staging\//.test(location.pathname||''); }catch(e){ return false; } })();
-const CFG_BASE=STAGING?'../configs/':'configs/';
+/* Absolute path to configs/, derived from the repo root — robust to a filename, a trailing "staging/"
+   (staging serves one level down but reads the repo-root configs), and stray double slashes in the link.
+   A "//" in the URL adds an empty path segment that would absorb a relative "../", so a relative base
+   (e.g. "../configs/") resolves to the wrong place; an absolute base can't be broken that way. */
+const CFG_BASE=(function(){
+  try{ let p=(location.pathname||'/')
+      .replace(/[^/]*\.html?$/i,'')     // drop a trailing .html filename (leave directory paths alone)
+      .replace(/(^|\/)staging\/+$/,'/') // strip a trailing staging/ (also tolerates staging//) → repo root
+      .replace(/\/{2,}/g,'/');          // collapse duplicate slashes
+    if(!p.endsWith('/'))p+='/';
+    return p+'configs/';
+  }catch(e){ return STAGING?'../configs/':'configs/'; }
+})();
 const STAGE_PREVIEW_KEY='quizprep-staging-preview-v1';
 function setBank(b){ BANK=b; BANKS[CH]=b; EXCERPTS=(BANK.bank_meta&&BANK.bank_meta.excerpts)||{};
   LOS=Object.keys(BANK.bank_meta.learning_objectives); expandSets();
