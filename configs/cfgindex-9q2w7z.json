@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-23T05:02:28Z",
+  "generated": "2026-09-23T14:07:15Z",
   "configs": [
     {
       "cfg_id": "demo",
@@ -10,8 +10,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 11,
-      "n_banks": 11,
+      "units": 13,
+      "n_banks": 13,
       "n_decks": 0,
       "chapters": [
         1,
@@ -38,7 +38,9 @@
         "Value, Money, and Price",
         "Economic Calculation",
         "Monetary Intervention",
-        "Regulatory Intervention"
+        "Regulatory Intervention",
+        "The Role of Visions",
+        "Constrained and Unconstrained Visions"
       ]
     },
     {
@@ -129,8 +131,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 11,
-      "n_banks": 11,
+      "units": 13,
+      "n_banks": 13,
       "n_decks": 0,
       "chapters": [
         1,
@@ -144,7 +146,7 @@
         9
       ],
       "release_scheduled": true,
-      "release_rows": 11,
+      "release_rows": 13,
       "exclusions": 0,
       "unit_titles": [
         "Introduction to Entrepreneurship",
@@ -157,7 +159,9 @@
         "Value, Money, and Price",
         "Economic Calculation",
         "Monetary Intervention",
-        "Regulatory Intervention"
+        "Regulatory Intervention",
+        "The Role of Visions",
+        "Constrained and Unconstrained Visions"
       ]
     }
   ]
