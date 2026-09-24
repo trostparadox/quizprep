@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-24T18:07:32Z",
+  "generated": "2026-09-24T18:46:29Z",
   "configs": [
     {
       "cfg_id": "demo",
@@ -10,8 +10,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 15,
-      "n_banks": 15,
+      "units": 17,
+      "n_banks": 17,
       "n_decks": 0,
       "chapters": [
         1,
@@ -42,6 +42,8 @@
         "The Role of Visions",
         "Constrained and Unconstrained Visions",
         "Visions of Knowledge and Reason",
+        "The Cabbie's Tale",
+        "Singapore Past and Present",
         "Singapore's Healthcare Supremacy"
       ]
     },
@@ -133,8 +135,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 15,
-      "n_banks": 15,
+      "units": 17,
+      "n_banks": 17,
       "n_decks": 0,
       "chapters": [
         1,
@@ -148,7 +150,7 @@
         9
       ],
       "release_scheduled": true,
-      "release_rows": 15,
+      "release_rows": 17,
       "exclusions": 0,
       "unit_titles": [
         "Introduction to Entrepreneurship",
@@ -165,6 +167,8 @@
         "The Role of Visions",
         "Constrained and Unconstrained Visions",
         "Visions of Knowledge and Reason",
+        "The Cabbie's Tale",
+        "Singapore Past and Present",
         "Singapore's Healthcare Supremacy"
       ]
     }
