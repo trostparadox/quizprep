@@ -179,6 +179,14 @@ h2{font-size:1.25rem;font-weight:600}
 .panel.remed .excerpt{border-left:3px solid var(--brand);padding:.4rem 0 .4rem .8rem;margin:.6rem 0;color:var(--ink-soft);font-style:italic}
 .rats{margin-top:.7rem;display:none}
 .rats.show{display:block}
+/* Tag-for-discussion (§12). Quiet by design: it must not compete with the feedback panel above it
+   or read as part of the grading. Generous hit area — this is tapped on a phone mid-session. */
+.discuss{margin-top:.8rem;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem .75rem}
+.discuss label{display:flex;align-items:center;gap:.5rem;cursor:pointer;padding:.45rem .6rem;
+  border:1px solid var(--line);border-radius:8px;background:var(--card);font-size:.9rem;color:var(--ink-soft)}
+.discuss label:hover{border-color:var(--brand)}
+.discuss input{width:1.05rem;height:1.05rem;accent-color:var(--brand);cursor:pointer;flex:none}
+.discuss .dscNote{font-size:.85rem;color:var(--brand);font-weight:600}
 .rats li{margin:.35rem 0 .35rem 1.2rem;font-size:.9rem;color:var(--ink-soft)}
 
 /* Digest & report */
@@ -403,8 +411,10 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.22';
+const APP_VERSION='0.23';
 const CHANGELOG=[
+  {v:'0.23', date:'Sep 24, 2026', notes:[
+    'If your instructor turns it on, you can now flag a question for class discussion. After you see whether you got it right, tick “Flag this question for class discussion” — it doesn’t affect your score or your mastery, it just tells your instructor which questions the class wants to go over. Your flags go along with the file you upload.']},
   {v:'0.22', date:'Sep 23, 2026', notes:[
     'When your instructor adds a chapter or opens a new one, you now see it on your next visit instead of having to force-refresh — QuizPrep re-checks your class for changes each time it starts.',
     'QuizPrep now has its own icon in your browser tab, so it’s easier to spot when you have a lot of tabs open.']},
@@ -520,6 +530,41 @@ expandSets();
    unchanged. setBank() lets model 1 swap in its bank before the home renders. */
 let CONFIG=null;
 let DEMO_MODE=false;   // true on a no-?cfg visit (the public demo class) → renderHome shows a prominent 'get your class link' banner
+
+/* ===== Tag for discussion (spec §12). After a student sees whether they were right, they may tick
+   "Discuss this in class"; the tags ride back to the instructor in the export's PLAINTEXT digest.
+
+   SCOPE RESOLUTION — most specific wins, and only the last two are settable today:
+     1. cfg.discuss.by_unit[<unit id>]   chapter/unit-wide   (planned; read now, no console UI yet)
+     2. cfg.discuss.by_book[<textbook>]  book-wide           (planned; read now, no console UI yet)
+     3. cfg.discuss.default              class-wide          ← the instructor switch
+     4. false                            off everywhere else
+   The resolver reads all four levels NOW so a config written later needs no app change to take
+   effect — only the console gains the UI to write it. A level that is absent falls through; a
+   level set to false is an explicit off and STOPS the fall-through, which is what lets an
+   instructor turn the whole class on and still silence one chapter.
+
+   `cfg.discuss` may also be a bare boolean, read as {default: <bool>}, so the simplest possible
+   hand-written config works.
+
+   KEY CHOICE, and its known weakness: by_unit is keyed by unit id, matching release_schedule and
+   exclusions. by_book is keyed by the SAME textbook label the home screen groups by
+   (textbookLabel(bank_meta.source) — e.g. "Sowell (revised ed.)"), because that string is the only
+   book identity the app actually has. It is a display string, so an edition or author-punctuation
+   change renames the key. Acceptable while nothing writes it; revisit before the console ships a
+   book-wide toggle, ideally by giving banks a real textbook id. */
+function discussCfg(){ const d=CONFIG&&CONFIG.discuss;
+  if(d===true||d===false)return {default:d};
+  return (d&&typeof d==='object')?d:{}; }
+function discussEnabled(unitId){
+  const d=discussCfg(); const id=(unitId!=null?unitId:CH);
+  const byUnit=d.by_unit&&d.by_unit[id];
+  if(typeof byUnit==='boolean')return byUnit;
+  const book=(UNITMETA[id]||{}).textbook;
+  const byBook=book&&d.by_book&&d.by_book[book];
+  if(typeof byBook==='boolean')return byBook;
+  return d.default===true;
+}
 let CLASS_INACTIVE=false;   // true when the loaded config has active:false (deactivated by the maintainer) → show a "class no longer active" message
 /* Staging test-deploy: the SAME built file serves live (/quizprep/) and staging (/quizprep/staging/),
    detecting which by its own path. On staging it reads the live configs (../configs/) so it runs under
@@ -1045,6 +1090,7 @@ function resolveWrongFinal(revealed){
       ${ex?`<div class="excerpt">${esc(ex)}</div>`:''}
       <div>This is the section your missed question came from — a follow-up check is next.</div>
     </div>`;
+  discussRow(S.current.rec);   // a missed question is the one most worth flagging, so offer it here too
   // follow-up: fresh T1 same LO
   const fu=pickFollowUp(S.current.lo,it.q_id);
   $('actionRow').innerHTML=`<button class="btn quiet sm" id="btnRats">Explain all options</button>
@@ -1093,6 +1139,7 @@ function finishFollowUp(item){
     else { S.current.rec.outcome='followup_wrong'; st.needsReview=true;
       $('fbArea').innerHTML=`<div class="panel bad"><span class="plabel">Flagged for review</span>Read <b>${esc(S.current.item.source_anchor)}</b> before your quiz — it's on your end-of-session reading list.</div>`; }
     recordItem();
+    discussRow(S.current.rec);
     $('actionRow').innerHTML=`<button class="btn brand" id="btnNext">Next question</button>`;
     $('btnNext').onclick=advance;
   };
@@ -1117,8 +1164,28 @@ function markOptions(showWrong){
       else if(+b.dataset.jpos===SEL.jpos)b.classList.add('wrong');});
   }
 }
+/* Offered at each of the three points where a question is FINALLY resolved — correct,
+   wrong-after-probe/revealed, and the follow-up check — so every question the student actually saw
+   can be flagged exactly once, and never before they know whether they were right.
+   `rec` is passed in rather than read from S.current at click time: advance() swaps S.current, and
+   the tick must keep pointing at the question it was ticked on. It is the SAME object recordItem()
+   pushes into S.items (push stores a reference), so mutating it after the push still lands. */
+function discussRow(rec){
+  if(!discussEnabled()||!rec)return;
+  const wrap=document.createElement('div');
+  wrap.className='discuss';
+  wrap.innerHTML=`<label><input type="checkbox" class="dscBox"${rec.discuss?' checked':''}>
+    <span>Flag this question for class discussion</span></label>
+    <span class="dscNote">${rec.discuss?'Flagged — your instructor will see this.':''}</span>`;
+  $('fbArea').appendChild(wrap);
+  const box=wrap.querySelector('.dscBox'), note=wrap.querySelector('.dscNote');
+  box.onchange=()=>{ rec.discuss=box.checked;
+    note.textContent=box.checked?'Flagged — your instructor will see this.':'';
+    saveActive(); };   // survive a mid-session refresh, like every other bit of session state
+}
 function finishItemControls(){
   recordItem();
+  discussRow(S.current&&S.current.rec);
   $('actionRow').innerHTML=`<button class="btn quiet sm" id="btnRats">Explain all options</button>
     <button class="btn brand" id="btnNext">Next question</button>`;
   $('btnRats').onclick=()=>$('ratList').classList.toggle('show');
@@ -1195,6 +1262,21 @@ async function endSession(){
   const anchors=lo=>[...new Set(S.items.filter(r=>r.lo===lo&&['wrong_after_probe','revealed','followup_wrong'].includes(r.outcome))
       .map(r=>{const it=BANK.items.find(b=>b.q_id===r.q_id);return it?it.source_anchor:null;}).filter(Boolean))];
   const digest={needs_review:review.map(lo=>({lo,sections:anchors(lo)}))};
+  /* Tag-for-discussion (§12) rides in the PLAINTEXT digest, NOT the encrypted item detail.
+     The instructor has to aggregate these across a whole class, and most configs carry no public
+     key at all — anonymization superseded the RSA envelope — so anything sealed would be
+     unreadable in practice, which would make the feature pointless. It is also no new disclosure:
+     lo_state and digest.needs_review already say in the clear which objectives the student
+     struggled with. The stem is carried (truncated) so the export is self-describing even when the
+     console has a different bank loaded; stems are already public in delivered configs — only
+     answers are encrypted — so this leaks nothing the config does not. */
+  const MISSED_OUTCOMES=new Set(['wrong_after_probe','revealed','followup_wrong']);
+  const discuss=S.items.filter(r=>r.discuss).map(r=>{
+    const it=BANK.items.find(b=>b.q_id===r.q_id);   // may be null for a materialized pool item
+    const stem=(it&&it.stem)?String(it.stem):'';
+    return {q_id:r.q_id,lo:r.lo,tier:r.tier,missed:MISSED_OUTCOMES.has(r.outcome),
+      stem:stem.length>140?stem.slice(0,140)+'…':stem};});
+  if(discuss.length)digest.discuss=discuss;
   const firstCorrect=S.items.filter(r=>r.outcome==='correct_first'&&!r.follow_up).length;
   const answered=S.items.filter(r=>!r.follow_up&&r.outcome!=='skipped').length;
   const mastered=LOS.filter(lo=>S.los[lo].mastered);
@@ -1230,6 +1312,7 @@ async function endSession(){
   DATA.sessions.push({id:S.id,chapter:CH,ended:S.ended,answered,firstCorrect,
     mastered:mastered.length,review:review.slice(),
     trace:S.items.map(r=>{ const e={lo:r.lo,tier:r.tier,outcome:r.outcome,follow_up:!!r.follow_up};
+      if(r.discuss){ e.discuss=true; e.q_id=r.q_id; }   // keep the student's own flag in their local history too
       if(!r.follow_up&&STUDY_OUTCOMES.has(r.outcome)){ e.q_id=r.q_id; e.anchor=r.anchor||''; e.hints=r.hints||[];
         e.lo_text=(BANK.bank_meta.learning_objectives||{})[r.lo]||'';   // store the objective's full text so the study guide is self-contained (spells it out even when this class isn't loaded)
         e.picks=[r.student_answer_1,r.student_answer_2].filter(x=>typeof x==='number'); }   // study-guide payload for missed questions
@@ -1247,7 +1330,10 @@ async function endSession(){
      <div class="stat"><b>${firstCorrect}</b><span>right first try</span></div>
      <div class="stat"><b>${mastered.length}/${LOS.length}</b><span>objectives mastered so far</span></div>
      <div class="stat"><b>${atTop.length}</b><span>at top tier, closing in</span></div>
-     <div class="stat"><b>${review.length}</b><span>need review</span></div>`;
+     <div class="stat"><b>${review.length}</b><span>need review</span></div>`
+     /* Tell the student their flags were actually recorded — a tick that vanishes without trace
+        reads as a glitch, and honesty about their own state is the standing rule here. */
+     +(discuss.length?`<div class="stat"><b>${discuss.length}</b><span>flagged to discuss</span></div>`:'');
   let readHtml='';
   if(review.length){readHtml+=`<h2 style="margin-top:.5rem">Before your quiz, read:</h2><div class="readlist">`+
       digest.needs_review.map(r=>`<div class="ritem"><b>Learning Objective ${r.lo}</b> — ${esc(BANK.bank_meta.learning_objectives[r.lo])}
