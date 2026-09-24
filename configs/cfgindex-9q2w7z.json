@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-24T17:56:23Z",
+  "generated": "2026-09-24T18:07:32Z",
   "configs": [
     {
       "cfg_id": "demo",
@@ -10,8 +10,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 13,
-      "n_banks": 13,
+      "units": 15,
+      "n_banks": 15,
       "n_decks": 0,
       "chapters": [
         1,
@@ -40,7 +40,9 @@
         "Monetary Intervention",
         "Regulatory Intervention",
         "The Role of Visions",
-        "Constrained and Unconstrained Visions"
+        "Constrained and Unconstrained Visions",
+        "Visions of Knowledge and Reason",
+        "Singapore's Healthcare Supremacy"
       ]
     },
     {
@@ -131,8 +133,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 13,
-      "n_banks": 13,
+      "units": 15,
+      "n_banks": 15,
       "n_decks": 0,
       "chapters": [
         1,
@@ -146,7 +148,7 @@
         9
       ],
       "release_scheduled": true,
-      "release_rows": 13,
+      "release_rows": 15,
       "exclusions": 0,
       "unit_titles": [
         "Introduction to Entrepreneurship",
@@ -161,7 +163,9 @@
         "Monetary Intervention",
         "Regulatory Intervention",
         "The Role of Visions",
-        "Constrained and Unconstrained Visions"
+        "Constrained and Unconstrained Visions",
+        "Visions of Knowledge and Reason",
+        "Singapore's Healthcare Supremacy"
       ]
     }
   ]
