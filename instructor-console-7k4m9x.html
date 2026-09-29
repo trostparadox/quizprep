@@ -526,6 +526,9 @@ const IK = { bank:"quizprep-instructor-bank-v1", course:"quizprep-instructor-cou
 let HIDDEN_WARNS = new Set();
 let FLAGS = [];   // outgoing flags to the maintainer (batched, on-device, non-forking)
 let EXCLUDED = {};   // stay-canonical exclusions: { "<unit-id>": ["<q_id>", …] } — dropped from THIS class, bank stays canonical
+/* §12 tag-for-discussion: narrower scopes (by_book / by_unit) an imported config may carry that
+   this tool has no UI for. Held so a round-trip preserves them; null for a config built here. */
+let DISCUSS_EXTRA = null;
 let PREFS = { autoAccept:false, hardGate:false };   // per-instructor vetting prefs (persist across a Forget)
 let AUTO_LOG = [];   // this-session log of auto-accepted (re-vetted) questions
 function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
@@ -1444,7 +1447,10 @@ function parseBundle(d, filename){
   const student = String(s.student || "(unknown)").trim() || "(unknown)";
   return { student, canvas, label:(canvasLabel(canvas) || student), chapter:s.chapter, when:s.ended_at || "",
     started:s.started_at || "", ended:s.ended_at || "", bank_version:s.bank_version, lo_state:d.lo_state || {},
-    needs_review:((d.digest && d.digest.needs_review) || []).map(r => r.lo), enc, encrypted, recs:decodeItems(d) || [] };
+    needs_review:((d.digest && d.digest.needs_review) || []).map(r => r.lo),
+    // tag-for-discussion (§12) — plaintext, so it aggregates with or without a private key
+    discuss:((d.digest && d.digest.discuss) || []),
+    enc, encrypted, recs:decodeItems(d) || [] };
 }
 let PRIVKEY = null;   // loaded instructor private CryptoKey; decrypts item detail in-browser, never persisted
 async function loadPrivateKeyFile(){
@@ -1588,6 +1594,19 @@ function renderDashboard(){
   Object.values(byStudent).forEach(s => s.needs.forEach(lo => needCount[lo] = (needCount[lo]||0)+1));
   const needRows = Object.entries(needCount).sort((a,b)=>b[1]-a[1]).map(([lo,n]) => `<tr><td class="lo">${esc(lo)}</td><td>${n}</td></tr>`).join("");
 
+  /* Tag-for-discussion (§12): what students actually asked to talk about. Counted per DISTINCT
+     student, not per session — one student flagging the same question across three runs is one
+     request, not three. Reads d.digest.discuss, which is plaintext, so this works whether or not
+     the instructor has loaded a private key. */
+  const dscAgg = {};
+  DASH.bundles.forEach(b => { const who = idOf(b);
+    (b.discuss || []).forEach(t => {
+      if (!t || !t.q_id) return;
+      const a = dscAgg[t.q_id] || (dscAgg[t.q_id] = {q_id:t.q_id, lo:t.lo || "", tier:t.tier != null ? t.tier : "", stem:t.stem || "", students:new Set(), missed:new Set()});
+      a.students.add(who); if (t.missed) a.missed.add(who);
+      if (!a.stem && t.stem) a.stem = t.stem; }); });
+  const dscRows = Object.values(dscAgg).sort((a, b) => b.students.size - a.students.size || String(a.q_id).localeCompare(String(b.q_id)));
+
   $("dashBody").innerHTML =
     `<div class="panel"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Class mastery — roster</h2><button class="ghost" id="csvRoster">Export CSV</button></div>
       <div class="scroll"><table>${rosterHead}<tbody>${rosterRows}</tbody></table></div>
@@ -1596,6 +1615,10 @@ function renderDashboard(){
        <thead><tr><th style="text-align:left">LO</th><th>Mastered</th><th>Needs review</th><th>In progress</th><th>Untouched</th></tr></thead>
        <tbody>${los.map(lo=>`<tr><td class="lo">${esc(lo)}</td><td>${dist[lo].mastered}</td><td>${dist[lo].needs_review}</td><td>${dist[lo].in_progress}</td><td>${dist[lo].untouched}</td></tr>`).join("")}</tbody></table></div></div>
      ${needRows ? `<div class="panel"><h2>Most-flagged for review</h2><div class="scroll"><table class="zebra"><thead><tr><th style="text-align:left">LO</th><th>Students flagged</th></tr></thead><tbody>${needRows}</tbody></table></div></div>` : ""}
+     ${dscRows.length ? `<div class="panel"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Flagged for class discussion</h2><button class="ghost" id="csvDiscuss">Export CSV</button></div>
+       <p class="muted">Questions students ticked for discussion after seeing the answer — your class telling you what to go over. Counted per student, not per session. <b>Missed it</b> is how many of those students had the question wrong at the time they flagged it: a high share points at confusion, a low share at genuine interest or a disputed key.</p>
+       <div class="scroll"><table class="zebra"><thead><tr><th style="text-align:left">Item</th><th>LO</th><th>Tier</th><th>Students</th><th>Missed it</th></tr></thead>
+       <tbody>${dscRows.map(r => `<tr><td><b>${esc(r.q_id)}</b>${r.stem ? `<div class="muted" style="font-size:.85rem">${esc(r.stem)}</div>` : ""}</td><td class="lo">${esc(r.lo)}</td><td>${esc(String(r.tier))}</td><td>${r.students.size}</td><td>${r.missed.size}</td></tr>`).join("")}</tbody></table></div></div>` : ""}
      <div class="panel"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Item analysis</h2><div class="row"><label class="muted" style="font-size:.85rem"><input type="checkbox" id="mergeAll"${MERGE_ALL ? " checked" : ""}> Merge all versions</label><button class="ghost" id="csvItems">Export CSV</button></div></div>
        <p class="muted">Difficulty = first-try-correct rate (green ok · amber ≥95% too easy · red ≤35% too hard). Dead distractors = never-chosen wrong options (needs the bank loaded). Discrimination = point-biserial vs overall score (≥5 students; noisy for small classes). <b>Materially edited questions split into versions</b> by a content signature so different edits don't pool — use a row's “merge/split”, or “Merge all versions”.</p>
        <div class="scroll"><table class="zebra"><thead><tr><th style="text-align:left">Item</th><th>Tier</th><th>Attempts</th><th>Difficulty</th><th>Dead distractors</th><th>Discrim.</th></tr></thead>
@@ -1611,6 +1634,9 @@ function renderDashboard(){
   const csvR = $("csvRoster"); if (csvR) csvR.onclick = () => downloadCSV("roster.csv",
     [["student", ...los, "mastered_count", "sessions", "total_minutes"], ...students.map(stu => { const S = byStudent[stu]; const ls = S.latest.lo_state;
       return [stu, ...los.map(lo=>ls[lo]||"untouched"), los.filter(lo=>(ls[lo]||"")==="mastered").length, S.list.length, Math.round(studentTotalMs(S)/60000)]; })]);
+  const csvD = $("csvDiscuss"); if (csvD) csvD.onclick = () => downloadCSV("flagged_for_discussion.csv",
+    [["q_id", "lo", "tier", "students_flagged", "students_who_missed_it", "stem"],
+     ...dscRows.map(r => [r.q_id, r.lo, r.tier, r.students.size, r.missed.size, r.stem])]);
   const csvI = $("csvItems"); if (csvI) csvI.onclick = () => downloadCSV("item_analysis.csv",
     [["q_id","version_sig","lo","tier","attempts","difficulty_pct","dead_distractors","discrimination"], ...dispRows.map(row => {
       const it = row.agg; const p = it.attempts ? Math.round(it.first/it.attempts*100) : 0; const bi = bankItems[row.q.q_id]; let dead = "";
@@ -1675,6 +1701,7 @@ function renderConfig(){
     fld("Course", `<input type="text" id="cfgCourse" value="intro-entrepreneurship">`) +
     fld("Sections (comma-separated)", `<input type="text" id="cfgSecs" placeholder="001, 003">`) +
     `<div class="row"><label class="muted"><input type="checkbox" id="cfgAnon" checked> Anonymize student identity <b>(recommended — on by default)</b> — uploads carry a per-device code, not the name; you still get a named roster from Canvas. Turn this off only if you alone will ever handle the files (see the About tab).</label></div>` +
+    `<div class="row"><label class="muted"><input type="checkbox" id="cfgDiscuss"> Let students flag questions for class discussion <b>(off by default)</b> — after a student sees whether they were right, they can tick a box to ask you to go over that question. Flags come back with their Canvas upload and are summarised in the Dashboard. Class-wide for now; per-book and per-chapter control is planned.</label></div>` +
     `<div class="fld"><label style="font-weight:600"><input type="checkbox" id="cfgGate"> Schedule releases by date</label>
        <p class="muted" style="margin:.2rem 0 .5rem">Off: every unit in this course is available immediately. On: students see <b>only</b> the units below — each on/after its date; a unit with no date is available now. (Rows are the units you've loaded.)</p>
        <div id="cfgSched" class="hide"></div></div>` +
@@ -1756,6 +1783,12 @@ function applyEditCfg(){
   $("cfgCourse").value = c.course || "";
   $("cfgSecs").value = (c.sections || []).join(", ");
   $("cfgAnon").checked = !!c.anonymize;
+  /* Tag-for-discussion (§12). The console only ever sets the CLASS-WIDE level, but a config may
+     already carry by_book / by_unit maps written by hand or by a later console. Stash the whole
+     object so re-exporting preserves them — a round-trip through this tool must not silently
+     delete scopes it has no UI for. */
+  DISCUSS_EXTRA = (c.discuss && typeof c.discuss === "object") ? c.discuss : null;
+  $("cfgDiscuss").checked = (c.discuss === true) || !!(c.discuss && c.discuss.default === true);
   if (c.public_key) $("cfgKey").value = c.public_key;
   ["cfgId","cfgSecs"].forEach(id => { const el = $(id); if (el){ el.disabled = true; el.classList.add("locked"); } });   // URL parts (?cfg=&sec=) locked
   const rel = c.release_schedule;
@@ -1847,6 +1880,14 @@ function buildConfig(){
     course:($("cfgCourse").value||"").trim(), release_schedule:rel, sections:secs,
     anonymize:$("cfgAnon").checked, public_key:($("cfgKey").value||"").trim() || null };
   if (Object.keys(excl).length) cfg.exclusions = excl;   // omit when empty (the app treats absent as none)
+  /* §12: write the class-wide level, carrying through any narrower scopes this tool cannot edit.
+     Emitted only when it would say something — a bare {default:false} is the same as absent, and
+     omitting it keeps configs that never touch the feature clean. */
+  {
+    const on = $("cfgDiscuss").checked, extra = DISCUSS_EXTRA || {};
+    const others = Object.keys(extra).filter(k => k !== "default").length > 0;
+    if (on || others) cfg.discuss = Object.assign({}, extra, {default:on});
+  }
   return cfg;
 }
 function buildConfigPackage(){   // manifest when the course mixes textbooks, has multi-set chapters, OR carries flashcard decks; else single-textbook stock
