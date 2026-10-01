@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-24T18:46:29Z",
+  "generated": "2026-10-01T18:06:03Z",
   "configs": [
     {
       "cfg_id": "demo",
@@ -10,8 +10,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 17,
-      "n_banks": 17,
+      "units": 25,
+      "n_banks": 25,
       "n_decks": 0,
       "chapters": [
         1,
@@ -22,7 +22,9 @@
         6,
         7,
         8,
-        9
+        9,
+        10,
+        11
       ],
       "release_scheduled": false,
       "release_rows": 0,
@@ -44,7 +46,10 @@
         "Visions of Knowledge and Reason",
         "The Cabbie's Tale",
         "Singapore Past and Present",
-        "Singapore's Healthcare Supremacy"
+        "Singapore's Healthcare Supremacy",
+        "America's Healthcare Humiliation in an International Perspective",
+        "What We Could Do If We Copied Singapore",
+        "Why Is the US Healthcare System Doing So Badly?"
       ]
     },
     {
@@ -135,8 +140,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 17,
-      "n_banks": 17,
+      "units": 25,
+      "n_banks": 25,
       "n_decks": 0,
       "chapters": [
         1,
@@ -147,10 +152,12 @@
         6,
         7,
         8,
-        9
+        9,
+        10,
+        11
       ],
       "release_scheduled": true,
-      "release_rows": 17,
+      "release_rows": 25,
       "exclusions": 0,
       "unit_titles": [
         "Introduction to Entrepreneurship",
@@ -169,7 +176,10 @@
         "Visions of Knowledge and Reason",
         "The Cabbie's Tale",
         "Singapore Past and Present",
-        "Singapore's Healthcare Supremacy"
+        "Singapore's Healthcare Supremacy",
+        "America's Healthcare Humiliation in an International Perspective",
+        "What We Could Do If We Copied Singapore",
+        "Why Is the US Healthcare System Doing So Badly?"
       ]
     }
   ]
