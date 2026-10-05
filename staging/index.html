@@ -411,8 +411,10 @@ let BANK = BANKS[CH] || EMPTY_BANK;   // active unit's bank; a config package re
 /* ================= App version + changelog =================
    UI/behavior changes: bump APP_VERSION + version.txt (deployed alongside) and add a
    CHANGELOG entry at the top. Content/bank-only changes: silent (no bump). See CLAUDE.md. */
-const APP_VERSION='0.23';
+const APP_VERSION='0.24';
 const CHANGELOG=[
+  {v:'0.24', date:'Oct 5, 2026', notes:[
+    'On put-these-in-order questions, the explanation of each step is now numbered to match the correct order. Before this, the step explanations could be numbered out of sequence, so “1.” sometimes described a step that actually comes third. The questions and the correct orders themselves were never affected.']},
   {v:'0.23', date:'Sep 24, 2026', notes:[
     'If your instructor turns it on, you can now flag a question for class discussion. After you see whether you got it right, tick “Flag this question for class discussion” — it doesn’t affect your score or your mastery, it just tells your instructor which questions the class wants to go over. Your flags go along with the file you upload.']},
   {v:'0.22', date:'Sep 23, 2026', notes:[
@@ -1046,7 +1048,12 @@ function renderQuestionPreserve(){ // identical order (perm/jperm unchanged)
   qa.innerHTML=h; wireAnswerInputs();
 }
 function correctRationale(){ const it=S.current.item;
-  if(it.type==='rank_order')return it.rationales.map((r,i)=>`${i+1}. ${r}`).join(' ');
+  /* A rank_order item's rationales are indexed by OPTION, not by slot: tools/bank_scatter.py moves
+     rationales with the options and remaps correct_order to the new indices. So the step numbers
+     must come from correct_order. Numbering the array in place mislabels every scattered item —
+     and all three rank_order items in the delivered demo config ARE permuted, so option 0's reason
+     was being announced as "1." when option 0 is third. */
+  if(it.type==='rank_order')return it.correct_order.map((orig,n)=>`${n+1}. ${it.rationales[orig]}`).join(' ');
   return it.rationales[it.correct_index]; }
 
 function resolveCorrect(firstAttempt){
@@ -1070,7 +1077,8 @@ function resolveCorrect(firstAttempt){
 function wrongWhy(){ const it=S.current.item; const w=S.current.rec.student_answer_1;
   if(typeof w==='number'&&it.rationales[w])return it.rationales[w]; return 'see rationale above.'; }
 function allRats(){ const it=S.current.item;
-  if(it.type==='rank_order')return it.rationales.map(r=>`<li>${esc(r)}</li>`).join('');
+  // Same indexing rule as correctRationale: walk correct_order so the steps read in sequence.
+  if(it.type==='rank_order')return it.correct_order.map((orig,n)=>`<li><b>${n+1}.</b> ${esc(it.options[orig])} — ${esc(it.rationales[orig])}</li>`).join('');
   return it.options.map((o,i)=>`<li><b>${esc(o.length>60?o.slice(0,60)+'…':o)}</b> — ${esc(it.rationales[i])}</li>`).join(''); }
 
 function resolveWrongFinal(revealed){
