@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>QuizPrep · Classroom Discussion</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%230E5A4A'/%3E%3Ctext%20x='32'%20y='47'%20font-family='Georgia,serif'%20font-size='48'%20font-weight='700'%20fill='%23FBFAF6'%20text-anchor='middle'%3EQ%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Same brand tokens as the student app and the console, so the three read as one product. */
+:root{
+  --paper:#FBFAF6; --card:#FFFFFF; --ink:#1C2A3A; --ink-soft:#4A5A6E; --line:#E3E1D8;
+  --brand:#0E5A4A; --brand-soft:#E4EFEA; --hilite:#F5D34C; --hilite-soft:#FBF0C4;
+  --ok:#2E7D4F; --ok-soft:#E5F2E9; --no:#B3402A; --no-soft:#F8E8E3;
+  --tier1:#8FB6A9; --tier2:#4E8F7C; --tier3:#0E5A4A;
+  --radius:10px; --shadow:0 1px 3px rgba(28,42,58,.08),0 4px 14px rgba(28,42,58,.06);
+  --disp:'Zilla Slab',Georgia,serif; --body:'IBM Plex Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);line-height:1.5}
+
+/* PROJECTOR FIRST. The student app is phone-first; this one is read from the back of a room,
+   so the presenter column scales with the viewport rather than sitting at a fixed size. */
+.wrap{max-width:1500px;margin:0 auto;padding:1rem 1.25rem 3rem}
+header{display:flex;align-items:baseline;gap:.75rem;flex-wrap:wrap;padding:.5rem 0 1rem}
+h1{font-family:var(--disp);font-size:1.4rem;color:var(--brand)}
+.sub{color:var(--ink-soft);font-size:.9rem}
+.spacer{flex:1}
+
+.cols{display:grid;grid-template-columns:minmax(300px,24rem) 1fr;gap:1.25rem;align-items:start}
+@media (max-width:1000px){ .cols{grid-template-columns:1fr} }
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:1rem 1.1rem;box-shadow:var(--shadow);margin-bottom:1rem}
+.panel h2{font-family:var(--disp);font-size:1.05rem;margin-bottom:.5rem;color:var(--brand)}
+.muted{color:var(--ink-soft);font-size:.88rem}
+.btn{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--card);
+  color:var(--ink);border-radius:8px;padding:.5rem .9rem;cursor:pointer}
+.btn:hover{border-color:var(--brand)}
+.btn.brand{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.lg{font-size:1.05rem;padding:.65rem 1.2rem}
+.btn:disabled{opacity:.45;cursor:default}
+.row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+label.file{display:inline-block;margin:.25rem .4rem .25rem 0}
+input[type=file]{font:inherit;font-size:.85rem}
+
+/* ---- the queue ---- */
+.tranche{margin:.9rem 0 .35rem;font-family:var(--disp);font-size:.95rem;color:var(--brand);
+  border-bottom:1px solid var(--line);padding-bottom:.25rem}
+.tranche .n{color:var(--ink-soft);font-family:var(--body);font-weight:400;font-size:.85rem}
+.qrow{display:flex;gap:.55rem;align-items:flex-start;width:100%;text-align:left;
+  background:none;border:1px solid transparent;border-radius:8px;padding:.45rem .5rem;
+  cursor:pointer;font:inherit;color:inherit}
+.qrow:hover{background:var(--brand-soft)}
+.qrow.on{background:var(--brand-soft);border-color:var(--brand)}
+.qrow .meta{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:3.1rem}
+.badge{font-size:.72rem;font-weight:700;color:#fff;border-radius:999px;padding:1px 7px;white-space:nowrap}
+.t1{background:var(--tier1)} .t2{background:var(--tier2)} .t3{background:var(--tier3)}
+.flagn{font-size:.72rem;font-weight:700;color:var(--no);white-space:nowrap}
+.qrow .txt{font-size:.88rem;line-height:1.35}
+.qrow .lo{color:var(--ink-soft);font-size:.76rem}
+
+/* ---- the presenter ---- */
+.stem{font-family:var(--disp);font-size:clamp(1.3rem,2.1vw,1.9rem);line-height:1.3;margin:.35rem 0 1rem}
+.opts{display:grid;gap:.6rem}
+.opt{display:flex;gap:.7rem;align-items:flex-start;border:2px solid var(--line);
+  border-radius:9px;padding:.7rem .85rem;background:var(--card);font-size:clamp(1rem,1.35vw,1.2rem)}
+.opt .key{flex:none;font-weight:700;color:var(--ink-soft);min-width:1.4rem}
+.opt.correct{border-color:var(--ok);background:var(--ok-soft)}
+.opt.correct .key{color:var(--ok)}
+.rat{margin-top:.4rem;font-size:.92rem;color:var(--ink-soft)}
+.opt.correct .rat{color:#1d5c38}
+.pill{display:inline-block;font-size:.76rem;font-weight:700;border-radius:999px;
+  padding:2px 9px;background:var(--brand-soft);color:var(--brand);margin-right:.35rem}
+.pill.warn{background:var(--hilite-soft);color:#6b5300}
+.pill.flag{background:var(--no-soft);color:var(--no)}
+.anchor{font-size:.9rem;color:var(--ink-soft);margin-top:.9rem}
+.excerpt{border-left:3px solid var(--brand);background:var(--brand-soft);padding:.6rem .8rem;
+  border-radius:0 8px 8px 0;margin-top:.5rem;font-size:.95rem}
+.note{background:var(--hilite-soft);border:1px solid #E8D27A;border-radius:8px;
+  padding:.55rem .8rem;margin:.6rem 0;font-size:.92rem}
+.empty{padding:2.5rem 1rem;text-align:center;color:var(--ink-soft)}
+kbd{font-family:var(--body);font-size:.78rem;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:5px;padding:1px 6px;background:var(--paper)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Classroom Discussion</h1>
+  <span class="sub" id="hdrSub">load a bank and your students' uploads</span>
+  <span class="spacer"></span>
+  <span class="muted"><kbd>←</kbd> <kbd>→</kbd> move · <kbd>space</kbd> reveal</span>
+</header>
+
+<div class="panel" id="loadPanel">
+  <h2>Load</h2>
+  <p class="muted" style="margin-bottom:.6rem">
+    <b>Banks</b> are the plain chapter bank files from <code>banks/&lt;textbook&gt;/</code> — the same
+    files the Instructor Console loads. <b>Uploads</b> are the students' session exports as downloaded
+    from Canvas; their flags ride in the plaintext part, so no key is needed.
+  </p>
+  <div class="row">
+    <label class="file">Banks <input type="file" id="fBanks" multiple accept=".json"></label>
+    <label class="file">Student uploads <input type="file" id="fSubs" multiple accept=".json"></label>
+    <button class="btn" id="btnClear">Clear</button>
+  </div>
+  <p class="muted" id="loadStat" style="margin-top:.5rem">Nothing loaded.</p>
+</div>
+
+<div class="cols">
+  <div>
+    <div class="panel">
+      <h2>Discussion queue</h2>
+      <p class="muted" id="queueStat">—</p>
+      <div id="queue"></div>
+    </div>
+  </div>
+  <div>
+    <div class="panel" id="present">
+      <div class="empty" id="emptyMsg">Load a bank to build the queue.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+/* ============================================================================
+   QuizPrep — Classroom Discussion console
+
+   WHAT THIS IS. A presenter for talking through quiz questions with a class. It is NOT the
+   student app: there is no ladder, no mastery, no session, no export, and nothing is stored.
+   It reads files, builds an ordered queue, and shows one question at a time large enough to
+   read from the back of a room.
+
+   THE ORDER IS THE WHOLE POINT, and it is the owner's specification:
+     1. Questions students FLAGGED for discussion, most-flagged first.
+     2. Then the deepest question available per objective — Tier 3, or Tier 2 for any LO that
+        has no Tier 3 authored.
+     3. Then everything else, available but out of the way.
+
+   TWO HONESTY RULES CARRIED OVER FROM THE STUDENT APP, because they matter more here, not less:
+     - A rung that does not exist is SAID, never hidden. When an LO tops out at Tier 2 the queue
+       says so, rather than presenting its Tier 2 as though it were the deepest kind of question.
+       A hidden rung reads as a glitch rather than a fact about the bank.
+     - A flagged question whose bank is not loaded is LISTED as that, never dropped. Silently
+       discarding a student's flag because the instructor loaded the wrong chapter would lose the
+       signal the feature exists to collect.
+
+   NO NETWORK. Everything arrives through the file inputs, so this works from file:// for review
+   exactly as it will when hosted. Answers come from plain source banks, which is what the
+   Instructor Console uses too — encryption happens only at hosting.
+   ============================================================================ */
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+/* Excerpts are {kind,text} since spec v3.12a, strings before it. Same helper as the student app. */
+const exText = v => typeof v === 'string' ? v : ((v && v.text) || '');
+const OPTKEY = i => 'ABCDEFGH'[i] || String(i + 1);
+
+let BANKS = [];        // [{id, meta, items, sets, label}]
+let SUBS = [];         // [{label, discuss:[...]}]
+let QUEUE = [];        // ordered discussion entries
+let CUR = -1;          // index into QUEUE
+let REVEALED = false;
+
+/* ---------------------------------------------------------------- loading */
+
+function bankLabel(meta){
+  const src = meta.source || {};
+  const who = src.authors ? String(src.authors).split(',')[0].trim() : (src.title || 'bank');
+  const set = meta.set_label ? ' · ' + meta.set_label : '';
+  return who + ' ch' + (meta.chapter != null ? meta.chapter : '?') + set;
+}
+
+/* Every loaded bank gets its own id, and items are scoped to it. This is not bookkeeping for its
+   own sake: two textbooks both have an LO "2.2", so a max-tier computed across the union of
+   loaded banks would mix two different objectives and could claim a Tier 3 exists for an LO that
+   has none. The scope key is the bank, always. */
+function addBank(obj, filename){
+  const meta = obj.bank_meta || {};
+  const items = (obj.items || []).slice();
+  const sets = obj.question_sets || [];
+  // Pool questions become ordinary queue candidates, the same expansion the student app does at
+  // load. Here they keep a reference to the whole set, because showing the FULL option pool with
+  // the key marked is more useful for discussion than sampling four of it.
+  for (const set of sets){
+    for (const q of (set.questions || [])){
+      items.push({q_id:q.q_id, lo:q.lo, tier:q.tier, type:'mc_pool', stem:q.stem,
+                  source_anchor:q.source_anchor || set.source_anchor || '',
+                  status:q.status, origin:q.origin, _set:set, _q:q});
+    }
+  }
+  BANKS.push({id:'b' + BANKS.length, meta, items, sets, label:bankLabel(meta), file:filename || ''});
+}
+
+/* Canvas bulk download renames files {lastnamefirstname}_{userid}_{original}; recovering the name
+   means an anonymised upload still identifies a student for the flag COUNT. Same parser as the
+   console's dashboard, kept identical on purpose. */
+function parseCanvasName(fn){
+  const m = String(fn || '').match(/^(.+?)_(?:late_)?(\d+)_/i);
+  return m ? (m[1] + ' · ' + m[2]) : null;
+}
+
+function addSub(obj, filename){
+  const s = obj.session || {};
+  const who = parseCanvasName(filename) || String(s.student || '').trim() || (filename || 'upload');
+  SUBS.push({label:who, discuss:((obj.digest || {}).discuss) || []});
+}
+
+async function readFiles(list, fn){
+  let ok = 0, bad = 0;
+  for (const f of list){
+    try { fn(JSON.parse(await f.text()), f.name); ok++; }
+    catch(e){ bad++; }
+  }
+  return {ok, bad};
+}
+
+/* ------------------------------------------------------- the queue, in order */
+
+/* An LO's deepest AUTHORED tier, scoped to one bank. 3 where a Tier 3 exists, else 2, else 1. */
+function maxTierFor(bank, lo){
+  const tiers = bank.items.filter(i => i.lo === lo).map(i => i.tier);
+  return tiers.length ? Math.max.apply(null, tiers) : 0;
+}
+
+function buildQueue(){
+  QUEUE = [];
+  // Flags, aggregated per q_id across uploads, counting DISTINCT STUDENTS rather than sessions —
+  // one student flagging the same question in three runs is one request, not three.
+  const flags = {};
+  for (const sub of SUBS){
+    for (const t of sub.discuss){
+      if (!t || !t.q_id) continue;
+      const a = flags[t.q_id] || (flags[t.q_id] = {students:new Set(), missed:new Set(), stem:t.stem || '',
+                                                   lo:t.lo || '', tier:t.tier});
+      a.students.add(sub.label);
+      if (t.missed) a.missed.add(sub.label);
+      if (!a.stem && t.stem) a.stem = t.stem;
+    }
+  }
+
+  const byId = {};
+  for (const b of BANKS) for (const i of b.items) if (!byId[i.q_id]) byId[i.q_id] = {bank:b, item:i};
+
+  const used = new Set();
+
+  // ---- 1. flagged, most-flagged first.
+  const flagged = Object.keys(flags).map(q => ({q_id:q, f:flags[q]}));
+  flagged.sort((x, y) =>
+    y.f.students.size - x.f.students.size ||        // most students first
+    y.f.missed.size - x.f.missed.size ||            // then where more of them had it wrong
+    (byId[y.q_id] ? byId[y.q_id].item.tier : 0) - (byId[x.q_id] ? byId[x.q_id].item.tier : 0) ||
+    String(x.q_id).localeCompare(String(y.q_id)));
+  for (const {q_id, f} of flagged){
+    const hit = byId[q_id];
+    used.add(q_id);
+    QUEUE.push({
+      tranche:1, q_id, bank:hit ? hit.bank : null, item:hit ? hit.item : null,
+      lo:hit ? hit.item.lo : f.lo, tier:hit ? hit.item.tier : f.tier,
+      flags:f.students.size, missed:f.missed.size,
+      stemFallback:f.stem,
+      // A flag for a bank that is not loaded is reported, not dropped.
+      note:hit ? '' : 'Flagged by students, but no loaded bank contains this question — load the chapter it came from to discuss it.'
+    });
+  }
+
+  // ---- 2. the deepest question available per objective.
+  const deep = [];
+  for (const b of BANKS){
+    const los = [...new Set(b.items.map(i => i.lo))].filter(Boolean).sort();
+    for (const lo of los){
+      const mt = maxTierFor(b, lo);
+      if (mt < 2) continue;                      // an LO topping out at recall is not a discussion
+      for (const i of b.items){
+        if (i.lo !== lo || i.tier !== mt || used.has(i.q_id)) continue;
+        used.add(i.q_id);
+        deep.push({tranche:2, q_id:i.q_id, bank:b, item:i, lo, tier:i.tier, flags:0, missed:0,
+          // Said, not hidden: this LO has no Tier 3 and the queue admits it.
+          note:mt < 3 ? ('No Tier-3 question is authored for objective ' + lo
+                         + ' — this Tier 2 is the deepest available for it.') : ''});
+      }
+    }
+  }
+  deep.sort((a, b) => b.tier - a.tier || String(a.lo).localeCompare(String(b.lo))
+                      || String(a.q_id).localeCompare(String(b.q_id)));
+  QUEUE = QUEUE.concat(deep);
+
+  // ---- 3. the rest, present but out of the way.
+  const rest = [];
+  for (const b of BANKS) for (const i of b.items){
+    if (used.has(i.q_id)) continue;
+    used.add(i.q_id);
+    rest.push({tranche:3, q_id:i.q_id, bank:b, item:i, lo:i.lo, tier:i.tier, flags:0, missed:0, note:''});
+  }
+  rest.sort((a, b) => String(a.lo).localeCompare(String(b.lo)) || b.tier - a.tier
+                      || String(a.q_id).localeCompare(String(b.q_id)));
+  QUEUE = QUEUE.concat(rest);
+}
+
+/* ------------------------------------------------------------------ render */
+
+const TRANCHE = {
+  1:['Flagged by students', 'most-flagged first; the number is how many students asked for it'],
+  2:['Deepest per objective', 'Tier 3, or Tier 2 where no Tier 3 is authored'],
+  3:['Everything else', 'available if you want it']
+};
+
+function renderQueue(){
+  const q = $('queue');
+  if (!QUEUE.length){ q.innerHTML = '<p class="muted">Nothing to show yet.</p>'; return; }
+  let html = '', last = 0;
+  QUEUE.forEach((e, n) => {
+    if (e.tranche !== last){
+      last = e.tranche;
+      const cnt = QUEUE.filter(x => x.tranche === last).length;
+      html += '<div class="tranche">' + esc(TRANCHE[last][0])
+            + ' <span class="n">· ' + cnt + ' · ' + esc(TRANCHE[last][1]) + '</span></div>';
+    }
+    const t = e.tier >= 1 && e.tier <= 3 ? e.tier : 1;
+    const stem = (e.item && e.item.stem) || e.stemFallback || '(question text not in a loaded bank)';
+    html += '<button class="qrow' + (n === CUR ? ' on' : '') + '" data-n="' + n + '">'
+          + '<span class="meta">'
+          + '<span class="badge t' + t + '">T' + (e.tier || '?') + '</span>'
+          + (e.flags ? '<span class="flagn">' + e.flags + '&#9873;</span>' : '')
+          + '</span><span class="txt">' + esc(stem.length > 110 ? stem.slice(0, 110) + '…' : stem)
+          + '<span class="lo"><br>' + esc(e.lo || '—')
+          + (e.bank ? ' · ' + esc(e.bank.label) : '') + '</span></span></button>';
+  });
+  q.innerHTML = html;
+  q.querySelectorAll('.qrow').forEach(b => b.onclick = () => select(+b.dataset.n));
+  const f = QUEUE.filter(e => e.tranche === 1).length;
+  $('queueStat').textContent = QUEUE.length + ' question(s) · ' + f + ' flagged by students'
+    + (SUBS.length ? ' across ' + SUBS.length + ' upload(s)' : ' (no uploads loaded)');
+}
+
+function loTextFor(e){
+  if (!e.bank) return '';
+  return ((e.bank.meta.learning_objectives || {})[e.lo]) || '';
+}
+
+/* The option list, with the key marked only once revealed. Each type renders from the same
+   shape the student app uses, so what the instructor sees is what the students saw. */
+function optionsHtml(e){
+  const it = e.item;
+  if (!it) return '';
+  if (it.type === 'mc_pool'){
+    // The WHOLE shared pool, with the key marked — better for discussion than a sample of four,
+    // because the instructor can see every distractor the set can draw and why each is wrong.
+    const set = it._set, q = it._q;
+    const opts = (set.shared_options || []);
+    return '<div class="opts">' + opts.map(o => {
+      const on = REVEALED && o.id === q.correct;
+      return '<div class="opt' + (on ? ' correct' : '') + '">'
+        + '<span class="key">' + (on ? '✓' : '·') + '</span><span>' + esc(o.text)
+        + (REVEALED ? '<div class="rat">' + esc(on ? (q.key_rationale || o.correction || '')
+                                                   : (o.correction || '')) + '</div>' : '')
+        + '</span></div>';
+    }).join('') + '</div>'
+    + (REVEALED && q.focus ? '<p class="muted" style="margin-top:.5rem">Focus: ' + esc(q.focus) + '</p>' : '');
+  }
+  if (it.type === 'rank_order'){
+    const order = it.correct_order || [];
+    const list = REVEALED ? order.map(i => it.options[i]) : (it.options || []);
+    return '<div class="opts">' + list.map((o, n) =>
+      '<div class="opt' + (REVEALED ? ' correct' : '') + '"><span class="key">'
+      + (REVEALED ? (n + 1) + '.' : '·') + '</span><span>' + esc(o)
+      + (REVEALED ? '<div class="rat">' + esc((it.rationales || [])[order[n]] || '') + '</div>' : '')
+      + '</span></div>').join('') + '</div>'
+      + (REVEALED ? '' : '<p class="muted" style="margin-top:.5rem">Ask the class for the order, then reveal.</p>');
+  }
+  // mc4, scenario_mc, tf_justify all key by correct_index over options[].
+  let h = '<div class="opts">' + (it.options || []).map((o, n) => {
+    const on = REVEALED && n === it.correct_index;
+    return '<div class="opt' + (on ? ' correct' : '') + '">'
+      + '<span class="key">' + (on ? '✓' : OPTKEY(n)) + '</span><span>' + esc(o)
+      + (REVEALED ? '<div class="rat">' + esc((it.rationales || [])[n] || '') + '</div>' : '')
+      + '</span></div>';
+  }).join('') + '</div>';
+  if (it.type === 'tf_justify' && (it.justify_options || []).length){
+    h += '<p class="muted" style="margin:.7rem 0 .35rem"><b>And the reason:</b></p><div class="opts">'
+      + it.justify_options.map((o, n) => {
+        const on = REVEALED && n === it.justify_correct;
+        return '<div class="opt' + (on ? ' correct' : '') + '"><span class="key">'
+          + (on ? '✓' : OPTKEY(n)) + '</span><span>' + esc(o) + '</span></div>';
+      }).join('') + '</div>';
+  }
+  return h;
+}
+
+function renderPresent(){
+  const p = $('present');
+  if (CUR < 0 || !QUEUE[CUR]){
+    p.innerHTML = '<div class="empty" id="emptyMsg">'
+      + (QUEUE.length ? 'Pick a question from the queue.' : 'Load a bank to build the queue.')
+      + '</div>';
+    return;
+  }
+  const e = QUEUE[CUR], it = e.item;
+  const pills = []
+    .concat(e.flags ? ['<span class="pill flag">Flagged by ' + e.flags + ' student'
+      + (e.flags === 1 ? '' : 's') + (e.missed ? ' · ' + e.missed + ' had it wrong' : '') + '</span>'] : [])
+    .concat(['<span class="pill">Tier ' + (e.tier || '?') + '</span>'])
+    .concat(e.lo ? ['<span class="pill">Objective ' + esc(e.lo) + '</span>'] : [])
+    .concat(e.bank ? ['<span class="pill">' + esc(e.bank.label) + '</span>'] : [])
+    .concat(it && it.status && /unvetted/i.test(it.status) ? ['<span class="pill warn">unvetted</span>'] : []);
+
+  const lo = loTextFor(e);
+  const anchor = it ? (it.source_anchor || '') : '';
+  const exRaw = (e.bank && (e.bank.meta.excerpts || {})[anchor]) || '';
+  const ex = exText(exRaw);
+
+  p.innerHTML =
+    '<div class="row" style="justify-content:space-between;align-items:flex-start">'
+    + '<div>' + pills.join('') + '</div>'
+    + '<div class="muted">' + (CUR + 1) + ' of ' + QUEUE.length + '</div></div>'
+    + (e.note ? '<div class="note">' + esc(e.note) + '</div>' : '')
+    + '<div class="stem">' + esc(it ? it.stem : (e.stemFallback || '(not in a loaded bank)')) + '</div>'
+    + optionsHtml(e)
+    + (lo ? '<p class="anchor"><b>Objective ' + esc(e.lo) + ':</b> ' + esc(lo) + '</p>' : '')
+    + (anchor ? '<p class="anchor">📖 ' + esc(anchor) + '</p>' : '')
+    + (REVEALED && ex ? '<div class="excerpt">' + esc(ex) + '</div>' : '')
+    + '<div class="row" style="margin-top:1.1rem">'
+    + '<button class="btn lg brand" id="btnReveal">' + (REVEALED ? 'Hide the answer' : 'Reveal the answer') + '</button>'
+    + '<button class="btn" id="btnPrev">← Previous</button>'
+    + '<button class="btn" id="btnNext">Next →</button></div>';
+
+  $('btnReveal').onclick = () => { REVEALED = !REVEALED; renderPresent(); };
+  $('btnPrev').onclick = () => select(CUR - 1);
+  $('btnNext').onclick = () => select(CUR + 1);
+  $('btnPrev').disabled = CUR <= 0;
+  $('btnNext').disabled = CUR >= QUEUE.length - 1;
+}
+
+function select(n){
+  if (n < 0 || n >= QUEUE.length) return;
+  CUR = n; REVEALED = false;      // a new question always starts unrevealed
+  renderQueue(); renderPresent();
+}
+
+function refresh(){
+  buildQueue();
+  if (CUR >= QUEUE.length) CUR = QUEUE.length ? 0 : -1;
+  if (CUR < 0 && QUEUE.length) CUR = 0;
+  REVEALED = false;
+  renderQueue(); renderPresent();
+  const bq = BANKS.reduce((n, b) => n + b.items.length, 0);
+  $('loadStat').textContent = BANKS.length + ' bank(s), ' + bq + ' question(s) · '
+    + SUBS.length + ' student upload(s)';
+  $('hdrSub').textContent = BANKS.length
+    ? BANKS.map(b => b.label).join(' · ')
+    : 'load a bank and your students\' uploads';
+}
+
+/* ------------------------------------------------------------------- wiring */
+
+$('fBanks').onchange = async ev => {
+  const r = await readFiles(ev.target.files, addBank);
+  refresh();
+  if (r.bad) $('loadStat').textContent += ' · ' + r.bad + ' file(s) could not be read as a bank';
+  ev.target.value = '';
+};
+$('fSubs').onchange = async ev => {
+  const r = await readFiles(ev.target.files, addSub);
+  refresh();
+  if (r.bad) $('loadStat').textContent += ' · ' + r.bad + ' file(s) could not be read as an export';
+  ev.target.value = '';
+};
+$('btnClear').onclick = () => { BANKS = []; SUBS = []; CUR = -1; refresh(); };
+
+/* Keyboard, because this is driven from a lectern. Ignored while a file dialog has focus. */
+document.addEventListener('keydown', ev => {
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test((ev.target || {}).tagName || '')) return;
+  if (ev.key === 'ArrowRight'){ select(CUR + 1); ev.preventDefault(); }
+  else if (ev.key === 'ArrowLeft'){ select(CUR - 1); ev.preventDefault(); }
+  else if (ev.key === ' '){ if (CUR >= 0){ REVEALED = !REVEALED; renderPresent(); } ev.preventDefault(); }
+});
+
+/* Exposed for the test harness, which drives the real functions rather than a copy of them. */
+window.__cr = {
+  addBank, addSub, refresh, select,
+  queue: () => QUEUE, banks: () => BANKS, subs: () => SUBS,
+  cur: () => CUR, revealed: () => REVEALED,
+  setRevealed: v => { REVEALED = v; renderPresent(); },
+  maxTierFor
+};
+
+refresh();
+</script>
+</body>
+</html>
