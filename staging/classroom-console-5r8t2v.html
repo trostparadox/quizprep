@@ -97,18 +97,27 @@ kbd{font-family:var(--body);font-size:.78rem;border:1px solid var(--line);border
 </header>
 
 <div class="panel" id="loadPanel">
-  <h2>Load</h2>
+  <h2>Student results</h2>
+  <p class="muted" id="autoStat" style="margin-bottom:.6rem">Loading the question banks…</p>
   <p class="muted" style="margin-bottom:.6rem">
-    <b>Banks</b> are the plain chapter bank files from <code>banks/&lt;textbook&gt;/</code> — the same
-    files the Instructor Console loads. <b>Uploads</b> are the students' session exports as downloaded
-    from Canvas; their flags ride in the plaintext part, so no key is needed.
+    The questions are already here. Drop in the students' uploads — as downloaded from Canvas — and
+    the ones they flagged move to the top of the queue, most-flagged first. Their flags travel in the
+    plaintext part of each file, so no key is needed.
   </p>
   <div class="row">
-    <label class="file">Banks <input type="file" id="fBanks" multiple accept=".json"></label>
-    <label class="file">Student uploads <input type="file" id="fSubs" multiple accept=".json"></label>
+    <label class="file"><b>Student uploads</b> <input type="file" id="fSubs" multiple accept=".json"></label>
     <button class="btn" id="btnClear">Clear</button>
   </div>
-  <p class="muted" id="loadStat" style="margin-top:.5rem">Nothing loaded.</p>
+  <p class="muted" id="loadStat" style="margin-top:.5rem"></p>
+  <details style="margin-top:.6rem">
+    <summary class="muted" style="cursor:pointer">Load a bank by hand instead</summary>
+    <p class="muted" style="margin:.4rem 0">
+      Only needed for a chapter the demo class does not carry, or to run this from a local file where
+      there is nothing to fetch. Takes the plain chapter bank files from <code>banks/&lt;textbook&gt;/</code>,
+      the same ones the Instructor Console loads.
+    </p>
+    <label class="file">Banks <input type="file" id="fBanks" multiple accept=".json"></label>
+  </details>
 </div>
 
 <div class="cols">
@@ -155,6 +164,43 @@ kbd{font-family:var(--body);font-size:.78rem;border:1px solid var(--line);border
    Instructor Console uses too — encryption happens only at hosting.
    ============================================================================ */
 
+/* ---- the hosted config, and the one key needed to read its answers --------------------------
+   The demo config is fetched at boot so the instructor loads nothing: 25 units, 767 questions,
+   with q_id / lo / tier / stem / options / excerpts / objective text all in the CLEAR. Only the
+   answer fields are encrypted, which is why the whole queue can be built without decrypting
+   anything — and why only a reveal needs the key.
+
+   THE KEY IS NOT WRITTEN HERE. build.py lifts it out of src/app_template.html at build time and
+   fills the marker below, exactly as tools/answer_crypto.mjs already does. A second hardcoded
+   copy would be a second place the key lives and a second thing to get out of step; it is
+   obscurity rather than secrecy either way (§9.7), so the thing worth protecting is its
+   single-sourcing, not the value. */
+const ENC_KEY = 'lIcrDlm5vaAT/Ss3oFBUM8YM+4JEVUSDGdsc2KnbKIw=';
+
+/* Verbatim from the student app, which is the point: an absolute path to configs/ derived from the
+   repo root, robust to a filename, a trailing "staging/" and stray double slashes. A "//" adds an
+   empty path segment that would absorb a relative "../", so a relative base resolves to the wrong
+   place. Kept identical so this app reads the same configs the students' app reads. */
+const CFG_BASE = (function(){
+  try { let p = (location.pathname || '/')
+      .replace(/[^/]*\.html?$/i, '')
+      .replace(/(^|\/)staging\/+$/, '/')
+      .replace(/\/{2,}/g, '/');
+    if (!p.endsWith('/')) p += '/';
+    return p + 'configs/';
+  } catch(e){ return 'configs/'; }
+})();
+
+const _b64U8 = b64 => { const t = atob(b64); const u = new Uint8Array(t.length);
+  for (let i = 0; i < t.length; i++) u[i] = t.charCodeAt(i); return u; };
+let _encKeyP = null;
+const _encKey = () => _encKeyP || (_encKeyP = crypto.subtle.importKey(
+  'raw', _b64U8(ENC_KEY), {name:'AES-GCM'}, false, ['decrypt']));
+async function decryptAnswer(enc){            // {iv,ct} base64 → the parsed answer object
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:_b64U8(enc.iv)}, await _encKey(), _b64U8(enc.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -167,6 +213,16 @@ let SUBS = [];         // [{label, discuss:[...]}]
 let QUEUE = [];        // ordered discussion entries
 let CUR = -1;          // index into QUEUE
 let REVEALED = false;
+let AUTO = null;       // {ok, units, name} | {ok:false, msg} — how the pre-load went
+
+/* Decrypted answers and decrypt failures are keyed by q_id, NOT stored on the queue entry.
+   buildQueue() makes fresh entry objects every time it runs, and it runs whenever anything is
+   loaded — including when the boot's config fetch resolves. Caching on the entry meant a late
+   refresh silently dropped the answer of the question on screen, which in a classroom is a
+   revealed question going blank mid-sentence. Keyed by q_id it survives every rebuild, and a
+   second reveal of the same question costs no decrypt. */
+const ANS = {};
+const DERR = {};
 
 /* ---------------------------------------------------------------- loading */
 
@@ -181,7 +237,22 @@ function bankLabel(meta){
    own sake: two textbooks both have an LO "2.2", so a max-tier computed across the union of
    loaded banks would mix two different objectives and could claim a Tier 3 exists for an LO that
    has none. The scope key is the bank, always. */
-function addBank(obj, filename){
+/* Pull every unit out of a delivered config package and register it as a bank. The manifest's
+   title is preferred for the label because a multi-textbook config gives each unit a display
+   title that already disambiguates two books' chapter 1. */
+function addConfig(pkg){
+  const titles = {};
+  for (const u of (pkg.manifest || [])) titles[u.id] = u.title;
+  const banks = pkg.banks || {};
+  let n = 0;
+  for (const uid of Object.keys(banks)){
+    addBank(banks[uid], '', {unit:uid, title:titles[uid]});
+    n++;
+  }
+  return n;
+}
+
+function addBank(obj, filename, from){
   const meta = obj.bank_meta || {};
   const items = (obj.items || []).slice();
   const sets = obj.question_sets || [];
@@ -195,7 +266,11 @@ function addBank(obj, filename){
                   status:q.status, origin:q.origin, _set:set, _q:q});
     }
   }
-  BANKS.push({id:'b' + BANKS.length, meta, items, sets, label:bankLabel(meta), file:filename || ''});
+  const lbl = (from && from.title)
+    ? (bankLabel(meta) + ' · ' + from.title)
+    : bankLabel(meta);
+  BANKS.push({id:'b' + BANKS.length, meta, items, sets, label:lbl,
+              unit:(from && from.unit) || '', file:filename || ''});
 }
 
 /* Canvas bulk download renames files {lastnamefirstname}_{userid}_{original}; recovering the name
@@ -346,46 +421,69 @@ function loTextFor(e){
 
 /* The option list, with the key marked only once revealed. Each type renders from the same
    shape the student app uses, so what the instructor sees is what the students saw. */
+/* PER-QUESTION DECRYPT (#3), the same discipline the student app uses: the loaded config stays
+   encrypted in memory and only the question on screen ever has its answer in the clear. Cached on
+   the queue entry so a second reveal costs nothing. The encrypted set is read from
+   tools/answer_crypto.mjs rather than guessed: correct_index, correct_order, justify_correct,
+   rationales and probes for an item; correct and key_rationale for a pool question. justify_options
+   stays plaintext, which is why the reason-list renders before a reveal too. */
+async function ensureAnswer(e){
+  if (!e.item || ANS[e.q_id]) return;
+  const it = e.item;
+  if (it.type === 'mc_pool'){
+    const q = it._q || {};
+    ANS[e.q_id] = q.enc ? await decryptAnswer(q.enc)
+                        : {correct:q.correct, key_rationale:q.key_rationale};
+  } else if (it.enc){
+    ANS[e.q_id] = await decryptAnswer(it.enc);
+  } else {
+    // A plaintext source bank loaded by hand: the answer is already on the item.
+    ANS[e.q_id] = {correct_index:it.correct_index, correct_order:it.correct_order,
+                   justify_correct:it.justify_correct, rationales:it.rationales, probes:it.probes};
+  }
+}
+
 function optionsHtml(e){
   const it = e.item;
   if (!it) return '';
+  const A = ANS[e.q_id] || {};
   if (it.type === 'mc_pool'){
     // The WHOLE shared pool, with the key marked — better for discussion than a sample of four,
     // because the instructor can see every distractor the set can draw and why each is wrong.
     const set = it._set, q = it._q;
     const opts = (set.shared_options || []);
     return '<div class="opts">' + opts.map(o => {
-      const on = REVEALED && o.id === q.correct;
+      const on = REVEALED && o.id === A.correct;
       return '<div class="opt' + (on ? ' correct' : '') + '">'
         + '<span class="key">' + (on ? '✓' : '·') + '</span><span>' + esc(o.text)
-        + (REVEALED ? '<div class="rat">' + esc(on ? (q.key_rationale || o.correction || '')
+        + (REVEALED ? '<div class="rat">' + esc(on ? (A.key_rationale || o.correction || '')
                                                    : (o.correction || '')) + '</div>' : '')
         + '</span></div>';
     }).join('') + '</div>'
     + (REVEALED && q.focus ? '<p class="muted" style="margin-top:.5rem">Focus: ' + esc(q.focus) + '</p>' : '');
   }
   if (it.type === 'rank_order'){
-    const order = it.correct_order || [];
+    const order = A.correct_order || [];
     const list = REVEALED ? order.map(i => it.options[i]) : (it.options || []);
     return '<div class="opts">' + list.map((o, n) =>
       '<div class="opt' + (REVEALED ? ' correct' : '') + '"><span class="key">'
       + (REVEALED ? (n + 1) + '.' : '·') + '</span><span>' + esc(o)
-      + (REVEALED ? '<div class="rat">' + esc((it.rationales || [])[order[n]] || '') + '</div>' : '')
+      + (REVEALED ? '<div class="rat">' + esc((A.rationales || [])[order[n]] || '') + '</div>' : '')
       + '</span></div>').join('') + '</div>'
       + (REVEALED ? '' : '<p class="muted" style="margin-top:.5rem">Ask the class for the order, then reveal.</p>');
   }
   // mc4, scenario_mc, tf_justify all key by correct_index over options[].
   let h = '<div class="opts">' + (it.options || []).map((o, n) => {
-    const on = REVEALED && n === it.correct_index;
+    const on = REVEALED && n === A.correct_index;
     return '<div class="opt' + (on ? ' correct' : '') + '">'
       + '<span class="key">' + (on ? '✓' : OPTKEY(n)) + '</span><span>' + esc(o)
-      + (REVEALED ? '<div class="rat">' + esc((it.rationales || [])[n] || '') + '</div>' : '')
+      + (REVEALED ? '<div class="rat">' + esc((A.rationales || [])[n] || '') + '</div>' : '')
       + '</span></div>';
   }).join('') + '</div>';
   if (it.type === 'tf_justify' && (it.justify_options || []).length){
     h += '<p class="muted" style="margin:.7rem 0 .35rem"><b>And the reason:</b></p><div class="opts">'
       + it.justify_options.map((o, n) => {
-        const on = REVEALED && n === it.justify_correct;
+        const on = REVEALED && n === A.justify_correct;
         return '<div class="opt' + (on ? ' correct' : '') + '"><span class="key">'
           + (on ? '✓' : OPTKEY(n)) + '</span><span>' + esc(o) + '</span></div>';
       }).join('') + '</div>';
@@ -420,6 +518,8 @@ function renderPresent(){
     + '<div>' + pills.join('') + '</div>'
     + '<div class="muted">' + (CUR + 1) + ' of ' + QUEUE.length + '</div></div>'
     + (e.note ? '<div class="note">' + esc(e.note) + '</div>' : '')
+    + (DERR[e.q_id] ? '<div class="note">This question’s answer could not be decrypted ('
+        + esc(DERR[e.q_id]) + '). The question still stands; the key is not available.</div>' : '')
     + '<div class="stem">' + esc(it ? it.stem : (e.stemFallback || '(not in a loaded bank)')) + '</div>'
     + optionsHtml(e)
     + (lo ? '<p class="anchor"><b>Objective ' + esc(e.lo) + ':</b> ' + esc(lo) + '</p>' : '')
@@ -430,11 +530,23 @@ function renderPresent(){
     + '<button class="btn" id="btnPrev">← Previous</button>'
     + '<button class="btn" id="btnNext">Next →</button></div>';
 
-  $('btnReveal').onclick = () => { REVEALED = !REVEALED; renderPresent(); };
+  $('btnReveal').onclick = () => toggleReveal();
   $('btnPrev').onclick = () => select(CUR - 1);
   $('btnNext').onclick = () => select(CUR + 1);
   $('btnPrev').disabled = CUR <= 0;
   $('btnNext').disabled = CUR >= QUEUE.length - 1;
+}
+
+/* Decrypt before flipping the flag, so a render never happens with REVEALED true and no answer
+   to show. If the decrypt fails the question stays unrevealed and says so, rather than drawing a
+   blank key — a silently empty reveal in front of a class is worse than a visible error. */
+async function toggleReveal(){
+  if (CUR < 0) return;
+  const e = QUEUE[CUR];
+  if (REVEALED){ REVEALED = false; renderPresent(); return; }
+  try { await ensureAnswer(e); }
+  catch(err){ DERR[e.q_id] = String(err && err.message || err); renderPresent(); return; }
+  REVEALED = true; renderPresent();
 }
 
 function select(n){
@@ -444,17 +556,38 @@ function select(n){
 }
 
 function refresh(){
+  /* KEEP THE INSTRUCTOR WHERE THEY ARE. Anything loaded rebuilds the queue, and the boot's config
+     fetch resolves asynchronously — so a naive refresh would jump off the question on screen and
+     un-reveal it, which in a classroom is the slide changing by itself. Hold the selection by q_id
+     and keep the reveal if the same question is still current; only fall back to the top when the
+     question is genuinely gone. */
+  const wasId = (CUR >= 0 && QUEUE[CUR]) ? QUEUE[CUR].q_id : null;
+  const wasRevealed = REVEALED;
   buildQueue();
-  if (CUR >= QUEUE.length) CUR = QUEUE.length ? 0 : -1;
-  if (CUR < 0 && QUEUE.length) CUR = 0;
-  REVEALED = false;
+  if (wasId){
+    const again = QUEUE.findIndex(e => e.q_id === wasId);
+    CUR = again >= 0 ? again : (QUEUE.length ? 0 : -1);
+    REVEALED = (again >= 0) && wasRevealed;
+  } else {
+    CUR = QUEUE.length ? 0 : -1;
+    REVEALED = false;
+  }
   renderQueue(); renderPresent();
   const bq = BANKS.reduce((n, b) => n + b.items.length, 0);
-  $('loadStat').textContent = BANKS.length + ' bank(s), ' + bq + ' question(s) · '
-    + SUBS.length + ' student upload(s)';
+  $('loadStat').textContent = SUBS.length
+    ? SUBS.length + ' student upload(s) loaded'
+    : 'No uploads yet — the queue is showing the deepest question per objective.';
+  if (AUTO && AUTO.ok){
+    $('autoStat').innerHTML = '<b>' + AUTO.units + ' chapters, ' + bq
+      + ' questions</b> loaded from ' + esc(AUTO.name) + '. Nothing to load by hand.';
+  } else if (AUTO){
+    // Said plainly rather than left as an empty screen: the instructor needs to know WHY it is empty.
+    $('autoStat').innerHTML = 'Could not fetch the question banks (' + esc(AUTO.msg)
+      + '). Use “Load a bank by hand” below — this is expected when running from a local file.';
+  }
   $('hdrSub').textContent = BANKS.length
-    ? BANKS.map(b => b.label).join(' · ')
-    : 'load a bank and your students\' uploads';
+    ? BANKS.length + ' chapters · ' + bq + ' questions'
+    : 'no questions loaded';
 }
 
 /* ------------------------------------------------------------------- wiring */
@@ -478,19 +611,44 @@ document.addEventListener('keydown', ev => {
   if (/^(INPUT|TEXTAREA|SELECT)$/.test((ev.target || {}).tagName || '')) return;
   if (ev.key === 'ArrowRight'){ select(CUR + 1); ev.preventDefault(); }
   else if (ev.key === 'ArrowLeft'){ select(CUR - 1); ev.preventDefault(); }
-  else if (ev.key === ' '){ if (CUR >= 0){ REVEALED = !REVEALED; renderPresent(); } ev.preventDefault(); }
+  else if (ev.key === ' '){ toggleReveal(); ev.preventDefault(); }
 });
 
 /* Exposed for the test harness, which drives the real functions rather than a copy of them. */
+/* ---- boot: the class's questions are already there ----------------------------------------
+   The whole bank set arrives from the hosted demo config, so the instructor's only job is to drop
+   in the students' uploads. Bounded by a timeout for the same reason the student app bounds its
+   config fetch: a hung network must not hang the page in front of a class. A failure is reported
+   rather than silent, and the manual bank input stays as the fallback — it is also the only way
+   this works from file://, where there is nothing to fetch. */
+async function loadDemo(){
+  $('autoStat').textContent = 'Loading the question banks…';
+  try {
+    const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+    const t = setTimeout(() => ctl && ctl.abort(), 8000);
+    const r = await fetch(CFG_BASE + 'demo.config.json', ctl ? {signal:ctl.signal} : undefined);
+    clearTimeout(t);
+    if (!r || !r.ok) throw new Error('HTTP ' + ((r && r.status) || '?'));
+    const pkg = await r.json();
+    const n = addConfig(pkg);
+    AUTO = {ok:true, units:n, name:(pkg.cfg || {}).display_name || 'demo'};
+    refresh();
+  } catch(err){
+    AUTO = {ok:false, msg:String(err && err.message || err)};
+    refresh();
+  }
+}
+
 window.__cr = {
-  addBank, addSub, refresh, select,
+  addBank, addConfig, addSub, refresh, select, toggleReveal, ensureAnswer, loadDemo,
   queue: () => QUEUE, banks: () => BANKS, subs: () => SUBS,
-  cur: () => CUR, revealed: () => REVEALED,
+  cur: () => CUR, revealed: () => REVEALED, ans: q => ANS[q], derr: q => DERR[q],
   setRevealed: v => { REVEALED = v; renderPresent(); },
   maxTierFor
 };
 
 refresh();
+loadDemo();
 </script>
 </body>
 </html>
