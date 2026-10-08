@@ -379,7 +379,7 @@ let SUBS = [];           // [{label, discuss:[...]}]
 let FLAGS = {};          // q_id -> {students:Set, missed:Set, stem, lo, tier}
 let AUTO = null;         // how the pre-load went: {ok:true, units, name} | {ok:false, msg}
 let BOOKFILTER = new Set();
-let SELU = null;         // selected unit id
+let SELUS = [];          // selected unit ids. ORDER IS THE CONFIG'S, not the click order — see selectedUnits()
 let LOOFF = {};          // unit id -> Set of objective ids switched OFF (default: all on)
 let Q = [], CUR = -1;    // the agenda and the position in it
 let VIEW = 'viewHome';
@@ -396,6 +396,54 @@ let VIEW = 'viewHome';
    meant to impose. Everything stored is the instructor's own choice: unit ids and q_ids, no student
    data of any kind. Wrapped in try/catch because a blocked or full localStorage must degrade to
    "selections last for this visit" rather than breaking the page. */
+/* ---- which chapters, in what order, and how the pool is dealt out --------------------------------
+   MORE THAN ONE CHAPTER AT A TIME, which breaks a single-chapter assumption the app was built on, so
+   selectedUnits() is the one place that answers "which chapters, in which order". It returns them in
+   the CONFIG's order rather than the order the instructor clicked, because every ordering below leans
+   on "earlier chapters first" and click order would make that mean something different each time.
+
+   TWO WAYS TO DEAL THE POOL, because the owner asked for both and they suit different sessions:
+     spread  — even sampling across the selected chapters, chapters interleaved a round at a time, so
+               four chapters give four chapters' worth of discussion rather than all of chapter 1.
+     ladder  — every Tier 1, then every Tier 2, then every Tier 3: warm up on recall across the whole
+               range, then climb.
+   Both keep flagged-by-students first, which is what this app is for and is not a mode.
+
+   THE SHUFFLE IS SEEDED, NOT Math.random(). The agenda is rebuilt on every filter change and whenever
+   an upload lands, so a random order would reshuffle itself under the instructor mid-class. A hash of
+   (q_id, seed) is stable across rebuilds and changes only when the seed does — which is what the
+   Shuffle control is for. */
+let ORDERMODE = 'spread';    // 'spread' | 'ladder'
+let ORDERSEED = 1;
+let PINNED = [];             // q_ids frozen at the front: what was already covered when Shuffle was last pressed
+
+const selectedUnits = () =>
+  UNITS.filter(u => SELUS.indexOf(u.id) >= 0);          // UNITS is already in config order
+const primaryUnit = () => selectedUnits()[0] || null;   // for the few places that genuinely mean one chapter
+function unitForQid(qid){
+  for (const u of selectedUnits()) for (const i of u.items) if (i.q_id === qid) return u;
+  return null;
+}
+
+function hashStr(s){
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+const shuffleRank = qid => hashStr(qid + '|' + ORDERSEED);
+
+/* Re-deal only what is still to come. Everything up to and including the question on screen is
+   recorded as pinned, so a shuffle mid-class never re-orders what the room has already worked. */
+function reshuffleRemaining(){
+  PINNED = Q.slice(0, Math.max(0, CUR + 1)).map(e => e.q_id);
+  ORDERSEED = (ORDERSEED * 1103515245 + 12345 + Date.now()) >>> 0 || 1;
+  if (VIEW === 'viewSession') requeue(); else afterFilterChange();
+}
+function setOrderMode(m){
+  ORDERMODE = (m === 'ladder') ? 'ladder' : 'spread';
+  afterFilterChange();
+}
+
 const PICK_KEY = 'quizprep-classroom-v1';
 let PICK = {};               // stable unit id -> Set of q_ids
 let PICKFILTER = 'both';     // 'both' | 'sel' | 'unsel' — one state, shared by the preview and the agenda
@@ -453,10 +501,16 @@ const ANS = {};    // q_id -> the decrypted answer object
 const DERR = {};   // q_id -> why a decrypt failed
 
 const TRANCHE = {
+  0:['Already covered', 'left in the order you worked them'],
   1:['Flagged by students', 'most-flagged first'],
   2:['Deepest per objective', 'Tier 3, or Tier 2 where no Tier 3 is authored'],
-  3:['Everything else', 'available if you want it']
+  3:['Everything else', 'available if you want it'],
+  11:['Tier 1 · recall', 'chapters interleaved'],
+  12:['Tier 2 · comprehension', 'chapters interleaved'],
+  13:['Tier 3 · application', 'chapters interleaved'],
+  14:['Unbanded tier', 'tier outside 1-3 — shown rather than dropped']
 };
+const band = n => TRANCHE[n] || ['Questions', ''];
 const TIERNAME = {1:'Recall', 2:'Comprehension', 3:'Application'};
 
 /* ================= loading ================= */
@@ -607,56 +661,118 @@ function entry(tranche, u, i, note){
 }
 
 function buildQueue(){
-  const u = unitById(SELU);
-  Q = u ? orderedEntries(u) : [];
+  Q = orderedEntries(selectedUnits());
+}
+
+/* Deal one question at a time from each chapter in turn, so the chapters are sampled evenly and the
+   earlier ones still come first inside every round. Chapters run out at different points; a chapter
+   with nothing left is simply skipped, so a short chapter does not stop the rotation. */
+function roundRobin(lists){
+  const out = [], idx = lists.map(() => 0);
+  let left = lists.reduce((n, l) => n + l.length, 0);
+  while (left > 0){
+    for (let k = 0; k < lists.length; k++){
+      if (idx[k] < lists[k].length){ out.push(lists[k][idx[k]++]); left--; }
+    }
+  }
+  return out;
 }
 
 /* The agenda order, as a function of a unit. buildQueue() and the preview BOTH call this rather than
    each ordering its own copy — the preview exists to choose what the session will run, so a preview
    that ordered questions differently from the session would be showing a different agenda than the
    one it is editing. */
-function orderedEntries(u){
-  let Q = [];
+function orderedEntries(units){
+  units = (units || []).filter(Boolean);
+  if (!units.length) return [];
   const used = {};
+  let out = [];
 
-  // ---- 1. flagged, most-flagged first.
-  const flagged = u.items.filter(i => inScope(u, i) && pickPass(u, i.q_id) && flagCount(i.q_id) > 0);
-  flagged.sort((a, b) =>
-    flagCount(b.q_id) - flagCount(a.q_id) ||          // most students first
-    missCount(b.q_id) - missCount(a.q_id) ||          // then where more of them had it wrong
-    b.tier - a.tier ||
-    byNum(a.q_id, b.q_id));
-  for (const i of flagged){ used[i.q_id] = 1; Q.push(entry(1, u, i)); }
-
-  // ---- 2. the deepest question authored per objective.
-  const deep = [];
-  for (const r of loIndex(u)){
-    if (!loOn(u, r.lo)) continue;
-    const mt = maxTierFor(u, r.lo);
-    if (mt < 2) continue;                              // an objective topping out at recall is not a discussion
-    for (const i of u.items){
-      if (i.lo !== r.lo || i.tier !== mt || used[i.q_id]) continue;
-      if (!pickPass(u, i.q_id)) continue;
-      used[i.q_id] = 1;
-      // Said, not hidden: this objective has no Tier 3 and the agenda admits it.
-      deep.push(entry(2, u, i, mt < 3
-        ? ('No Tier-3 question is authored for objective ' + r.lo + ' — this Tier 2 is the deepest available for it.')
-        : ''));
+  /* ---- 0. what was already covered when the remainder was last shuffled, in that same order.
+     Pinned wins over every band below, because the one thing a mid-class shuffle must not do is
+     re-order the questions the room has already worked through. */
+  if (PINNED.length){
+    const byId = {};
+    for (const u of units) for (const i of u.items) if (!byId[i.q_id]) byId[i.q_id] = {u, i};
+    for (const qid of PINNED){
+      const hit = byId[qid];
+      if (!hit || used[qid]) continue;
+      if (!inScope(hit.u, hit.i) || !pickPass(hit.u, qid)) continue;   // a filter still removes it
+      used[qid] = 1;
+      out.push(entry(0, hit.u, hit.i));
     }
   }
-  deep.sort((a, b) => b.tier - a.tier || byNum(a.lo, b.lo) || byNum(a.q_id, b.q_id));
-  Q = Q.concat(deep);
 
-  // ---- 3. the rest, present but out of the way.
-  const rest = [];
-  for (const i of u.items){
-    if (!inScope(u, i) || used[i.q_id] || !pickPass(u, i.q_id)) continue;
-    used[i.q_id] = 1;
-    rest.push(entry(3, u, i));
+  /* ---- 1. flagged by students, most-flagged first, ACROSS every selected chapter. This band is not
+     part of either ordering mode: it is what the app exists to surface. */
+  const flagged = [];
+  for (const u of units)
+    for (const i of u.items)
+      if (!used[i.q_id] && inScope(u, i) && pickPass(u, i.q_id) && flagCount(i.q_id) > 0) flagged.push({u, i});
+  flagged.sort((a, b) =>
+    flagCount(b.i.q_id) - flagCount(a.i.q_id) ||      // most students first
+    missCount(b.i.q_id) - missCount(a.i.q_id) ||      // then where more of them had it wrong
+    b.i.tier - a.i.tier ||
+    byNum(a.i.q_id, b.i.q_id));
+  for (const {u, i} of flagged){ used[i.q_id] = 1; out.push(entry(1, u, i)); }
+
+  /* Per chapter: the deepest question authored for each objective, and everything else. Computed per
+     unit because an objective id is only meaningful inside its own chapter — two books both have a
+     "2.2", and a deepest-tier taken across the union would claim a Tier 3 for one that has none. */
+  const deepBy = {}, restBy = {};
+  for (const u of units){
+    const deep = [], rest = [], isDeep = {};
+    for (const r of loIndex(u)){
+      if (!loOn(u, r.lo)) continue;
+      const mt = maxTierFor(u, r.lo);
+      if (mt < 2) continue;                            // an objective topping out at recall is not a discussion
+      for (const i of u.items){
+        if (i.lo !== r.lo || i.tier !== mt || used[i.q_id]) continue;
+        if (!pickPass(u, i.q_id)) continue;
+        isDeep[i.q_id] = 1;
+        // Said, not hidden: this objective has no Tier 3 and the agenda admits it.
+        deep.push(entry(2, u, i, mt < 3
+          ? ('No Tier-3 question is authored for objective ' + r.lo + ' — this Tier 2 is the deepest available for it.')
+          : ''));
+      }
+    }
+    for (const i of u.items){
+      if (used[i.q_id] || isDeep[i.q_id] || !inScope(u, i) || !pickPass(u, i.q_id)) continue;
+      rest.push(entry(3, u, i));
+    }
+    /* Shuffled by a SEEDED hash, then broken by objective and q_id so the result is fully determined:
+       two questions can share a hash, and an undetermined order would re-sort itself on every rebuild.
+
+       THE DEEP BAND KEEPS TIER DESCENDING and shuffles only WITHIN a tier. The band is called
+       "deepest per objective", so leading it with a Tier 2 while a Tier 3 waits below contradicts its
+       own name. I dropped this ordering when the shuffle went in and the existing check that guards it
+       still passed — by luck of the seed — which is why it is now tier-first by construction rather
+       than by arithmetic that happened to agree. */
+    const bySeed = (a, b) => shuffleRank(a.q_id) - shuffleRank(b.q_id)
+      || byNum(a.lo, b.lo) || byNum(a.q_id, b.q_id);
+    deepBy[u.id] = deep.sort((a, b) => (b.tier - a.tier) || bySeed(a, b));
+    restBy[u.id] = rest.sort(bySeed);
   }
-  rest.sort((a, b) => byNum(a.lo, b.lo) || b.tier - a.tier || byNum(a.q_id, b.q_id));
-  Q = Q.concat(rest);
-  return Q;
+
+  if (ORDERMODE === 'ladder'){
+    /* Every Tier 1, then every Tier 2, then every Tier 3 — chapters interleaved within each tier, so
+       the tier climbs while the chapters stay evenly sampled. The deepest-per-objective distinction
+       does not survive here, by design: the band IS the tier. */
+    const all = [];
+    for (const u of units) all.push(deepBy[u.id].concat(restBy[u.id]));
+    for (const tier of [1, 2, 3]){
+      const lists = all.map(list => list.filter(e => e.tier === tier).map(e => Object.assign({}, e, {tranche: 10 + tier})));
+      out = out.concat(roundRobin(lists));
+    }
+    // Anything with a tier outside 1-3 must still be dealt rather than silently dropped.
+    const odd = [];
+    for (const list of all) for (const e of list) if (!(e.tier >= 1 && e.tier <= 3)) odd.push(Object.assign({}, e, {tranche: 14}));
+    out = out.concat(odd.sort((a, b) => byNum(a.q_id, b.q_id)));
+  } else {
+    out = out.concat(roundRobin(units.map(u => deepBy[u.id])));
+    out = out.concat(roundRobin(units.map(u => restBy[u.id])));
+  }
+  return out;
 }
 
 /* ================= answers (per-question decrypt, #3) ================= */
@@ -767,18 +883,23 @@ function renderHome(){
           : 'Loading the question banks…') + '</div>';
   }
   shown.forEach(u => {
-    const nf = unitFlagged(u), nlo = loIndex(u).length, isSel = (u.id === SELU);
+    const nf = unitFlagged(u), nlo = loIndex(u).length, isSel = SELUS.indexOf(u.id) >= 0;
     h += '<button class="chap' + (isSel ? ' sel' : '') + '" data-unit="' + esc(u.id) + '">'
       + (multi ? '<span class="cbook">' + esc(u.bookShort) + '</span>' : '')
       + '<span class="cnum">' + (u.chapter != null ? 'CHAPTER ' + u.chapter : 'UNIT') + ' · ' + u.items.length + ' items</span>'
       + '<span class="ctitle" style="display:block">' + esc(u.title) + '</span>'
       + '<span class="cmeta">' + nlo + ' objective' + (nlo === 1 ? '' : 's')
       + (nf ? ' · <b style="color:var(--no)">&#9873; ' + nf + ' flagged</b>' : '') + '</span>'
-      + '<span class="ccta">' + (isSel ? '✓ Selected — choose objectives below' : 'Choose this chapter →') + '</span></button>';
+      + '<span class="ccta">' + (isSel ? '✓ In this session — tap to remove' : 'Add to this session →') + '</span></button>';
   });
   $('chapterList').innerHTML = h;
+  // Chapters ACCUMULATE: tap to add, tap again to remove. A session can run several at once, and the
+  // order they are dealt in is the config's, not the order they were tapped — see selectedUnits().
   $('chapterList').querySelectorAll('.chap').forEach(b => b.onclick = () => {
-    SELU = b.dataset.unit; renderHome();
+    const id = b.dataset.unit, at = SELUS.indexOf(id);
+    if (at >= 0) SELUS.splice(at, 1); else SELUS.push(id);
+    PINNED = [];            // a different set of chapters is a different agenda; nothing is "covered" in it
+    renderHome();
     const row = $('setupRow'); if (row && row.scrollIntoView) row.scrollIntoView({block:'nearest'});
   });
   $('chapterList').querySelectorAll('.bookchip').forEach(b => b.onclick = () => {
@@ -794,32 +915,57 @@ function renderHome(){
 
 /* The chapter's objectives, on display, each one a filter — and the Begin button. */
 function renderSetup(){
-  const row = $('setupRow'), u = unitById(SELU);
-  if (!u){ row.style.display = 'none'; row.innerHTML = ''; return; }
+  const row = $('setupRow'), units = selectedUnits();
+  if (!units.length){ row.style.display = 'none'; row.innerHTML = ''; return; }
   row.style.display = 'block';
   // n = in scope after the OBJECTIVE filter; na = what the agenda would actually run, i.e. after the
   // selection filter too. Begin must be disabled on na, not n, or it offers a session with nothing in it.
-  const los = loIndex(u), n = scopeCount(u), na = agendaCount(u), nf = unitFlagged(u);
+  const n = units.reduce((a, u) => a + scopeCount(u), 0);
+  const na = agendaTotal(units);
+  const nf = units.reduce((a, u) => a + unitFlagged(u), 0);
+  const nq = units.reduce((a, u) => a + u.items.length, 0);
+  const nlo = units.reduce((a, u) => a + loIndex(u).length, 0);
+  const one = units.length === 1;
+
   row.innerHTML =
-      '<div class="eyebrow">Objectives in this chapter</div>'
-    + '<p class="muted"><b>' + esc(u.title) + '</b> — ' + u.items.length + ' questions across ' + los.length
-    + ' learning objective' + (los.length === 1 ? '' : 's')
+      '<div class="eyebrow">' + (one ? 'Objectives in this chapter' : units.length + ' chapters in this session') + '</div>'
+    + '<p class="muted">'
+    + (one ? '<b>' + esc(units[0].title) + '</b>' : units.map(u => esc(u.chapter != null ? 'Ch ' + u.chapter : u.title)).join(' · '))
+    + ' — ' + nq + ' questions across ' + nlo + ' learning objective' + (nlo === 1 ? '' : 's')
     + (nf ? ', <b style="color:var(--no)">' + nf + ' flagged by students</b>' : '')
     + '. Untick an objective to leave its questions out of the discussion.</p>'
-    + '<div class="lolist" id="loSetup">' + loListHtml(u, false) + '</div>'
-    + '<div class="btnrow" style="margin-top:.5rem">'
-    + '<button class="btn quiet sm" data-loall="on">All objectives</button>'
-    + '<button class="btn quiet sm" data-loall="off">None</button></div>'
-    + '<p class="muted" style="margin-top:.8rem">The agenda runs flagged questions first (most-flagged first), then the deepest question authored for each objective, then the rest.</p>'
-    + (pickCount(u) ? '<div style="margin-top:.6rem">' + pickFilterHtml(u) + '</div>' : '')
+    + units.map(u => (one ? '' : '<div class="tranche">' + esc((u.chapter != null ? 'Chapter ' + u.chapter + ' · ' : '') + u.title) + '</div>')
+        + '<div class="lolist" data-losetup="' + esc(u.id) + '">' + loListHtml(u, false) + '</div>'
+        + '<div class="btnrow" style="margin-top:.4rem">'
+        + '<button class="btn quiet sm" data-loall="on" data-lounit="' + esc(u.id) + '">All objectives</button>'
+        + '<button class="btn quiet sm" data-loall="off" data-lounit="' + esc(u.id) + '">None</button></div>').join('')
+    + '<p class="muted" style="margin-top:.8rem">Flagged questions run first (most-flagged first)'
+    + (ORDERMODE === 'ladder' ? ', then every Tier 1, then Tier 2, then Tier 3.' :
+       (one ? ', then the deepest question authored for each objective, then the rest.'
+            : ', then the deepest question per objective and then the rest, dealt a chapter at a time so the chapters are sampled evenly.'))
+    + '</p>'
+    + '<div id="setupOrder">' + orderModeHtml(units) + '</div>'
+    + (scopeStatsAll(units).sel ? '<div style="margin-top:.6rem">' + pickFilterHtml(units) + '</div>' : '')
     + '<div class="btnrow"><button class="btn brand" id="btnBegin"' + (na ? '' : ' disabled')
     + ' style="font-size:1.05rem;padding:.7rem 1.5rem">Begin discussion'
     + (na ? ' · ' + na + ' question' + (na === 1 ? '' : 's') : '') + ' →</button>'
     + '<button class="btn secondary" id="btnToPreview" style="font-size:1.05rem;padding:.7rem 1.2rem">Preview &amp; choose questions</button></div>'
     + (n ? '' : '<p class="muted">Every objective is switched off, so there is nothing to discuss. Turn at least one back on.</p>')
     + (n && !na ? '<p class="muted">The selection filter is hiding every question in scope. Switch it to <b>Both</b>, or pick some in the preview.</p>' : '');
-  wireLoInputs(u, '#setupRow');
-  wirePickFilter(u, '#setupRow');
+
+  // Each chapter's objective list is wired to ITS OWN unit; a shared handler would apply one
+  // chapter's objective ids to another, and two books both have a "2.2".
+  units.forEach(u => {
+    wireLoInputs(u, '[data-losetup="' + u.id + '"]');
+    row.querySelectorAll('[data-lounit="' + u.id + '"]').forEach(b => b.onclick = () => {
+      const off = loOff(u);
+      off.clear();
+      if (b.dataset.loall === 'off') loIndex(u).forEach(r => off.add(r.lo));
+      afterFilterChange();
+    });
+  });
+  wirePickFilter(units, '#setupRow');
+  wireOrderMode('#setupOrder');
   $('btnBegin').onclick = () => begin();
   $('btnToPreview').onclick = () => { show('viewPreview'); renderPreview(); };
 }
@@ -850,8 +996,40 @@ function scopeStats(u){
 }
 const agendaCount = u => u.items.filter(i => inScope(u, i) && pickPass(u, i.q_id)).length;
 
-function pickFilterHtml(u){
-  const s = scopeStats(u);
+/* The same three numbers across every selected chapter, so the controls describe the whole session
+   rather than whichever chapter happens to be first. */
+function scopeStatsAll(units){
+  return (units || []).reduce((a, u) => {
+    const s = scopeStats(u);
+    return {total:a.total + s.total, sel:a.sel + s.sel, unsel:a.unsel + s.unsel};
+  }, {total:0, sel:0, unsel:0});
+}
+const agendaTotal = units => (units || []).reduce((n, u) => n + agendaCount(u), 0);
+
+/* How the pool is dealt. Hidden for a single chapter with one exception — the tier ladder is just as
+   useful on one chapter, so the control shows whenever there is more than one chapter OR the ladder
+   is already chosen, which means it can always be switched back off. */
+function orderModeHtml(units){
+  const opts = [['spread', (units.length > 1 ? 'Spread across chapters' : 'Flagged, then deepest')],
+                ['ladder', 'Tier ladder · T1 → T2 → T3']];
+  return '<div class="pfilter" style="margin-top:.5rem"><span class="plab">Order:</span>'
+    + opts.map(o => '<button class="pchip' + (ORDERMODE === o[0] ? ' on' : '') + '" data-om="' + o[0] + '">'
+        + esc(o[1]) + '</button>').join('')
+    + '<button class="btn quiet sm" data-reshuffle="1" title="Re-deal the questions still to come, leaving what you have covered in place">Shuffle remaining</button>'
+    + '</div>'
+    + (PINNED.length ? '<p class="muted" style="margin:.3rem 0 0;font-size:.8rem">'
+        + PINNED.length + ' question' + (PINNED.length === 1 ? '' : 's') + ' already covered are held in place.</p>' : '');
+}
+
+function wireOrderMode(rootSel){
+  const root = document.querySelector(rootSel);
+  if (!root) return;
+  root.querySelectorAll('[data-om]').forEach(b => b.onclick = () => setOrderMode(b.dataset.om));
+  root.querySelectorAll('[data-reshuffle]').forEach(b => b.onclick = () => reshuffleRemaining());
+}
+
+function pickFilterHtml(units){
+  const s = scopeStatsAll(Array.isArray(units) ? units : [units]);
   const opts = [['both', 'Both', s.total], ['sel', 'Selected', s.sel], ['unsel', 'Not selected', s.unsel]];
   return '<div class="pfilter"><span class="plab">Show:</span>' + opts.map(o =>
     '<button class="pchip' + (PICKFILTER === o[0] ? ' on' : '') + '" data-pf="' + o[0] + '">'
@@ -933,20 +1111,33 @@ function pvOptions(e){
 }
 
 function renderPreview(){
-  const u = unitById(SELU);
-  if (!u){ show('viewHome'); renderHome(); return; }
-  const s = scopeStats(u);
-  $('pvTitle').textContent = (u.chapter != null ? 'Chapter ' + u.chapter + ' · ' : '') + u.title;
+  const units = selectedUnits();
+  if (!units.length){ show('viewHome'); renderHome(); return; }
+  const one = units.length === 1, u0 = units[0];
+  const s = scopeStatsAll(units);
+  $('pvTitle').textContent = one
+    ? ((u0.chapter != null ? 'Chapter ' + u0.chapter + ' · ' : '') + u0.title)
+    : (units.length + ' chapters · ' + units.map(u => u.chapter != null ? 'Ch ' + u.chapter : u.title).join(', '));
   $('pvIntro').innerHTML =
       'Tick the questions you mean to discuss, then filter the agenda to just those — or to just the ones you did not pick. '
-    + 'The order is the session’s own: flagged by students first, then the deepest question per objective, then the rest. '
-    + 'Ticks are kept on this device, so you can prepare now and present later. '
+    + 'The order is the session’s own: flagged by students first, then '
+    + (ORDERMODE === 'ladder' ? 'every Tier 1, then Tier 2, then Tier 3'
+       : (one ? 'the deepest question per objective, then the rest'
+              : 'the deepest per objective and then the rest, dealt a chapter at a time'))
+    + '. Ticks are kept on this device, so you can prepare now and present later. '
     + '<b>' + s.sel + '</b> selected of ' + s.total + ' in scope.';
-  $('pvControls').innerHTML = pickFilterHtml(u) + loChipsHtml(u);
-  wirePickFilter(u, '#pvControls');
-  wireLoChips(u, '#pvControls');
+  // One objective-chip row per chapter, each labelled, because an objective id only means something
+  // inside its own chapter and an unlabelled merged row would invite ticking the wrong book's "2.2".
+  $('pvControls').innerHTML = pickFilterHtml(units) + orderModeHtml(units)
+    + units.map(u => '<div data-lochips="' + esc(u.id) + '">'
+        + (one ? '' : '<div class="muted" style="margin-top:.5rem;font-size:.8rem"><b>'
+            + esc(u.chapter != null ? 'Chapter ' + u.chapter : u.title) + '</b></div>')
+        + loChipsHtml(u) + '</div>').join('');
+  wirePickFilter(units, '#pvControls');
+  wireOrderMode('#pvControls');
+  units.forEach(u => wireLoChips(u, '[data-lochips="' + u.id + '"]'));
 
-  const rows = orderedEntries(u);
+  const rows = orderedEntries(units);
   const list = $('pvList');
   if (!rows.length){
     // Said rather than left blank: an empty list under a narrowing filter is a fact about the filter.
@@ -960,17 +1151,19 @@ function renderPreview(){
       if (e.tranche !== last){
         last = e.tranche;
         const cnt = rows.filter(x => x.tranche === last).length;
-        html += '<div class="tranche">' + esc(TRANCHE[last][0]) + ' <span class="n">· ' + cnt + ' · '
-              + esc(TRANCHE[last][1]) + '</span></div>';
+        html += '<div class="tranche">' + esc(band(last)[0]) + ' <span class="n">· ' + cnt + ' · '
+              + esc(band(last)[1]) + '</span></div>';
       }
-      const picked = isPicked(u, e.q_id);
+      const picked = isPicked(e.unit, e.q_id);
       const t = (e.tier >= 1 && e.tier <= 3) ? e.tier : 1;
       html += '<label class="pvrow' + (picked ? ' picked' : '') + '">'
         + '<input type="checkbox" data-pick="' + esc(e.q_id) + '"' + (picked ? ' checked' : '') + '>'
         + '<span class="pvmeta"><span class="badge t' + t + '">T' + (e.tier != null ? e.tier : '?') + '</span>'
         + (e.flags ? '<span class="flagn">' + e.flags + '&#9873;</span>' : '') + '</span>'
         + '<span class="pvbody"><span class="pvstem">' + esc(e.item.stem) + '</span>'
-        + '<span class="pvsub">objective ' + esc(e.lo || '—') + ' · ' + esc(e.item.type || '')
+        + '<span class="pvsub">'
+        + (one ? '' : '<b>' + esc(e.unit.chapter != null ? 'Ch ' + e.unit.chapter : e.unit.title) + '</b> · ')
+        + 'objective ' + esc(e.lo || '—') + ' · ' + esc(e.item.type || '')
         + (e.flags ? ' · flagged by ' + e.flags + ' student' + (e.flags === 1 ? '' : 's') : '') + '</span>'
         + pvOptions(e) + '</span></label>';
     });
@@ -978,33 +1171,38 @@ function renderPreview(){
   }
 
   list.querySelectorAll('input[data-pick]').forEach(cb => cb.onchange = () => {
-    setPick(u, cb.dataset.pick, cb.checked);
+    // The row's own chapter, resolved from the q_id: with several chapters in the list the unit
+    // differs per row, and picking against the wrong one would store the tick under another chapter.
+    const ru = unitForQid(cb.dataset.pick);
+    if (!ru) return;
+    setPick(ru, cb.dataset.pick, cb.checked);
     if (PICKFILTER === 'both'){
       // Keep the page still: a tick must not scroll the list or collapse an open option list.
       const row = cb.parentElement;
       if (row) row.classList.toggle('picked', cb.checked);
-      const st = scopeStats(u);
-      $('pvControls').innerHTML = pickFilterHtml(u);
-      wirePickFilter(u, '#pvControls');
+      const st = scopeStatsAll(units);
       $('pvIntro').innerHTML = $('pvIntro').innerHTML.replace(/<b>\d+<\/b> selected of \d+/,
         '<b>' + st.sel + '</b> selected of ' + st.total);
+      const ctl = $('pvControls').querySelector('.pfilter');
+      if (ctl){ ctl.outerHTML = pickFilterHtml(units); wirePickFilter(units, '#pvControls'); }
     } else {
       renderPreview();   // under a narrowing filter the row no longer belongs in the list
     }
   });
 
-  const shown = rows.map(e => e.q_id);
-  $('pvAll').onclick = () => { shown.forEach(q => picksFor(u).add(q)); savePicks(); renderPreview(); };
-  $('pvNone').onclick = () => { shown.forEach(q => picksFor(u).delete(q)); savePicks(); renderPreview(); };
+  const shown = rows.map(e => ({q: e.q_id, u: e.unit}));
+  $('pvAll').onclick = () => { shown.forEach(x => picksFor(x.u).add(x.q)); savePicks(); renderPreview(); };
+  $('pvNone').onclick = () => { shown.forEach(x => picksFor(x.u).delete(x.q)); savePicks(); renderPreview(); };
   $('pvFlagged').onclick = () => {
-    u.items.forEach(i => { if (inScope(u, i) && flagCount(i.q_id) > 0) picksFor(u).add(i.q_id); });
+    units.forEach(u => u.items.forEach(i => {
+      if (inScope(u, i) && flagCount(i.q_id) > 0) picksFor(u).add(i.q_id); }));
     savePicks(); renderPreview();
   };
+  const na = agendaTotal(units);
   $('pvAll').disabled = $('pvNone').disabled = !rows.length;
-  $('pvFlagged').disabled = unitFlagged(u) === 0;
-  $('pvBegin').disabled = agendaCount(u) === 0;
-  $('pvBegin').textContent = 'Begin discussion' + (agendaCount(u) ? ' · ' + agendaCount(u) + ' question'
-    + (agendaCount(u) === 1 ? '' : 's') : '') + ' →';
+  $('pvFlagged').disabled = units.reduce((a, u) => a + unitFlagged(u), 0) === 0;
+  $('pvBegin').disabled = na === 0;
+  $('pvBegin').textContent = 'Begin discussion' + (na ? ' · ' + na + ' question' + (na === 1 ? '' : 's') : '') + ' →';
   $('pvBegin').onclick = () => begin();
   $('pvBack').onclick = () => { show('viewHome'); renderHome(); };
 }
@@ -1081,8 +1279,7 @@ function show(id){
 }
 
 function begin(){
-  const u = unitById(SELU);
-  if (!u) return false;
+  if (!selectedUnits().length) return false;
   // A discussion session starts clean: no leftover picks, checks or reveals from a previous run.
   for (const k of Object.keys(SEL)) delete SEL[k];
   for (const k of Object.keys(CHK)) delete CHK[k];
@@ -1142,7 +1339,7 @@ function headNotes(e){
     + (e.unit.chapter != null ? ' · Ch ' + e.unit.chapter : '') + '</span>');
   if (e.flags) bits.push('<span class="pill flag">Flagged by ' + e.flags + ' student' + (e.flags === 1 ? '' : 's')
     + (e.missed ? ' · ' + e.missed + ' had it wrong' : '') + '</span>');
-  bits.push('<span class="pill">' + esc(TRANCHE[e.tranche][0]) + '</span>');
+  bits.push('<span class="pill">' + esc(band(e.tranche)[0]) + '</span>');
   if (it.status && /draft|unvetted/i.test(it.status)) bits.push('<span class="pill warn">' + esc(it.status) + '</span>');
   return '<div class="pills">' + bits.join('') + '</div>'
     + (e.note ? '<div class="note">' + esc(e.note) + '</div>' : '');
@@ -1347,15 +1544,32 @@ function renderActions(e){
 }
 
 function renderRail(){
-  const u = unitById(SELU);
-  if (!u) return;
-  $('railTitle').textContent = 'Objectives · ' + (u.chapter != null ? 'Chapter ' + u.chapter : u.title);
-  $('loRail').innerHTML = loListHtml(u, true)
-    + '<div class="btnrow" style="margin-top:.4rem"><button class="btn quiet sm" data-loall="on">All</button>'
-    + '<button class="btn quiet sm" data-loall="off">None</button></div>';
-  wireLoInputs(u, '#loRail');
-  $('railFilter').innerHTML = pickFilterHtml(u);
-  wirePickFilter(u, '#railFilter');
+  const units = selectedUnits();
+  if (!units.length) return;
+  const one = units.length === 1;
+  $('railTitle').textContent = one
+    ? ('Objectives · ' + (units[0].chapter != null ? 'Chapter ' + units[0].chapter : units[0].title))
+    : ('Objectives · ' + units.length + ' chapters');
+  $('loRail').innerHTML = units.map(u => '<div data-lorail="' + esc(u.id) + '">'
+      + (one ? '' : '<div class="muted" style="margin-top:.5rem;font-size:.78rem"><b>'
+          + esc(u.chapter != null ? 'Chapter ' + u.chapter : u.title) + '</b></div>')
+      + loListHtml(u, true)
+      + '<div class="btnrow" style="margin-top:.3rem">'
+      + '<button class="btn quiet sm" data-railall="on" data-railunit="' + esc(u.id) + '">All</button>'
+      + '<button class="btn quiet sm" data-railall="off" data-railunit="' + esc(u.id) + '">None</button></div>'
+      + '</div>').join('');
+  units.forEach(u => {
+    wireLoInputs(u, '[data-lorail="' + u.id + '"]');
+    document.querySelectorAll('[data-railunit="' + u.id + '"]').forEach(b => b.onclick = () => {
+      const off = loOff(u);
+      off.clear();
+      if (b.dataset.railall === 'off') loIndex(u).forEach(r => off.add(r.lo));
+      afterFilterChange();
+    });
+  });
+  $('railFilter').innerHTML = pickFilterHtml(units) + orderModeHtml(units);
+  wirePickFilter(units, '#railFilter');
+  wireOrderMode('#railFilter');
   $('btnPreview').onclick = () => { show('viewPreview'); renderPreview(); };
 }
 
@@ -1367,8 +1581,8 @@ function renderQueue(){
     if (e.tranche !== last){
       last = e.tranche;
       const cnt = Q.filter(x => x.tranche === last).length;
-      html += '<div class="tranche">' + esc(TRANCHE[last][0])
-            + ' <span class="n">· ' + cnt + ' · ' + esc(TRANCHE[last][1]) + '</span></div>';
+      html += '<div class="tranche">' + esc(band(last)[0])
+            + ' <span class="n">· ' + cnt + ' · ' + esc(band(last)[1]) + '</span></div>';
     }
     const t = (e.tier >= 1 && e.tier <= 3) ? e.tier : 1;
     const picked = isPicked(e.unit, e.q_id);
@@ -1386,7 +1600,7 @@ function renderQueue(){
   q.innerHTML = html;
   q.querySelectorAll('.qjump').forEach(b => b.onclick = () => select(+b.dataset.n));
   q.querySelectorAll('input[data-pick]').forEach(cb => cb.onchange = () => {
-    const u = unitById(SELU);
+    const u = unitForQid(cb.dataset.pick);
     if (!u) return;
     setPick(u, cb.dataset.pick, cb.checked);
     // Under a narrowing filter this row has just stopped belonging, so the agenda is rebuilt — which
@@ -1395,9 +1609,11 @@ function renderQueue(){
     if (PICKFILTER === 'both'){ renderRail(); renderQueue(); } else { requeue(); }
   });
   const f = Q.filter(e => e.tranche === 1).length;
-  const u = unitById(SELU);
+  const units = selectedUnits();
+  const nsel = units.reduce((a, u) => a + pickCount(u), 0);
   $('queueStat').textContent = Q.length + ' question' + (Q.length === 1 ? '' : 's') + ' · ' + f + ' flagged'
-    + (u ? ' · ' + pickCount(u) + ' selected' : '')
+    + (units.length ? ' · ' + nsel + ' selected' : '')
+    + (units.length > 1 ? ' · ' + units.length + ' chapters' : '')
     + (SUBS.length ? ' across ' + SUBS.length + ' upload' + (SUBS.length === 1 ? '' : 's') : ' (no uploads loaded)');
 }
 
@@ -1430,10 +1646,10 @@ function statusLines(){
    because the boot's config fetch resolves asynchronously and could land mid-sentence. */
 function refresh(){
   recomputeFlags();
-  if (SELU && !unitById(SELU)) SELU = null;
+  SELUS = SELUS.filter(id => !!unitById(id));
   statusLines();
   renderHome();
-  if (VIEW === 'viewSession' && SELU) requeue();
+  if (VIEW === 'viewSession' && SELUS.length) requeue();
 }
 
 /* ================= wiring ================= */
@@ -1499,11 +1715,24 @@ function pick(spec){
 window.__cr = {
   addUnit, addBank:addUnit, addConfig, addSub, refresh, loadDemo,
   units: () => UNITS, subs: () => SUBS, flags: () => FLAGS, orphans: orphanFlags,
-  openUnit: id => { SELU = id; renderHome(); }, selected: () => SELU,
-  loIndex: id => loIndex(unitById(id || SELU)), maxTierFor, unitFlagged,
-  setLO: (lo, on) => { const u = unitById(SELU); if (u) setLO(u, lo, on); },
-  clickLo: lo => { const u = unitById(SELU); if (u) clickLoChip(u, lo); },
-  losOn: () => { const u = unitById(SELU); return u ? loIndex(u).map(r => r.lo).filter(l => loOn(u, l)) : []; },
+  // openUnit REPLACES the selection (the single-chapter case most checks want); addUnitToSession
+  // accumulates, which is the multi-chapter path.
+  openUnit: id => { SELUS = [id]; PINNED = []; renderHome(); },
+  addUnitToSession: id => { if (SELUS.indexOf(id) < 0) SELUS.push(id); PINNED = []; renderHome(); },
+  removeUnitFromSession: id => { SELUS = SELUS.filter(x => x !== id); renderHome(); },
+  selected: () => primaryUnit() && primaryUnit().id,
+  selectedUnits: () => selectedUnits().map(u => u.id),
+  loIndex: id => loIndex(id ? unitById(id) : primaryUnit()), maxTierFor, unitFlagged,
+  setLO: (lo, on, uid) => { const u = uid ? unitById(uid) : primaryUnit(); if (u) setLO(u, lo, on); },
+  clickLo: (lo, uid) => { const u = uid ? unitById(uid) : primaryUnit(); if (u) clickLoChip(u, lo); },
+  losOn: uid => { const u = uid ? unitById(uid) : primaryUnit();
+    return u ? loIndex(u).map(r => r.lo).filter(l => loOn(u, l)) : []; },
+  orderMode: () => ORDERMODE, setOrderMode, reshuffleRemaining, pinned: () => PINNED.slice(),
+  seed: () => ORDERSEED,
+  // Harness hook: set the seed WITHOUT pinning anything, so a check can sweep many deals and assert
+  // a property holds for all of them. reshuffleRemaining() cannot do that job — it pins by design,
+  // and a sweep built on it measures pinning as much as ordering.
+  setSeed: n => { ORDERSEED = (n >>> 0) || 1; if (VIEW === 'viewSession') requeue(); else afterFilterChange(); },
   begin, end: endSession, view: () => VIEW,
   queue: () => Q, cur: () => CUR, select,
   pick, check: doCheck, reveal: doReveal,
@@ -1512,11 +1741,11 @@ window.__cr = {
   ans: q => ANS[q], derr: q => DERR[q],
   // the instructor's selection
   preview: () => { show('viewPreview'); renderPreview(); },
-  setPick: (qid, on) => { const u = unitById(SELU); if (u){ setPick(u, qid, on); afterFilterChange(); } },
-  picks: () => { const u = unitById(SELU); return u ? [...picksFor(u)].sort() : []; },
-  pickKeyFor: () => { const u = unitById(SELU); return u ? pickKey(u) : null; },
+  setPick: (qid, on) => { const u = unitForQid(qid) || primaryUnit(); if (u){ setPick(u, qid, on); afterFilterChange(); } },
+  picks: () => selectedUnits().reduce((a, u) => a.concat([...picksFor(u)]), []).sort(),
+  pickKeyFor: uid => { const u = uid ? unitById(uid) : primaryUnit(); return u ? pickKey(u) : null; },
   pickFilter: () => PICKFILTER, setPickFilter,
-  agendaCount: () => { const u = unitById(SELU); return u ? agendaCount(u) : 0; },
+  agendaCount: () => agendaTotal(selectedUnits()),
   savePicks, loadPicks
 };
 
