@@ -150,6 +150,11 @@ h3{font-size:.95rem;font-weight:600}
 .pchip{border:1.5px solid var(--line);border-radius:999px;padding:.22rem .7rem;background:#fff;color:var(--ink-soft);font-weight:600;font-size:.79rem;cursor:pointer}
 .pchip.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
 .pchip .pn{font-family:var(--mono);font-size:.72rem;opacity:.8;margin-left:.25rem}
+.lochips{display:flex;gap:.35rem;align-items:center;flex-wrap:wrap;margin-top:.5rem;font-size:.84rem}
+.lochip{border:1.5px solid var(--line);border-radius:7px;padding:.2rem .5rem;background:#fff;color:var(--ink-soft);font-family:var(--mono);font-size:.76rem;font-weight:600;cursor:pointer}
+.lochip.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+.lochip .ln{font-family:var(--body);font-weight:400;opacity:.75;margin-left:.25rem}
+.lochip .lf{color:var(--no);margin-left:.25rem}
 .pvlist{margin-top:.9rem}
 .pvrow{display:flex;gap:.6rem;align-items:flex-start;padding:.6rem .5rem;border-top:1px solid var(--line)}
 .pvrow:hover{background:var(--paper)}
@@ -859,6 +864,59 @@ function wirePickFilter(u, rootSel){
   root.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => setPickFilter(b.dataset.pf));
 }
 
+/* ---- filtering the preview by objective ----------------------------------------------------------
+   THIS IS THE SAME FILTER the chapter setup and the session rail already drive, not a second one. A
+   view-only narrowing here would have been the easier build and the worse product: the instructor
+   would narrow the preview to one objective, pick from it, start the session and get questions from
+   objectives they had just filtered away — two controls that look alike and disagree. One state means
+   the preview always shows exactly what the session will run, which is the only property that makes a
+   preview worth having. The cost is that narrowing here also narrows the session, so the note below
+   says so rather than leaving it to be discovered.
+
+   The gesture is the student app's own book chips: with everything on, a click ISOLATES that objective
+   (one click to focus, which is the point when a chapter has 38 questions); clicking the only lit chip
+   restores them all; clicking others adds them back. A chip can never leave zero objectives on — that
+   would blank the page from a control whose purpose is to narrow it, and the checkbox list's own
+   "None" button is there for anyone who means it. */
+function loChipsHtml(u){
+  const off = loOff(u), rows = loIndex(u);
+  const nOff = rows.filter(r => off.has(r.lo)).length;
+  return '<div class="lochips"><span class="plab" style="color:var(--ink-soft);font-weight:600">Objective:</span>'
+    + rows.map(r => '<button class="lochip' + (off.has(r.lo) ? '' : ' on') + '" data-lochip="' + esc(r.lo) + '"'
+        + ' title="' + esc(r.text || r.lo) + '">' + esc(r.lo)
+        + '<span class="ln">' + r.n + '</span>'
+        + (r.flagged ? '<span class="lf">' + r.flagged + '&#9873;</span>' : '') + '</button>').join('')
+    + '<button class="btn quiet sm" data-lochip-all="1">All</button></div>'
+    + (nOff ? '<p class="muted" style="margin-top:.35rem;font-size:.82rem">'
+        + nOff + ' objective' + (nOff === 1 ? '' : 's') + ' switched off — those questions are out of this list '
+        + '<b>and out of the session</b>. This is the same objective filter the chapter setup uses.</p>' : '');
+}
+
+function clickLoChip(u, lo){
+  const off = loOff(u), index = loIndex(u).map(r => r.lo);
+  const onNow = index.filter(l => !off.has(l));
+  if (onNow.length === index.length){                       // everything on -> isolate this one
+    off.clear();
+    index.forEach(l => { if (l !== lo) off.add(l); });
+  } else if (onNow.length === 1 && onNow[0] === lo){         // the only one lit -> back to all
+    off.clear();
+  } else if (off.has(lo)){                                   // add it back
+    off.delete(lo);
+  } else if (onNow.length > 1){                              // drop it
+    off.add(lo);
+  } else {
+    off.clear();                                             // never reachable to zero via a chip
+  }
+  afterFilterChange();
+}
+
+function wireLoChips(u, rootSel){
+  const root = document.querySelector(rootSel);
+  if (!root) return;
+  root.querySelectorAll('[data-lochip]').forEach(b => b.onclick = () => clickLoChip(u, b.dataset.lochip));
+  root.querySelectorAll('[data-lochip-all]').forEach(b => b.onclick = () => { loOff(u).clear(); afterFilterChange(); });
+}
+
 /* The options are listed but NO ANSWER IS SHOWN, and that is not an omission: revealing here would
    mean decrypting every question in the chapter at once, which is exactly what the per-question
    decrypt (#3) exists to prevent. The answer belongs to the question on screen in the session. */
@@ -884,8 +942,9 @@ function renderPreview(){
     + 'The order is the session’s own: flagged by students first, then the deepest question per objective, then the rest. '
     + 'Ticks are kept on this device, so you can prepare now and present later. '
     + '<b>' + s.sel + '</b> selected of ' + s.total + ' in scope.';
-  $('pvControls').innerHTML = pickFilterHtml(u);
+  $('pvControls').innerHTML = pickFilterHtml(u) + loChipsHtml(u);
   wirePickFilter(u, '#pvControls');
+  wireLoChips(u, '#pvControls');
 
   const rows = orderedEntries(u);
   const list = $('pvList');
@@ -1443,6 +1502,8 @@ window.__cr = {
   openUnit: id => { SELU = id; renderHome(); }, selected: () => SELU,
   loIndex: id => loIndex(unitById(id || SELU)), maxTierFor, unitFlagged,
   setLO: (lo, on) => { const u = unitById(SELU); if (u) setLO(u, lo, on); },
+  clickLo: lo => { const u = unitById(SELU); if (u) clickLoChip(u, lo); },
+  losOn: () => { const u = unitById(SELU); return u ? loIndex(u).map(r => r.lo).filter(l => loOn(u, l)) : []; },
   begin, end: endSession, view: () => VIEW,
   queue: () => Q, cur: () => CUR, select,
   pick, check: doCheck, reveal: doReveal,
