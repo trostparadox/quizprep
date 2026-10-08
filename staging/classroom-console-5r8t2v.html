@@ -144,14 +144,39 @@ h3{font-size:.95rem;font-weight:600}
 .lorow .loflag{flex:none;font-size:.76rem;font-weight:700;color:var(--no);margin-top:.15rem}
 .lonote{display:block;font-size:.76rem;color:#8A6D0B;margin-top:.15rem}
 
+/* The instructor's own selection: a three-state filter, and the preview list it is chosen from. */
+.pfilter{display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;font-size:.84rem}
+.pfilter .plab{color:var(--ink-soft);font-weight:600}
+.pchip{border:1.5px solid var(--line);border-radius:999px;padding:.22rem .7rem;background:#fff;color:var(--ink-soft);font-weight:600;font-size:.79rem;cursor:pointer}
+.pchip.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+.pchip .pn{font-family:var(--mono);font-size:.72rem;opacity:.8;margin-left:.25rem}
+.pvlist{margin-top:.9rem}
+.pvrow{display:flex;gap:.6rem;align-items:flex-start;padding:.6rem .5rem;border-top:1px solid var(--line)}
+.pvrow:hover{background:var(--paper)}
+.pvrow.picked{background:var(--brand-soft)}
+.pvrow input[type=checkbox]{width:1.15rem;height:1.15rem;accent-color:var(--brand);cursor:pointer;flex:none;margin-top:.2rem}
+.pvrow .pvmeta{flex:none;display:flex;flex-direction:column;gap:3px;align-items:flex-start;min-width:4.4rem}
+.pvrow .pvbody{flex:1;min-width:0}
+.pvrow .pvstem{font-size:.95rem;line-height:1.45}
+.pvrow .pvsub{font-size:.76rem;color:var(--ink-soft);margin-top:.2rem}
+.pvrow details{margin-top:.35rem}
+.pvrow summary{cursor:pointer;font-size:.78rem;color:var(--brand)}
+.pvrow .pvopt{font-size:.86rem;color:var(--ink-soft);margin:.2rem 0 0 .9rem;line-height:1.4}
+.pickbox{display:inline-flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--ink-soft);cursor:pointer}
+.pickbox input{width:1rem;height:1rem;accent-color:var(--brand);cursor:pointer}
+.qrow .qpick{flex:none;width:1rem;height:1rem;accent-color:var(--brand);cursor:pointer;margin-top:.15rem}
+
 /* The queue, in the rail: an agenda the instructor can jump around in. */
 .tranche{margin:.8rem 0 .3rem;font-family:var(--disp);font-size:.9rem;color:var(--brand);border-bottom:1px solid var(--line);padding-bottom:.2rem}
 .tranche .n{color:var(--ink-soft);font-family:var(--body);font-weight:400;font-size:.78rem}
 .qrow{display:flex;gap:.5rem;align-items:flex-start;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:8px;padding:.35rem .4rem;font:inherit;color:inherit}
 .qrow:hover{background:var(--brand-soft)}
 .qrow.on{background:var(--brand-soft);border-color:var(--brand)}
-.qrow .badge{flex:none;font-size:.68rem;font-weight:700;color:#fff;border-radius:999px;padding:1px 6px;white-space:nowrap}
-.qrow .badge.t1{background:var(--tier1)}.qrow .badge.t2{background:var(--tier2)}.qrow .badge.t3{background:var(--tier3)}
+.qrow .badge,.pvrow .badge{flex:none;font-size:.68rem;font-weight:700;color:#fff;border-radius:999px;padding:1px 6px;white-space:nowrap}
+.qrow .badge.t1,.pvrow .badge.t1{background:var(--tier1)}
+.qrow .badge.t2,.pvrow .badge.t2{background:var(--tier2)}
+.qrow .badge.t3,.pvrow .badge.t3{background:var(--tier3)}
+.qjump{flex:1;min-width:0;display:flex;gap:.5rem;align-items:flex-start;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit}
 .qrow .txt{font-size:.82rem;line-height:1.3}
 .qrow .lo{color:var(--ink-soft);font-size:.74rem}
 .qrow .flagn{flex:none;font-size:.7rem;font-weight:700;color:var(--no)}
@@ -197,6 +222,26 @@ kbd{font-family:var(--body);font-size:.74rem;border:1px solid var(--line);border
   <div id="orphanWrap" class="card hidden" style="margin-top:1rem"></div>
 </section>
 
+<!-- ============ PREVIEW: read the chapter's questions and tick the ones to discuss ============ -->
+<section id="viewPreview" class="hidden">
+  <div class="card">
+    <div class="eyebrow">Choose what to discuss</div>
+    <h1 id="pvTitle">Preview</h1>
+    <p class="muted" id="pvIntro" style="margin-top:.4rem;max-width:62ch"></p>
+    <div id="pvControls" style="margin-top:.9rem"></div>
+    <div class="btnrow">
+      <button class="btn quiet sm" id="pvAll">Select all shown</button>
+      <button class="btn quiet sm" id="pvNone">Clear all shown</button>
+      <button class="btn quiet sm" id="pvFlagged">Select the flagged ones</button>
+    </div>
+    <div class="pvlist" id="pvList"></div>
+    <div class="btnrow" style="margin-top:1.1rem">
+      <button class="btn brand" id="pvBegin" style="font-size:1.05rem;padding:.7rem 1.5rem">Begin discussion →</button>
+      <button class="btn quiet" id="pvBack">← Back to chapters</button>
+    </div>
+  </div>
+</section>
+
 <!-- ============ SESSION: one question at a time, the student's layout ============ -->
 <section id="viewSession" class="hidden">
   <div class="grid">
@@ -223,8 +268,10 @@ kbd{font-family:var(--body);font-size:.74rem;border:1px solid var(--line);border
       <p class="muted" style="font-size:.8rem;margin-bottom:.3rem">Untick one to drop its questions.</p>
       <div id="loRail"></div>
       <h3 style="margin-top:1.1rem">Agenda</h3>
+      <div id="railFilter" style="margin-bottom:.4rem"></div>
       <p class="muted" id="queueStat" style="font-size:.8rem"></p>
       <div id="queue"></div>
+      <div class="btnrow" style="margin-top:.5rem"><button class="btn quiet sm" id="btnPreview">Preview &amp; choose…</button></div>
     </aside>
   </div>
 </section>
@@ -331,6 +378,62 @@ let SELU = null;         // selected unit id
 let LOOFF = {};          // unit id -> Set of objective ids switched OFF (default: all on)
 let Q = [], CUR = -1;    // the agenda and the position in it
 let VIEW = 'viewHome';
+
+/* ---- the instructor's own selection of questions to discuss -------------------------------------
+   PICK is keyed by the CONFIG's unit id (fly-12, byl-3), NOT by the in-memory u.id. u.id is "u0",
+   "u1" … assigned in load order, so persisting against it would re-attach a stored selection to a
+   DIFFERENT chapter the moment the config's unit order changed — a silent mis-attribution, and the
+   instructor would be shown someone else's picks with nothing to indicate it.
+
+   THIS IS THE ONE THING THIS APP STORES, and it is stored deliberately. The rest of the app keeps
+   nothing on purpose; but a selection is PREPARATION — plausibly made the evening before the class —
+   and losing it to a refresh in front of a room is exactly the cost the no-storage rule was never
+   meant to impose. Everything stored is the instructor's own choice: unit ids and q_ids, no student
+   data of any kind. Wrapped in try/catch because a blocked or full localStorage must degrade to
+   "selections last for this visit" rather than breaking the page. */
+const PICK_KEY = 'quizprep-classroom-v1';
+let PICK = {};               // stable unit id -> Set of q_ids
+let PICKFILTER = 'both';     // 'both' | 'sel' | 'unsel' — one state, shared by the preview and the agenda
+
+const pickKey = u => u.unit || u.label || u.id;
+const picksFor = u => PICK[pickKey(u)] || (PICK[pickKey(u)] = new Set());
+const isPicked = (u, qid) => picksFor(u).has(qid);
+const pickCount = u => picksFor(u).size;
+
+function savePicks(){
+  try {
+    const out = {v:1, filter:PICKFILTER, picks:{}};
+    for (const k of Object.keys(PICK)) if (PICK[k].size) out.picks[k] = [...PICK[k]];
+    localStorage.setItem(PICK_KEY, JSON.stringify(out));
+  } catch(e){ /* private window, blocked storage, quota — the session still works */ }
+}
+function loadPicks(){
+  try {
+    const raw = localStorage.getItem(PICK_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw) || {};
+    for (const k of Object.keys(d.picks || {})) PICK[k] = new Set(d.picks[k] || []);
+    if (d.filter === 'sel' || d.filter === 'unsel' || d.filter === 'both') PICKFILTER = d.filter;
+  } catch(e){ PICK = {}; PICKFILTER = 'both'; }
+}
+
+function setPick(u, qid, on){
+  const s = picksFor(u);
+  if (on) s.add(qid); else s.delete(qid);
+  savePicks();
+}
+function setPickFilter(v){
+  PICKFILTER = (v === 'sel' || v === 'unsel') ? v : 'both';
+  savePicks();
+  afterFilterChange();
+}
+/* Does this question pass the selection filter? Mirrors the objective filter's discipline: it
+   changes WHAT IS DISCUSSED, never what the bank contains, so maxTierFor still sees every item. */
+function pickPass(u, qid){
+  if (PICKFILTER === 'sel') return picksFor(u).has(qid);
+  if (PICKFILTER === 'unsel') return !picksFor(u).has(qid);
+  return true;
+}
 
 /* PER-QUESTION STATE IS KEYED BY q_id, NEVER STORED ON A QUEUE ENTRY. buildQueue() makes fresh
    entry objects every time it runs, and it runs whenever anything is loaded — including when the
@@ -499,13 +602,20 @@ function entry(tranche, u, i, note){
 }
 
 function buildQueue(){
-  Q = [];
   const u = unitById(SELU);
-  if (!u) return;
+  Q = u ? orderedEntries(u) : [];
+}
+
+/* The agenda order, as a function of a unit. buildQueue() and the preview BOTH call this rather than
+   each ordering its own copy — the preview exists to choose what the session will run, so a preview
+   that ordered questions differently from the session would be showing a different agenda than the
+   one it is editing. */
+function orderedEntries(u){
+  let Q = [];
   const used = {};
 
   // ---- 1. flagged, most-flagged first.
-  const flagged = u.items.filter(i => inScope(u, i) && flagCount(i.q_id) > 0);
+  const flagged = u.items.filter(i => inScope(u, i) && pickPass(u, i.q_id) && flagCount(i.q_id) > 0);
   flagged.sort((a, b) =>
     flagCount(b.q_id) - flagCount(a.q_id) ||          // most students first
     missCount(b.q_id) - missCount(a.q_id) ||          // then where more of them had it wrong
@@ -521,6 +631,7 @@ function buildQueue(){
     if (mt < 2) continue;                              // an objective topping out at recall is not a discussion
     for (const i of u.items){
       if (i.lo !== r.lo || i.tier !== mt || used[i.q_id]) continue;
+      if (!pickPass(u, i.q_id)) continue;
       used[i.q_id] = 1;
       // Said, not hidden: this objective has no Tier 3 and the agenda admits it.
       deep.push(entry(2, u, i, mt < 3
@@ -534,12 +645,13 @@ function buildQueue(){
   // ---- 3. the rest, present but out of the way.
   const rest = [];
   for (const i of u.items){
-    if (!inScope(u, i) || used[i.q_id]) continue;
+    if (!inScope(u, i) || used[i.q_id] || !pickPass(u, i.q_id)) continue;
     used[i.q_id] = 1;
     rest.push(entry(3, u, i));
   }
   rest.sort((a, b) => byNum(a.lo, b.lo) || b.tier - a.tier || byNum(a.q_id, b.q_id));
   Q = Q.concat(rest);
+  return Q;
 }
 
 /* ================= answers (per-question decrypt, #3) ================= */
@@ -680,7 +792,9 @@ function renderSetup(){
   const row = $('setupRow'), u = unitById(SELU);
   if (!u){ row.style.display = 'none'; row.innerHTML = ''; return; }
   row.style.display = 'block';
-  const los = loIndex(u), n = scopeCount(u), nf = unitFlagged(u);
+  // n = in scope after the OBJECTIVE filter; na = what the agenda would actually run, i.e. after the
+  // selection filter too. Begin must be disabled on na, not n, or it offers a session with nothing in it.
+  const los = loIndex(u), n = scopeCount(u), na = agendaCount(u), nf = unitFlagged(u);
   row.innerHTML =
       '<div class="eyebrow">Objectives in this chapter</div>'
     + '<p class="muted"><b>' + esc(u.title) + '</b> — ' + u.items.length + ' questions across ' + los.length
@@ -692,12 +806,17 @@ function renderSetup(){
     + '<button class="btn quiet sm" data-loall="on">All objectives</button>'
     + '<button class="btn quiet sm" data-loall="off">None</button></div>'
     + '<p class="muted" style="margin-top:.8rem">The agenda runs flagged questions first (most-flagged first), then the deepest question authored for each objective, then the rest.</p>'
-    + '<div class="btnrow"><button class="btn brand" id="btnBegin"' + (n ? '' : ' disabled')
+    + (pickCount(u) ? '<div style="margin-top:.6rem">' + pickFilterHtml(u) + '</div>' : '')
+    + '<div class="btnrow"><button class="btn brand" id="btnBegin"' + (na ? '' : ' disabled')
     + ' style="font-size:1.05rem;padding:.7rem 1.5rem">Begin discussion'
-    + (n ? ' · ' + n + ' question' + (n === 1 ? '' : 's') : '') + ' →</button></div>'
-    + (n ? '' : '<p class="muted">Every objective is switched off, so there is nothing to discuss. Turn at least one back on.</p>');
+    + (na ? ' · ' + na + ' question' + (na === 1 ? '' : 's') : '') + ' →</button>'
+    + '<button class="btn secondary" id="btnToPreview" style="font-size:1.05rem;padding:.7rem 1.2rem">Preview &amp; choose questions</button></div>'
+    + (n ? '' : '<p class="muted">Every objective is switched off, so there is nothing to discuss. Turn at least one back on.</p>')
+    + (n && !na ? '<p class="muted">The selection filter is hiding every question in scope. Switch it to <b>Both</b>, or pick some in the preview.</p>' : '');
   wireLoInputs(u, '#setupRow');
+  wirePickFilter(u, '#setupRow');
   $('btnBegin').onclick = () => begin();
+  $('btnToPreview').onclick = () => { show('viewPreview'); renderPreview(); };
 }
 
 function renderOrphans(){
@@ -712,6 +831,123 @@ function renderOrphans(){
         + '<span class="txt">' + esc(cut(o.stem || '(no stem in the upload)', 120))
         + '<span class="lo"><br>' + esc(o.q_id) + (o.lo ? ' · objective ' + esc(o.lo) : '') + '</span></span></div>').join('')
     + '</div>';
+}
+
+/* ================= the instructor's selection: the filter, and the preview it is chosen from ====== */
+
+/* Counts are computed over everything IN SCOPE, deliberately ignoring the selection filter itself —
+   a chip reading "Selected 12" must say how many are selected, not how many are currently shown,
+   or the control describes its own effect instead of the data. */
+function scopeStats(u){
+  const inS = u.items.filter(i => inScope(u, i));
+  const sel = inS.filter(i => isPicked(u, i.q_id)).length;
+  return {total:inS.length, sel, unsel:inS.length - sel};
+}
+const agendaCount = u => u.items.filter(i => inScope(u, i) && pickPass(u, i.q_id)).length;
+
+function pickFilterHtml(u){
+  const s = scopeStats(u);
+  const opts = [['both', 'Both', s.total], ['sel', 'Selected', s.sel], ['unsel', 'Not selected', s.unsel]];
+  return '<div class="pfilter"><span class="plab">Show:</span>' + opts.map(o =>
+    '<button class="pchip' + (PICKFILTER === o[0] ? ' on' : '') + '" data-pf="' + o[0] + '">'
+    + esc(o[1]) + '<span class="pn">' + o[2] + '</span></button>').join('') + '</div>';
+}
+
+function wirePickFilter(u, rootSel){
+  const root = document.querySelector(rootSel);
+  if (!root) return;
+  root.querySelectorAll('[data-pf]').forEach(b => b.onclick = () => setPickFilter(b.dataset.pf));
+}
+
+/* The options are listed but NO ANSWER IS SHOWN, and that is not an omission: revealing here would
+   mean decrypting every question in the chapter at once, which is exactly what the per-question
+   decrypt (#3) exists to prevent. The answer belongs to the question on screen in the session. */
+function pvOptions(e){
+  const it = e.item;
+  const list = (it.type === 'mc_pool') ? ((it._set || {}).shared_options || []).map(o => o.text) : (it.options || []);
+  if (!list.length) return '';
+  const jo = (it.justify_options || []);
+  return '<details><summary>' + list.length + ' option' + (list.length === 1 ? '' : 's')
+    + (jo.length ? ' + ' + jo.length + ' reasons' : '') + ' (no answer shown)</summary>'
+    + list.map(o => '<div class="pvopt">· ' + esc(o) + '</div>').join('')
+    + jo.map(o => '<div class="pvopt">— ' + esc(o) + '</div>').join('')
+    + '</details>';
+}
+
+function renderPreview(){
+  const u = unitById(SELU);
+  if (!u){ show('viewHome'); renderHome(); return; }
+  const s = scopeStats(u);
+  $('pvTitle').textContent = (u.chapter != null ? 'Chapter ' + u.chapter + ' · ' : '') + u.title;
+  $('pvIntro').innerHTML =
+      'Tick the questions you mean to discuss, then filter the agenda to just those — or to just the ones you did not pick. '
+    + 'The order is the session’s own: flagged by students first, then the deepest question per objective, then the rest. '
+    + 'Ticks are kept on this device, so you can prepare now and present later. '
+    + '<b>' + s.sel + '</b> selected of ' + s.total + ' in scope.';
+  $('pvControls').innerHTML = pickFilterHtml(u);
+  wirePickFilter(u, '#pvControls');
+
+  const rows = orderedEntries(u);
+  const list = $('pvList');
+  if (!rows.length){
+    // Said rather than left blank: an empty list under a narrowing filter is a fact about the filter.
+    list.innerHTML = '<p class="muted" style="padding:1rem 0">'
+      + (PICKFILTER === 'sel' ? 'Nothing is selected yet, and the filter is showing selected questions only. Switch to <b>Both</b> to pick some.'
+      : PICKFILTER === 'unsel' ? 'Every question in scope is selected, so there are none left to show here.'
+      : 'No questions in scope — every objective is switched off.') + '</p>';
+  } else {
+    let html = '', last = 0;
+    rows.forEach(e => {
+      if (e.tranche !== last){
+        last = e.tranche;
+        const cnt = rows.filter(x => x.tranche === last).length;
+        html += '<div class="tranche">' + esc(TRANCHE[last][0]) + ' <span class="n">· ' + cnt + ' · '
+              + esc(TRANCHE[last][1]) + '</span></div>';
+      }
+      const picked = isPicked(u, e.q_id);
+      const t = (e.tier >= 1 && e.tier <= 3) ? e.tier : 1;
+      html += '<label class="pvrow' + (picked ? ' picked' : '') + '">'
+        + '<input type="checkbox" data-pick="' + esc(e.q_id) + '"' + (picked ? ' checked' : '') + '>'
+        + '<span class="pvmeta"><span class="badge t' + t + '">T' + (e.tier != null ? e.tier : '?') + '</span>'
+        + (e.flags ? '<span class="flagn">' + e.flags + '&#9873;</span>' : '') + '</span>'
+        + '<span class="pvbody"><span class="pvstem">' + esc(e.item.stem) + '</span>'
+        + '<span class="pvsub">objective ' + esc(e.lo || '—') + ' · ' + esc(e.item.type || '')
+        + (e.flags ? ' · flagged by ' + e.flags + ' student' + (e.flags === 1 ? '' : 's') : '') + '</span>'
+        + pvOptions(e) + '</span></label>';
+    });
+    list.innerHTML = html;
+  }
+
+  list.querySelectorAll('input[data-pick]').forEach(cb => cb.onchange = () => {
+    setPick(u, cb.dataset.pick, cb.checked);
+    if (PICKFILTER === 'both'){
+      // Keep the page still: a tick must not scroll the list or collapse an open option list.
+      const row = cb.parentElement;
+      if (row) row.classList.toggle('picked', cb.checked);
+      const st = scopeStats(u);
+      $('pvControls').innerHTML = pickFilterHtml(u);
+      wirePickFilter(u, '#pvControls');
+      $('pvIntro').innerHTML = $('pvIntro').innerHTML.replace(/<b>\d+<\/b> selected of \d+/,
+        '<b>' + st.sel + '</b> selected of ' + st.total);
+    } else {
+      renderPreview();   // under a narrowing filter the row no longer belongs in the list
+    }
+  });
+
+  const shown = rows.map(e => e.q_id);
+  $('pvAll').onclick = () => { shown.forEach(q => picksFor(u).add(q)); savePicks(); renderPreview(); };
+  $('pvNone').onclick = () => { shown.forEach(q => picksFor(u).delete(q)); savePicks(); renderPreview(); };
+  $('pvFlagged').onclick = () => {
+    u.items.forEach(i => { if (inScope(u, i) && flagCount(i.q_id) > 0) picksFor(u).add(i.q_id); });
+    savePicks(); renderPreview();
+  };
+  $('pvAll').disabled = $('pvNone').disabled = !rows.length;
+  $('pvFlagged').disabled = unitFlagged(u) === 0;
+  $('pvBegin').disabled = agendaCount(u) === 0;
+  $('pvBegin').textContent = 'Begin discussion' + (agendaCount(u) ? ' · ' + agendaCount(u) + ' question'
+    + (agendaCount(u) === 1 ? '' : 's') : '') + ' →';
+  $('pvBegin').onclick = () => begin();
+  $('pvBack').onclick = () => { show('viewHome'); renderHome(); };
 }
 
 /* ================= the objective list (home and rail share it) ================= */
@@ -761,6 +997,7 @@ function setLO(u, lo, on){
    the reveal come back with it. Only a question actually filtered out costs the position. */
 function afterFilterChange(){
   if (VIEW === 'viewSession'){ requeue(); }
+  else if (VIEW === 'viewPreview'){ renderPreview(); }
   else { renderSetup(); }
 }
 
@@ -780,7 +1017,7 @@ function requeue(){
 /* ================= session ================= */
 
 function show(id){
-  ['viewHome','viewSession'].forEach(v => $(v).classList.toggle('hidden', v !== id));
+  ['viewHome','viewPreview','viewSession'].forEach(v => $(v).classList.toggle('hidden', v !== id));
   VIEW = id;
 }
 
@@ -1058,6 +1295,9 @@ function renderRail(){
     + '<div class="btnrow" style="margin-top:.4rem"><button class="btn quiet sm" data-loall="on">All</button>'
     + '<button class="btn quiet sm" data-loall="off">None</button></div>';
   wireLoInputs(u, '#loRail');
+  $('railFilter').innerHTML = pickFilterHtml(u);
+  wirePickFilter(u, '#railFilter');
+  $('btnPreview').onclick = () => { show('viewPreview'); renderPreview(); };
 }
 
 function renderQueue(){
@@ -1072,16 +1312,33 @@ function renderQueue(){
             + ' <span class="n">· ' + cnt + ' · ' + esc(TRANCHE[last][1]) + '</span></div>';
     }
     const t = (e.tier >= 1 && e.tier <= 3) ? e.tier : 1;
-    html += '<button class="qrow' + (n === CUR ? ' on' : '') + '" data-n="' + n + '">'
+    const picked = isPicked(e.unit, e.q_id);
+    // A div wrapping a checkbox and a button, rather than a button containing a checkbox: a control
+    // inside a button is invalid markup and the two clicks fight each other.
+    html += '<div class="qrow' + (n === CUR ? ' on' : '') + '">'
+          + '<input type="checkbox" class="qpick" data-pick="' + esc(e.q_id) + '"' + (picked ? ' checked' : '')
+          + ' title="Select this question to discuss">'
+          + '<button class="qjump" data-n="' + n + '">'
           + '<span class="badge t' + t + '">T' + (e.tier != null ? e.tier : '?') + '</span>'
           + (e.flags ? '<span class="flagn">' + e.flags + '&#9873;</span>' : '')
           + '<span class="txt">' + esc(cut(e.item.stem, 92))
-          + '<span class="lo"><br>' + esc(e.lo || '—') + '</span></span></button>';
+          + '<span class="lo"><br>' + esc(e.lo || '—') + '</span></span></button></div>';
   });
   q.innerHTML = html;
-  q.querySelectorAll('.qrow').forEach(b => b.onclick = () => select(+b.dataset.n));
+  q.querySelectorAll('.qjump').forEach(b => b.onclick = () => select(+b.dataset.n));
+  q.querySelectorAll('input[data-pick]').forEach(cb => cb.onchange = () => {
+    const u = unitById(SELU);
+    if (!u) return;
+    setPick(u, cb.dataset.pick, cb.checked);
+    // Under a narrowing filter this row has just stopped belonging, so the agenda is rebuilt — which
+    // holds the question on screen by q_id unless it was the one filtered out. Under "Both" nothing
+    // moves, so only the counts are refreshed.
+    if (PICKFILTER === 'both'){ renderRail(); renderQueue(); } else { requeue(); }
+  });
   const f = Q.filter(e => e.tranche === 1).length;
+  const u = unitById(SELU);
   $('queueStat').textContent = Q.length + ' question' + (Q.length === 1 ? '' : 's') + ' · ' + f + ' flagged'
+    + (u ? ' · ' + pickCount(u) + ' selected' : '')
     + (SUBS.length ? ' across ' + SUBS.length + ' upload' + (SUBS.length === 1 ? '' : 's') : ' (no uploads loaded)');
 }
 
@@ -1191,9 +1448,18 @@ window.__cr = {
   pick, check: doCheck, reveal: doReveal,
   revealed: () => !!(Q[CUR] && REV[Q[CUR].q_id]),
   checked: () => (Q[CUR] ? CHK[Q[CUR].q_id] : null),
-  ans: q => ANS[q], derr: q => DERR[q]
+  ans: q => ANS[q], derr: q => DERR[q],
+  // the instructor's selection
+  preview: () => { show('viewPreview'); renderPreview(); },
+  setPick: (qid, on) => { const u = unitById(SELU); if (u){ setPick(u, qid, on); afterFilterChange(); } },
+  picks: () => { const u = unitById(SELU); return u ? [...picksFor(u)].sort() : []; },
+  pickKeyFor: () => { const u = unitById(SELU); return u ? pickKey(u) : null; },
+  pickFilter: () => PICKFILTER, setPickFilter,
+  agendaCount: () => { const u = unitById(SELU); return u ? agendaCount(u) : 0; },
+  savePicks, loadPicks
 };
 
+loadPicks();     // before the first render, so a prepared selection is in force from the first paint
 statusLines();
 renderHome();
 loadDemo();
