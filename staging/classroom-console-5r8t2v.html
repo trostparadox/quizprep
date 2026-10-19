@@ -162,7 +162,8 @@ h3{font-size:.95rem;font-weight:600}
 .pvrow input[type=checkbox]{width:1.15rem;height:1.15rem;accent-color:var(--brand);cursor:pointer;flex:none;margin-top:.2rem}
 .pvrow .pvmeta{flex:none;display:flex;flex-direction:column;gap:3px;align-items:flex-start;min-width:4.4rem}
 .pvrow .pvbody{flex:1;min-width:0}
-.pvrow .pvstem{font-size:.95rem;line-height:1.45}
+.pvrow .pvstem{display:block;font-size:.95rem;line-height:1.45;cursor:pointer}
+.pvrow .pvans{display:block;margin-top:.4rem}
 .pvrow .pvsub{font-size:.76rem;color:var(--ink-soft);margin-top:.2rem}
 .pvrow details{margin-top:.35rem}
 .pvrow summary{cursor:pointer;font-size:.78rem;color:var(--brand)}
@@ -1104,10 +1105,75 @@ function pvOptions(e){
   if (!list.length) return '';
   const jo = (it.justify_options || []);
   return '<details><summary>' + list.length + ' option' + (list.length === 1 ? '' : 's')
-    + (jo.length ? ' + ' + jo.length + ' reasons' : '') + ' (no answer shown)</summary>'
+    + (jo.length ? ' + ' + jo.length + ' reasons' : '') + '</summary>'
     + list.map(o => '<div class="pvopt">· ' + esc(o) + '</div>').join('')
     + jo.map(o => '<div class="pvopt">— ' + esc(o) + '</div>').join('')
     + '</details>';
+}
+
+/* ---- per-row "show answer" ----------------------------------------------------------------------
+   DECRYPTS ONE QUESTION, ON DEMAND. The earlier preview showed no answers at all and said so on
+   every row, which over-applied the per-question decrypt (#3): that measure exists to stop the whole
+   chapter being decrypted at once, not to stop one question being looked at. This calls the same
+   ensureAnswer() the session's Check and Reveal call, so only the rows actually opened are ever in
+   the clear, and the rest of the config stays ciphertext in memory.
+
+   Reveal state is keyed by q_id rather than held on the row, like every other per-question state
+   here: the list is re-rendered whenever a filter changes or an upload lands. */
+const PVREV = {};
+
+function pvAnswerHtml(e){
+  const qid = e.q_id, shown = !!PVREV[qid];
+  let h = '<button class="btn quiet sm" data-showans="' + esc(qid) + '">'
+        + (shown ? 'Hide answer' : 'Show answer') + '</button>';
+  if (DERR[qid] && !shown){
+    h += ' <span class="lonote">could not decrypt: ' + esc(DERR[qid]) + '</span>';
+  }
+  if (shown){
+    h += '<div class="panel good" style="margin-top:.4rem;padding:.55rem .75rem;font-size:.9rem">'
+       + '<b>' + esc(keyText(e)) + '</b>'
+       + (keyLine(e) ? '<div style="margin-top:.3rem">' + esc(keyLine(e)) + '</div>' : '')
+       + '</div>';
+  }
+  return h;
+}
+
+/* The rows currently on the preview page. HELD AT MODULE LEVEL because re-wiring is global — the
+   handler is attached by a querySelectorAll over the whole list — while a row-level re-render knows
+   about one row. Passing the one row in re-bound EVERY button against a lookup containing only it,
+   so each one found no entry and silently did nothing: after revealing a single answer, every other
+   Show answer on the page was dead. Caught by a check, not by looking. */
+let PVROWS = [];
+
+/* Replace ONE row's answer box rather than re-rendering the list: a re-render would scroll the page
+   and collapse every option list the instructor had open. */
+function renderRowAnswer(e){
+  const host = document.querySelector('#pvList [data-ansfor="' + e.q_id + '"]');
+  if (host) host.innerHTML = pvAnswerHtml(e);
+  wirePvAnswers();
+}
+
+function wirePvAnswers(){
+  const byId = {};
+  for (const e of PVROWS) byId[e.q_id] = e;
+  document.querySelectorAll('#pvList [data-showans]').forEach(b => b.onclick = async ev => {
+    /* BELT AND BRACES, AND I MEASURED WHICH IS WHICH. I restructured the row believing a button
+       inside a <label> would also tick the label's checkbox. It does not: buttons and <summary> are
+       interactive content and are excluded from a label's activation behaviour, while a plain <span>
+       inside one IS forwarded (measured in jsdom: span and label tick, button and summary do not).
+       So neither this suppression nor the row restructure was fixing a live bug. Both are kept —
+       the structure because it makes the behaviour explicit rather than resting on that exclusion,
+       and this line because it costs nothing if the markup is ever rearranged. */
+    if (ev){ ev.preventDefault(); ev.stopPropagation(); }
+    const qid = b.dataset.showans, e = byId[qid];
+    if (!e) return;
+    if (PVREV[qid]){ delete PVREV[qid]; renderRowAnswer(e); return; }
+    b.disabled = true;
+    try { await ensureAnswer(e); delete DERR[qid]; PVREV[qid] = true; }
+    catch(err){ DERR[qid] = String(err && err.message || err); }
+    b.disabled = false;
+    renderRowAnswer(e);
+  });
 }
 
 function renderPreview(){
@@ -1156,19 +1222,32 @@ function renderPreview(){
       }
       const picked = isPicked(e.unit, e.q_id);
       const t = (e.tier >= 1 && e.tier <= 3) ? e.tier : 1;
-      html += '<label class="pvrow' + (picked ? ' picked' : '') + '">'
-        + '<input type="checkbox" data-pick="' + esc(e.q_id) + '"' + (picked ? ' checked' : '') + '>'
+      const pid = 'pk-' + e.q_id;
+      /* A DIV, NOT A LABEL, with the label wrapped around the stem alone and tied to the checkbox by
+         `for`. The whole row used to be one <label>. I changed it believing the controls inside —
+         the option list's summary, and now the Show answer button — were ticking the question when
+         clicked; MEASURED AFTERWARDS, THEY WERE NOT, because both are interactive content and a
+         label's activation skips them. The structure stays because it does not depend on knowing
+         that, and because the metadata line is a plain span, which a label WOULD have forwarded.
+         Clicking the stem still ticks the question, which is the part worth keeping. */
+      html += '<div class="pvrow' + (picked ? ' picked' : '') + '">'
+        + '<input type="checkbox" id="' + esc(pid) + '" data-pick="' + esc(e.q_id) + '"' + (picked ? ' checked' : '') + '>'
         + '<span class="pvmeta"><span class="badge t' + t + '">T' + (e.tier != null ? e.tier : '?') + '</span>'
         + (e.flags ? '<span class="flagn">' + e.flags + '&#9873;</span>' : '') + '</span>'
-        + '<span class="pvbody"><span class="pvstem">' + esc(e.item.stem) + '</span>'
+        + '<span class="pvbody">'
+        + '<label class="pvstem" for="' + esc(pid) + '">' + esc(e.item.stem) + '</label>'
         + '<span class="pvsub">'
         + (one ? '' : '<b>' + esc(e.unit.chapter != null ? 'Ch ' + e.unit.chapter : e.unit.title) + '</b> · ')
         + 'objective ' + esc(e.lo || '—') + ' · ' + esc(e.item.type || '')
         + (e.flags ? ' · flagged by ' + e.flags + ' student' + (e.flags === 1 ? '' : 's') : '') + '</span>'
-        + pvOptions(e) + '</span></label>';
+        + pvOptions(e)
+        + '<span class="pvans" data-ansfor="' + esc(e.q_id) + '">' + pvAnswerHtml(e) + '</span>'
+        + '</span></div>';
     });
     list.innerHTML = html;
   }
+  PVROWS = rows;
+  wirePvAnswers();
 
   list.querySelectorAll('input[data-pick]').forEach(cb => cb.onchange = () => {
     // The row's own chapter, resolved from the q_id: with several chapters in the list the unit
