@@ -20,6 +20,12 @@
   --tier1:#8FB6A9; --tier2:#4E8F7C; --tier3:#0E5A4A;
   --radius:10px; --shadow:0 1px 3px rgba(28,42,58,.08),0 4px 14px rgba(28,42,58,.06);
   --disp:'Zilla Slab',Georgia,serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',monospace;
+  /* PROJECTOR TYPE, SET BY THE INSTRUCTOR. These were clamp() expressions tied to the viewport,
+     which scales with the window and not with how far away the back row is -- the option text
+     topped out at 1.15rem, fine on a laptop and unreadable from a classroom. Both are now explicit
+     and adjustable at the lectern, and they are kept per device. */
+  --qsize:2.2rem;      /* the question stem */
+  --osize:1.5rem;      /* the response options */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px}
@@ -86,24 +92,34 @@ h3{font-size:.95rem;font-weight:600}
 .rail{position:sticky;top:1rem}
 
 /* The question itself — student-app markup, projector-sized. */
-.stem{font-family:var(--disp);font-weight:500;margin:.7rem 0 1.1rem;line-height:1.35;font-size:clamp(1.25rem,1.9vw,1.85rem)}
+.stem{font-family:var(--disp);font-weight:500;margin:.7rem 0 1.1rem;line-height:1.3;font-size:var(--qsize)}
 .opts{display:flex;flex-direction:column;gap:.55rem}
-.opt{display:flex;gap:.7rem;align-items:flex-start;border:1.5px solid var(--line);border-radius:9px;padding:.75rem .85rem;background:#fff;text-align:left;line-height:1.45;transition:border-color .1s;font-size:clamp(.97rem,1.25vw,1.15rem);width:100%}
+.opt{display:flex;gap:.7rem;align-items:flex-start;border:1.5px solid var(--line);border-radius:9px;padding:.6em .7em;background:#fff;text-align:left;line-height:1.4;transition:border-color .1s;font-size:var(--osize);width:100%}
 .opt:hover:not(:disabled){border-color:var(--ink-soft)}
 .opt.sel{border-color:var(--ink);background:#F6F5F0;box-shadow:inset 0 0 0 1px var(--ink)}
 .opt.correct{border-color:var(--ok);background:var(--ok-soft)}
 .opt.wrong{border-color:var(--no);background:var(--no-soft)}
-.opt .key{font-family:var(--mono);font-size:.78rem;color:var(--ink-soft);border:1px solid var(--line);border-radius:5px;padding:.05rem .4rem;flex-shrink:0;margin-top:.1rem}
+.opt .key{font-family:var(--mono);font-size:.62em;color:var(--ink-soft);border:1px solid var(--line);border-radius:5px;padding:.05em .4em;flex-shrink:0;margin-top:.25em}
 .opt:disabled{cursor:default}
-.opt .rat{display:block;margin-top:.35rem;font-size:.86rem;color:var(--ink-soft);line-height:1.4}
+.opt .rat{display:block;margin-top:.3em;font-size:.72em;color:var(--ink-soft);line-height:1.4}
 .opt.correct .rat{color:#1d5c38}
 .subq{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--line)}
-.subq .lbl{font-size:.85rem;font-weight:600;margin-bottom:.5rem}
+.subq .lbl{font-size:calc(var(--osize) * .8);font-weight:600;margin-bottom:.5rem}
 .rank-list{display:flex;flex-direction:column;gap:.5rem}
-.rank-pick{border:1.5px solid var(--line);border-radius:9px;padding:.7rem .85rem;background:#fff;text-align:left;display:flex;gap:.7rem;font-size:clamp(.95rem,1.2vw,1.12rem);width:100%}
+.rank-pick{border:1.5px solid var(--line);border-radius:9px;padding:.6em .7em;background:#fff;text-align:left;display:flex;gap:.7rem;font-size:var(--osize);width:100%}
 .rank-pick.picked{opacity:.45;cursor:default}
 .rank-pick.correct{opacity:1;border-color:var(--ok);background:var(--ok-soft)}
-.rank-pick .ordkey{font-family:var(--mono);font-size:.8rem;color:var(--brand);min-width:1.4rem;font-weight:600}
+.rank-pick .ordkey{font-family:var(--mono);font-size:.68em;color:var(--brand);min-width:1.6em;font-weight:600}
+/* The type-size control itself. Deliberately small and fixed: it must not grow with the thing it
+   is adjusting, or raising the option size pushes its own buttons off the rail. */
+.sizebox{margin-top:.3rem;font-size:.8rem;color:var(--ink-soft)}
+.sizerow{display:flex;align-items:center;gap:.3rem;margin-top:.25rem}
+.sizerow .slab{flex:1;min-width:0}
+.sizerow .sval{font-family:var(--mono);font-size:.74rem;min-width:3.2rem;text-align:right}
+.sizerow button{font:inherit;font-size:.9rem;font-weight:700;line-height:1;width:1.7rem;height:1.7rem;
+  border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:6px;cursor:pointer;flex:none}
+.sizerow button:hover:not(:disabled){border-color:var(--brand)}
+.sizerow button:disabled{opacity:.4;cursor:not-allowed}
 
 .panel{border-radius:9px;padding:1rem 1.1rem;margin-top:1.1rem;font-size:.95rem}
 .panel .plabel{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4rem;display:block}
@@ -266,7 +282,7 @@ kbd{font-family:var(--body);font-size:.74rem;border:1px solid var(--line);border
         <div id="qArea"></div>
         <div id="fbArea"></div>
         <div class="btnrow" id="actionRow"></div>
-        <p class="muted" style="margin-top:.9rem;font-size:.8rem"><kbd>←</kbd> <kbd>→</kbd> move · <kbd>enter</kbd> check · <kbd>space</kbd> reveal</p>
+        <p class="muted" style="margin-top:.9rem;font-size:.8rem"><kbd>←</kbd> <kbd>→</kbd> move · <kbd>enter</kbd> check · <kbd>space</kbd> reveal · <kbd>−</kbd> <kbd>+</kbd> option text · <kbd>shift</kbd>+<kbd>−</kbd> <kbd>+</kbd> question text · <kbd>0</kbd> reset</p>
       </div>
     </div>
     <aside class="rail card" style="padding:1rem">
@@ -278,6 +294,8 @@ kbd{font-family:var(--body);font-size:.74rem;border:1px solid var(--line);border
       <p class="muted" id="queueStat" style="font-size:.8rem"></p>
       <div id="queue"></div>
       <div class="btnrow" style="margin-top:.5rem"><button class="btn quiet sm" id="btnPreview">Preview &amp; choose…</button></div>
+      <h3 style="margin-top:1.1rem">Text size</h3>
+      <div class="sizebox" id="sizeBox"></div>
     </aside>
   </div>
 </section>
@@ -445,6 +463,38 @@ function setOrderMode(m){
   afterFilterChange();
 }
 
+/* ---- projector type size -------------------------------------------------------------------------
+   TWO INDEPENDENT KNOBS, because the two have different jobs. The stem is read once, by the
+   instructor, out loud; the options are read by thirty people at the back of the room, which is the
+   one that was too small. So they move separately rather than off one "zoom" slider, and the range
+   on each is wide enough to be useful and bounded enough that a stray press cannot blank the screen.
+
+   Written to CSS custom properties rather than to each element, so a size change costs no re-render
+   and cannot disturb the question on screen, the selection or the reveal. */
+const SIZES = {
+  q: {def:2.2, min:1.2, max:4.2, step:0.2, prop:'--qsize', label:'Question'},
+  o: {def:1.5, min:0.9, max:3.2, step:0.1, prop:'--osize', label:'Options'}
+};
+let TYPESIZE = {q:SIZES.q.def, o:SIZES.o.def};
+
+const round1 = n => Math.round(n * 10) / 10;
+function applyTypeSize(){
+  for (const k of Object.keys(SIZES)){
+    try { document.documentElement.style.setProperty(SIZES[k].prop, TYPESIZE[k] + 'rem'); }
+    catch(e){ /* nothing to do: the stylesheet default stands */ }
+  }
+}
+function bumpTypeSize(k, dir){
+  const s = SIZES[k];
+  if (!s) return;
+  TYPESIZE[k] = round1(Math.min(s.max, Math.max(s.min, TYPESIZE[k] + dir * s.step)));
+  applyTypeSize(); savePicks(); renderSizeBox();
+}
+function resetTypeSize(){
+  TYPESIZE = {q:SIZES.q.def, o:SIZES.o.def};
+  applyTypeSize(); savePicks(); renderSizeBox();
+}
+
 const PICK_KEY = 'quizprep-classroom-v1';
 let PICK = {};               // stable unit id -> Set of q_ids
 let PICKFILTER = 'both';     // 'both' | 'sel' | 'unsel' — one state, shared by the preview and the agenda
@@ -456,7 +506,7 @@ const pickCount = u => picksFor(u).size;
 
 function savePicks(){
   try {
-    const out = {v:1, filter:PICKFILTER, picks:{}};
+    const out = {v:1, filter:PICKFILTER, picks:{}, sizes:{q:TYPESIZE.q, o:TYPESIZE.o}};
     for (const k of Object.keys(PICK)) if (PICK[k].size) out.picks[k] = [...PICK[k]];
     localStorage.setItem(PICK_KEY, JSON.stringify(out));
   } catch(e){ /* private window, blocked storage, quota — the session still works */ }
@@ -468,7 +518,16 @@ function loadPicks(){
     const d = JSON.parse(raw) || {};
     for (const k of Object.keys(d.picks || {})) PICK[k] = new Set(d.picks[k] || []);
     if (d.filter === 'sel' || d.filter === 'unsel' || d.filter === 'both') PICKFILTER = d.filter;
-  } catch(e){ PICK = {}; PICKFILTER = 'both'; }
+    /* CLAMPED ON THE WAY IN, not trusted. A stored size is just a number in a file the browser
+       hands back, and a bad one here does not throw -- it sets a font-size that makes the session
+       unusable with no obvious way back. Anything out of range or non-numeric falls to the
+       default, which is the one state that is always legible. */
+    for (const k of Object.keys(SIZES)){
+      const v = (d.sizes || {})[k], lim = SIZES[k];
+      TYPESIZE[k] = (typeof v === 'number' && isFinite(v) && v >= lim.min && v <= lim.max)
+        ? round1(v) : lim.def;
+    }
+  } catch(e){ PICK = {}; PICKFILTER = 'both'; TYPESIZE = {q:SIZES.q.def, o:SIZES.o.def}; }
 }
 
 function setPick(u, qid, on){
@@ -1400,6 +1459,7 @@ function renderSession(){
   renderActions(e);
   renderRail();
   renderQueue();
+  renderSizeBox();
 }
 
 function headMeta(e){
@@ -1652,6 +1712,24 @@ function renderRail(){
   $('btnPreview').onclick = () => { show('viewPreview'); renderPreview(); };
 }
 
+/* The type-size control. Rendered on its own so a press costs nothing but this box: changing the
+   size must not re-render the question, which would collapse an open option list or lose a reveal. */
+function renderSizeBox(){
+  const host = $('sizeBox');
+  if (!host) return;
+  host.innerHTML = Object.keys(SIZES).map(k => {
+    const s = SIZES[k], v = TYPESIZE[k];
+    return '<div class="sizerow"><span class="slab">' + esc(s.label) + '</span>'
+      + '<button data-size="' + k + '" data-dir="-1" title="Smaller"' + (v <= s.min ? ' disabled' : '') + '>&minus;</button>'
+      + '<button data-size="' + k + '" data-dir="1" title="Larger"' + (v >= s.max ? ' disabled' : '') + '>+</button>'
+      + '<span class="sval">' + v.toFixed(1) + 'rem</span></div>';
+  }).join('')
+    + '<div class="sizerow"><span class="slab"></span>'
+    + '<button class="btn quiet sm" data-sizereset="1" style="width:auto;height:auto;font-size:.76rem;font-weight:500;padding:.15rem .45rem">Reset</button></div>';
+  host.querySelectorAll('[data-size]').forEach(b => b.onclick = () => bumpTypeSize(b.dataset.size, +b.dataset.dir));
+  host.querySelectorAll('[data-sizereset]').forEach(b => b.onclick = () => resetTypeSize());
+}
+
 function renderQueue(){
   const q = $('queue');
   if (!Q.length){ q.innerHTML = '<p class="muted">Nothing in the agenda.</p>'; $('queueStat').textContent = ''; return; }
@@ -1756,6 +1834,12 @@ document.addEventListener('keydown', ev => {
   else if (ev.key === 'ArrowLeft'){ select(CUR - 1); ev.preventDefault(); }
   else if (ev.key === ' '){ doReveal(); ev.preventDefault(); }
   else if (ev.key === 'Enter'){ doCheck(); ev.preventDefault(); }
+  /* Type size from the keyboard, because the moment you need it is the moment someone at the back
+     says they cannot read it, and reaching for a mouse then is worse than a keystroke. Options on
+     the bare keys since that is the one being adjusted; the question stem on shift. */
+  else if (ev.key === '-' || ev.key === '_'){ bumpTypeSize(ev.shiftKey ? 'q' : 'o', -1); ev.preventDefault(); }
+  else if (ev.key === '=' || ev.key === '+'){ bumpTypeSize(ev.shiftKey ? 'q' : 'o', 1); ev.preventDefault(); }
+  else if (ev.key === '0'){ resetTypeSize(); ev.preventDefault(); }
 });
 
 /* ---- boot: the class's questions are already there ----------------------------------------
@@ -1825,10 +1909,16 @@ window.__cr = {
   pickKeyFor: uid => { const u = uid ? unitById(uid) : primaryUnit(); return u ? pickKey(u) : null; },
   pickFilter: () => PICKFILTER, setPickFilter,
   agendaCount: () => agendaTotal(selectedUnits()),
-  savePicks, loadPicks
+  savePicks, loadPicks,
+  typeSize: () => ({q:TYPESIZE.q, o:TYPESIZE.o}), bumpTypeSize, resetTypeSize,
+  cssSize: k => { try { return document.documentElement.style.getPropertyValue(SIZES[k].prop).trim(); }
+                  catch(e){ return ''; } },
+  sizeLimits: () => ({q:{min:SIZES.q.min, max:SIZES.q.max, def:SIZES.q.def},
+                      o:{min:SIZES.o.min, max:SIZES.o.max, def:SIZES.o.def}})
 };
 
 loadPicks();     // before the first render, so a prepared selection is in force from the first paint
+applyTypeSize(); // and so the instructor's own type size is in force before anything is painted
 statusLines();
 renderHome();
 loadDemo();
