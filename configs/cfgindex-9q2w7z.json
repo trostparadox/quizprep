@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-21T20:29:38Z",
+  "generated": "2026-10-21T20:43:05Z",
   "configs": [
     {
       "cfg_id": "demo",
@@ -10,8 +10,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 32,
-      "n_banks": 32,
+      "units": 33,
+      "n_banks": 33,
       "n_decks": 0,
       "chapters": [
         1,
@@ -28,6 +28,7 @@
         12,
         13,
         14,
+        15,
         16,
         17
       ],
@@ -145,8 +146,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 32,
-      "n_banks": 32,
+      "units": 33,
+      "n_banks": 33,
       "n_decks": 0,
       "chapters": [
         1,
@@ -163,11 +164,12 @@
         12,
         13,
         14,
+        15,
         16,
         17
       ],
       "release_scheduled": true,
-      "release_rows": 32,
+      "release_rows": 33,
       "exclusions": 0,
       "unit_titles": [
         "Introduction to Entrepreneurship",
