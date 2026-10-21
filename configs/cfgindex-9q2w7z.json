@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-01T18:06:03Z",
+  "generated": "2026-10-21T20:29:38Z",
   "configs": [
     {
       "cfg_id": "demo",
@@ -10,8 +10,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 25,
-      "n_banks": 25,
+      "units": 32,
+      "n_banks": 32,
       "n_decks": 0,
       "chapters": [
         1,
@@ -24,7 +24,12 @@
         8,
         9,
         10,
-        11
+        11,
+        12,
+        13,
+        14,
+        16,
+        17
       ],
       "release_scheduled": false,
       "release_rows": 0,
@@ -44,12 +49,12 @@
         "The Role of Visions",
         "Constrained and Unconstrained Visions",
         "Visions of Knowledge and Reason",
+        "Visions of Social Processes",
+        "Varieties and Dynamics of Visions",
         "The Cabbie's Tale",
         "Singapore Past and Present",
         "Singapore's Healthcare Supremacy",
-        "America's Healthcare Humiliation in an International Perspective",
-        "What We Could Do If We Copied Singapore",
-        "Why Is the US Healthcare System Doing So Badly?"
+        "America's Healthcare Humiliation in an International Perspective"
       ]
     },
     {
@@ -140,8 +145,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 25,
-      "n_banks": 25,
+      "units": 32,
+      "n_banks": 32,
       "n_decks": 0,
       "chapters": [
         1,
@@ -154,10 +159,15 @@
         8,
         9,
         10,
-        11
+        11,
+        12,
+        13,
+        14,
+        16,
+        17
       ],
       "release_scheduled": true,
-      "release_rows": 25,
+      "release_rows": 32,
       "exclusions": 0,
       "unit_titles": [
         "Introduction to Entrepreneurship",
@@ -174,12 +184,12 @@
         "The Role of Visions",
         "Constrained and Unconstrained Visions",
         "Visions of Knowledge and Reason",
+        "Visions of Social Processes",
+        "Varieties and Dynamics of Visions",
         "The Cabbie's Tale",
         "Singapore Past and Present",
         "Singapore's Healthcare Supremacy",
-        "America's Healthcare Humiliation in an International Perspective",
-        "What We Could Do If We Copied Singapore",
-        "Why Is the US Healthcare System Doing So Badly?"
+        "America's Healthcare Humiliation in an International Perspective"
       ]
     }
   ]
