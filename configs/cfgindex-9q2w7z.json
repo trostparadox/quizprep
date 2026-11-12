@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-21T21:00:17Z",
+  "generated": "2026-11-12T22:36:26Z",
   "configs": [
     {
       "cfg_id": "demo",
@@ -10,8 +10,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 34,
-      "n_banks": 34,
+      "units": 45,
+      "n_banks": 45,
       "n_decks": 0,
       "chapters": [
         1,
@@ -31,7 +31,15 @@
         15,
         16,
         17,
-        18
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
       ],
       "release_scheduled": false,
       "release_rows": 0,
@@ -53,10 +61,10 @@
         "Visions of Knowledge and Reason",
         "Visions of Social Processes",
         "Varieties and Dynamics of Visions",
-        "The Cabbie's Tale",
-        "Singapore Past and Present",
-        "Singapore's Healthcare Supremacy",
-        "America's Healthcare Humiliation in an International Perspective"
+        "Visions of Equality",
+        "Visions of Power",
+        "Visions of Justice",
+        "The Cabbie's Tale"
       ]
     },
     {
@@ -147,8 +155,8 @@
       "active": true,
       "anonymize": false,
       "has_key": false,
-      "units": 34,
-      "n_banks": 34,
+      "units": 45,
+      "n_banks": 45,
       "n_decks": 0,
       "chapters": [
         1,
@@ -168,10 +176,18 @@
         15,
         16,
         17,
-        18
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26
       ],
       "release_scheduled": true,
-      "release_rows": 34,
+      "release_rows": 45,
       "exclusions": 0,
       "unit_titles": [
         "Introduction to Entrepreneurship",
@@ -190,10 +206,10 @@
         "Visions of Knowledge and Reason",
         "Visions of Social Processes",
         "Varieties and Dynamics of Visions",
-        "The Cabbie's Tale",
-        "Singapore Past and Present",
-        "Singapore's Healthcare Supremacy",
-        "America's Healthcare Humiliation in an International Perspective"
+        "Visions of Equality",
+        "Visions of Power",
+        "Visions of Justice",
+        "The Cabbie's Tale"
       ]
     }
   ]
